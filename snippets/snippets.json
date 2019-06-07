@@ -1,0 +1,298 @@
+{
+	"snippet.flag": {
+		"prefix": "fl",
+		"scope": "v,vlang",
+		"body": [
+			"#flag ${1:name}"
+		],
+		"description": "Code snippet for '#flag'"
+	},
+	"snippet.include": {
+		"prefix": "inc",
+		"scope": "v,vlang",
+		"body": [
+			"#include \"${1:name}\""
+		],
+		"description": "Code snippet for C '#include'"
+	},
+	"snippet.module": {
+		"prefix": "mod",
+		"scope": "v,vlang",
+		"body": [
+			"module ${1:name}"
+		],
+		"description": "Code snippet for 'module'"
+	},
+	"snippet.import": {
+		"prefix": "imp",
+		"scope": "v,vlang",
+		"body": [
+			"import ${1:module}"
+		],
+		"description": "Code snippet for 'import' module"
+	},
+	"snippet.go": {
+		"prefix": "go",
+		"scope": "v,vlang",
+		"body": [
+			"go ${1:function}()"
+		],
+		"description": "Code snippet for concurrency 'go'"
+	},
+	"snippet.goto": {
+		"prefix": "got",
+		"scope": "v,vlang",
+		"body": [
+			"goto ${1:label}"
+		],
+		"description": "Code snippet for 'goto' label"
+	},
+	"snippet.defer": {
+		"prefix": "def",
+		"scope": "v,vlang",
+		"body": [
+			"defer ${1:function}()"
+		],
+		"description": "Code snippet for 'defer' function"
+	},
+	"snippet.function": {
+		"prefix": "fn",
+		"scope": "v,vlang",
+		"body": [
+			"fn ${1:name}() {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for function 'fn'"
+	},
+	"snippet.public.function": {
+		"prefix": "pub",
+		"scope": "v,vlang",
+		"body": [
+			"pub fn ${1:name}() {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for public function 'pub fn'"
+	},
+	"snippet.for": {
+		"prefix": "for",
+		"scope": "v,vlang",
+		"body": [
+			"for {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for pure infinity 'for'"
+	},
+	"snippet.for.index": {
+		"prefix": "for",
+		"scope": "v,vlang",
+		"body": [
+			"for ${1:_} := ${2:value}; ${index:i} < ${3:value}; ${index:i}++ {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for index loop 'for'"
+	},
+	"snippet.foreach": {
+		"prefix": "fore",
+		"scope": "v,vlang",
+		"body": [
+			"for ${1:variable} in ${2:array} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for foreach 'for'"
+	},
+	"snippet.foreach.index": {
+		"prefix": "fore",
+		"scope": "v,vlang",
+		"body": [
+			"for ${1:_}, ${2:variable} in ${3:array} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for index based loop 'for'"
+	},
+	"snippet.switch": {
+		"prefix": "sw",
+		"scope": "v,vlang",
+		"body": [
+			"switch ${1:expression} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'switch' statement"
+	},
+	"snippet.break": {
+		"prefix": "br",
+		"scope": "v,vlang",
+		"body": [
+			"break"
+		],
+		"description": "Code snippet for 'break'"
+	},
+	"snippet.continue": {
+		"prefix": "con",
+		"scope": "v,vlang",
+		"body": [
+			"continue"
+		],
+		"description": "Code snippet for 'continue'"
+	},
+	"snippet.if": {
+		"prefix": "if",
+		"scope": "v,vlang",
+		"body": [
+			"if ${1:expression} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'if' statement"
+	},
+	"snippet.elseif": {
+		"prefix": "elf",
+		"scope": "v,vlang",
+		"body": [
+			"else if ${1:expression} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'else if' statement"
+	},
+	"snippet.else": {
+		"prefix": "el",
+		"scope": "v,vlang",
+		"body": [
+			"else {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'else' statement"
+	},
+	"snippet.ifelse": {
+		"prefix": "ie",
+		"scope": "v,vlang",
+		"body": [
+			"if ${1:expression} {",
+			"\t$0",
+			"} else {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'if-else' statement"
+	},
+	"snippet.type": {
+		"prefix": "ty",
+		"scope": "v,vlang",
+		"body": [
+			"type ${1:name} {2:type}"
+		],
+		"description": "Code snippet for 'type'"
+	},
+	"snippet.struct": {
+		"prefix": "stru",
+		"scope": "v,vlang",
+		"body": [
+			"struct ${1:name} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'struct'"
+	},
+	"snippet.interface": {
+		"prefix": "inte",
+		"scope": "v,vlang",
+		"body": [
+			"interface ${1:name} {}"
+		],
+		"description": "Code snippet for 'interface'"
+	},
+	"snippet.enum": {
+		"prefix": "en",
+		"scope": "v,vlang",
+		"body": [
+			"enum ${1:name} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for 'enum'"
+	},
+	"snippet.const": {
+		"prefix": "co",
+		"scope": "v,vlang",
+		"body": [
+			"const ${1:name} = ${2:value}"
+		],
+		"description": "Code snippet for 'const'"
+	},
+	"snippet.const.multiply": {
+		"prefix": "cons",
+		"scope": "v,vlang",
+		"body": [
+			"const (",
+			"\t$0",
+			")"
+		],
+		"description": "Code snippet for multiply 'const'"
+	},
+	"snippet.map": {
+		"prefix": "map",
+		"scope": "v,vlang",
+		"body": [
+			"map[${2:key}]${1:value}{}"
+		],
+		"description": "Code snippet for 'map'"
+	},
+	"snippet.assert": {
+		"prefix": "as",
+		"scope": "v,vlang",
+		"body": [
+			"assert ${1:expression}"
+		],
+		"description": "Code snippet for testing 'assert'"
+	},
+	"snippet.if.compile.time": {
+		"prefix": "$if",
+		"scope": "v,vlang",
+		"body": [
+			"$if ${1:name} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Code snippet for compile time 'if'"
+	},
+	"snippet.fn.print": {
+		"prefix": "pr",
+		"scope": "v,vlang",
+		"body": [
+			"print('${1:text}')"
+		],
+		"description": "Code snippet for standart based function 'print'"
+	},
+	"snippet.fn.eprint": {
+		"prefix": "epr",
+		"scope": "v,vlang",
+		"body": [
+			"eprint('${1:text}')"
+		],
+		"description": "Code snippet for standart based function 'eprint'"
+	},
+	"snippet.fn.println": {
+		"prefix": "prl",
+		"scope": "v,vlang",
+		"body": [
+			"println('${1:text}')"
+		],
+		"description": "Code snippet for standart based function 'println'"
+	},
+	"snippet.fn.eprintln": {
+		"prefix": "eprl",
+		"scope": "v,vlang",
+		"body": [
+			"eprintln('${1:text}')"
+		],
+		"description": "Code snippet standart std based function 'eprintln'"
+	}
+}
