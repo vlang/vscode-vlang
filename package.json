@@ -1,0 +1,111 @@
+{
+    "name": "vscode-vlang",
+    "displayName": "V",
+    "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
+    "publisher":   "0x9ef",
+
+    "icon": "images/icon.png",
+    "version": "0.0.1",
+    "license": "SEE LICENSE IN LICENSE",
+    "private": true,
+        "engines": {
+        "vscode": "^1.20.0"
+    },
+    "homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
+    "bugs": {
+        "url": "https://github.com/0x9ef/vscode-vlang/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/0x9ef/vscode-vlang.git"
+    },
+    "keywords": [
+        "V",
+        "v",
+        "v language",
+        "vlang",
+        "extension",
+        "autocompletion"
+    ],
+    "categories": [
+        "Themes",
+        "Snippets",
+        "Programming Languages"
+    ],
+    "contributes": {
+        "themes": [
+            {
+                "id": "dev-ligth-v",
+                "label": "V Development Ligth",
+                "uiTheme": "vs",
+                "path": "themes/dev-ligth-color-theme.json"
+            },
+            {
+                "id": "dev-dark-v",
+                "label": "V Development Dark",
+                "uiTheme": "vs-dark",
+                "path": "themes/dev-dark-color-theme.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "v",
+                "path": "snippets/snippets.json"
+            }
+        ],
+        "languages": [
+            {
+                "id": "v",
+                "aliases": [
+                    "V"
+                ],
+                "extensions": [
+                    ".v"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "v",
+                "scopeName": "source.v",
+                "path": "./syntaxes/syntax.tmLanguage.json"
+            }
+        ],
+        "configurationDefaults": {
+            "[v]": {
+                "editor.insertSpaces": true,
+                "editor.formatOnSave": true,
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": true
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "v.run",
+                "title": "V: Run current file"
+            },
+            {
+                "command": "v.help",
+                "title": "V: Show help info"
+            },
+            {
+                "command": "v.path",
+                "title": "V: Show local paths info"
+            },
+            {
+                "command": "v.test.file",
+                "title": "V: Test current file"
+            },
+            {
+                "command": "v.test.package",
+                "title": "V: Test current package"
+            },
+            {
+                "command": "v.playground",
+                "title": "V: Upload and share current code to V playground"
+            }
+        ]
+    }
+}
