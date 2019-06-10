@@ -38,13 +38,13 @@
                 "id": "dev-ligth-v",
                 "label": "V Development Ligth",
                 "uiTheme": "vs",
-                "path": "themes/dev-ligth-color-theme.json"
+                "path": "theme/dev-ligth-color-theme.json"
             },
             {
                 "id": "dev-dark-v",
                 "label": "V Development Dark",
                 "uiTheme": "vs-dark",
-                "path": "themes/dev-dark-color-theme.json"
+                "path": "theme/dev-dark-color-theme.json"
             }
         ],
         "snippets": [
