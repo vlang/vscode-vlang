@@ -7,8 +7,32 @@
 	"scopeName": "source.v",
 	"patterns": [
 		{
-			"name": "keyword.package.v",
-			"match": "\\b(module|import)\\b"
+			"begin": "(module)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.module.v"
+				}
+			},
+			"end": "([\\w]*)",
+			"endCaptures": {
+				"1": {
+					"name": "entity.name.module.v"
+				}
+			}
+		},
+		{
+			"begin": "(import)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.import.v"
+				}
+			},
+			"end": "([\\w]*)",
+			"endCaptures": {
+				"1": {
+					"name": "entity.name.import.v"
+				}
+			}
 		},
 		{
 			"begin": "(#include)\\s+",

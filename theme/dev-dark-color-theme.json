@@ -331,6 +331,25 @@
 		},
 		{
 			"scope": [
+				"entity.name.enum.v",
+				"entity.name.struct.v",
+				"entity.name.interface.v"
+			],
+			"settings": {
+				"foreground": "#4EC9B0"
+			}
+		},
+		{
+			"scope": [
+				"entity.name.module.v",
+				"entity.name.import.v"
+			],
+			"settings": {
+				"fontStyle": "bold underline"
+			}
+		},
+		{
+			"scope": [
 				"entity.other.attribute-name.class.css",
 				"entity.other.attribute-name.class.mixin.css",
 				"entity.other.attribute-name.id.css",
@@ -451,21 +470,15 @@
 			}
 		},
 		{
-			"scope": "storage",
-			"settings": {
-				"foreground": "#569cd6"
-			}
-		},
-		{
 			"scope": "storage.type",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#4EC9B0"
 			}
 		},
 		{
 			"scope": "storage.modifier",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#4EC9B0"
 			}
 		},
 		{
@@ -664,6 +677,7 @@
 				"foreground": "#4EC9B0"
 			}
 		},
+		
 		{
 			"name": "Control flow keywords",
 			"scope": [
