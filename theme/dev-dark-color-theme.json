@@ -336,7 +336,8 @@
 				"entity.name.interface.v"
 			],
 			"settings": {
-				"foreground": "#4EC9B0"
+				"foreground": "#4EC9B0",
+				"fontStyle": "bold underline"
 			}
 		},
 		{
@@ -478,7 +479,7 @@
 		{
 			"scope": "storage.modifier",
 			"settings": {
-				"foreground": "#4EC9B0"
+				"foreground": "#569cd6"
 			}
 		},
 		{
@@ -554,6 +555,12 @@
 			"scope": "keyword.operator",
 			"settings": {
 				"foreground": "#d4d4d4"
+			}
+		},
+		{
+			"scope": "entity.name.label.v",
+			"settings": {
+				"fontStyle": "bold underline"
 			}
 		},
 		{
