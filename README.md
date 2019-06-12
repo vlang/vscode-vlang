@@ -1,6 +1,6 @@
 # V for Visual Studio Code
-
-**V Language** support extension for Visual Studio Code. Syntax highlighting and code snippets.
+[**V Language**](https://vlang.io) support extension for Visual Studio Code. Syntax highlighting and code snippets.
+https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang&ssr=false
 
 ## Features
 * Code snippets
