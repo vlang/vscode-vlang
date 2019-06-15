@@ -5,7 +5,7 @@
     "publisher": "0x9ef",
 
     "icon": "images/icon.png",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
         "engines": {

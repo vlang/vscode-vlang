@@ -312,6 +312,13 @@
 			}
 		},
 		{
+			"scope": "entity.name.generic.v",
+			"settings": {
+				"foreground": "#4EC9B0",
+				"fontStyle": "bold underline"
+			}
+		},
+		{
 			"scope": "entity.name.tag",
 			"settings": {
 				"foreground": "#569cd6"
@@ -564,17 +571,16 @@
 			}
 		},
 		{
-			"scope": [
-				"keyword.operator.new",
-				"keyword.operator.expression",
-				"keyword.operator.cast",
-				"keyword.operator.sizeof",
-				"keyword.operator.instanceof",
-				"keyword.operator.logical.python"
+			/*"scope": [
+				"keyword.operator.arithmethic.v",
+				"keyword.operator.relation.v",
+				"keyword.operator.logical.v",
+				"keyword.operator.bitwise.v",
+				"keyword.operator.assignment.v",
 			],
 			"settings": {
-				"foreground": "#569cd6"
-			}
+				"foreground": "#C586C0"
+			}*/
 		},
 		{
 			"scope": "keyword.other.unit",

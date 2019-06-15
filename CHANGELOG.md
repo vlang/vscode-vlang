@@ -28,5 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid patterns for integer, float, hex numerics. 
 - Invalid patterns for new/exist function arguments.
 ### Changed
-- Highligting for `module, import, struct, enum, interface` from `default` to `bold underline`
+- Highligting for `module, import, struct, enum, interface` from `default` to `bold underline`.
+### Removed
+
+## [0.0.3] - 2019-06-16
+### Added
+- Pattern for generics.
+- Generic highlighting.
+- Assignment operators `&=, |=, ^=, &&=, ||=, >>=, <<=`.
+### Fixed
+- Invalid pattern for float numeric. 
+- Invalid pattern for new/exist function. 
+### Changed
 ### Removed

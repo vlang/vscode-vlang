@@ -7,13 +7,13 @@
 	"scopeName": "source.v",
 	"patterns": [
 		{
-			"begin": "(module)\\s+",
+			"begin": "^\\s*(module)\\s+",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.module.v"
 				}
 			},
-			"end": "([\\w]*)",
+			"end": "([0-9a-zA-Z_.]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.module.v"
@@ -21,13 +21,13 @@
 			}
 		},
 		{
-			"begin": "(import)\\s+",
+			"begin": "^\\s*(import)\\s+",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.import.v"
 				}
 			},
-			"end": "([\\w]*)",
+			"end": "([0-9a-zA-Z_.]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.import.v"
@@ -35,13 +35,13 @@
 			}
 		},
 		{
-			"begin": "(#include)\\s+",
+			"begin": "^\\s*(#include)\\s+",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "(\\<)\\s*([\\w]*)(\\>)",
+			"end": "(\\<)\\s*([0-9a-zA-Z_.]*)(\\>)",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -55,7 +55,7 @@
 			}
 		},
 		{
-			"match": "(#flag)\\s+([-\/:\\w\\s]*)?",
+			"match": "^\\s*(#flag)\\s+([-\/:\\w\\s]*)?",
 			"captures": {
 				"1": {
 					"name": "keyword.flag.v"
@@ -67,6 +67,9 @@
 		},
 		{
 			"include": "#comments"
+		},
+		{
+			"include": "#generic"
 		},
 		{
 			"include": "#operator"
@@ -177,82 +180,6 @@
 				}
 			]
 		},
-		"variable-assignment": {
-			"patterns": [
-				{
-					"match": "([\\w]+)\\s*(:=|=)\\s*([\\S]*)",
-					"captures": {
-						"1": {
-							"name": "variable.other.assignment.v"
-						},
-						"2": {
-							"name": "keyword.operator.assignment.v"
-						},
-						"3": {
-							"patterns": [
-								{
-									"include": "#parent"
-								},
-								{
-									"include": "#square-bracket"
-								},
-								{
-									"include": "#curly-bracket"
-								},
-								{
-									"include": "#angle-bracket"
-								},
-								{
-									"include": "#std-type"
-								},
-								{
-									"include": "#function-exist"
-								},
-								{
-									"include": "#singlestring"
-								},
-								{
-									"include": "#doublestring"
-								},
-								{
-									"include": "#number"
-								}
-							]
-						}
-					}
-				}
-			]
-		},
-		"variable-increment": {
-			"patterns": [
-				{
-					"match": "([\\w]*)(\\+\\+)",
-					"captures": {
-						"1": {
-							"name": "variable.other.increment.v"
-						},
-						"2": {
-							"name": "keyword.operator.increment.v"
-						}
-					}
-				}
-			]
-		},
-		"variable-decrement": {
-			"patterns": [
-				{
-					"match": "([\\w]*)(\\-\\-)",
-					"captures": {
-						"1": {
-							"name": "variable.other.decrement.v"
-						},
-						"2": {
-							"name": "keyword.operator.decrement.v"
-						}
-					}
-				}
-			]
-		},
 		"dot": {
 			"match": "\\.",
 			"name": "punctuation.other.dot.v"
@@ -289,13 +216,13 @@
 			"patterns": [
 				{
 					"comment": "Only for generics",
-					"match": "\\<expr",
-					"name": "punctuation.other.lessthan.v"
+					"match": "\\<",
+					"name": "punctuation.other.anglebracket.begin.v"
 				},
 				{
 					"comment": "Only for generics",
-					"match": "\\>expr",
-					"name": "punctuation.other.greatethan.v"
+					"match": "\\>",
+					"name": "punctuation.other.anglebracket.end.v"
 				}
 			]
 		},
@@ -341,9 +268,6 @@
 					"include": "#curly-bracket"
 				},
 				{
-					"include": "#angle-bracket"
-				},
-				{
 					"include": "#colon"
 				},
 				{
@@ -354,10 +278,108 @@
 				}
 			]
 		},
+		"generic": {
+			"patterns": [
+				{
+					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)(?=)",
+					"captures": {
+						"0": {
+							"name": "punctuation.other.anglebracket.begin.v"
+						},
+						"2": {
+							"name": "entity.name.generic.v"
+						},
+						"3": {
+							"name": "punctuation.other.anglebracket.end.v"
+						}
+					}
+				}
+			]
+		},
+		"variable-assignment": {
+			"patterns": [
+				{
+					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*([\\W\\S]*)(\/\/\/*[\\W\\S]*)",
+					"captures": {
+						"1": {
+							"name": "variable.other.assignment.v"
+						},
+						"2": {
+							"name": "keyword.operator.assignment.v"
+						},
+						"3": {
+							"patterns": [
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
+								},
+								{
+									"include": "#punctuation"
+								},
+								{
+									"include": "#function-exist"
+								},
+								{
+									"include": "#singlestring"
+								},
+								{
+									"include": "#doublestring"
+								},
+								{
+									"include": "#number"
+								}
+							]
+						},
+						"4": {
+							"patterns": [
+								{
+									"include": "#comments"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		"variable-increment": {
+			"patterns": [
+				{
+					"match": "([0-9a-zA-Z_]*)(\\+\\+)",
+					"captures": {
+						"1": {
+							"name": "variable.other.increment.v"
+						},
+						"2": {
+							"name": "keyword.operator.increment.v"
+						}
+					}
+				}
+			]
+		},
+		"variable-decrement": {
+			"patterns": [
+				{
+					"match": "([0-9a-zA-Z_]*)(\\-\\-)",
+					"captures": {
+						"1": {
+							"name": "variable.other.decrement.v"
+						},
+						"2": {
+							"name": "keyword.operator.decrement.v"
+						}
+					}
+				}
+			]
+		},
 		"function-new": {
 			"patterns": [
 				{
-					"begin": "\\b(fn)\\s+([\\w]*)",
+					"begin": "^\\s*(\\bfn\\b)\\s+([0-9a-zA-Z_]+)(\\()",
 					"beginCaptures": {
 						"1": {
 							"name": "keyword.function.v"
@@ -373,64 +395,45 @@
 									"name": "entity.name.function.v"
 								}
 							]
+						},
+						"3": {
+							"name": "punctuation.other.parent.begin.v"
 						}
 					},
-					"end": "(\\()([\\s\\w\\,\\.\\:\\?]*)(\\))",
+					"end": "([\\s\\w\\,\\.\\:\\<\\>\\[\\]\\(\\)\\?]*)(\\))",
 					"endCaptures": {
 						"1": {
-							"name": "punctuation.other.parent.begin.v"
-						},
-						"2": {
 							"patterns": [
 								{
-									"match": "\\b(\\w+)\\s+(\\w+)([\\s\\,\\.\\:\\?\\[\\]]*)",
-									"captures": {
-										"1": {
-											"patterns": [
-												{
-													"match": "\\d\\w*",
-													"name": "invalid.illegal.v"
-												},
-												{
-													"match": "\\w*",
-													"name": "variable.name.function.v"
-												}
-											]
-										},
-										"2": {
-											"patterns": [
-												{
-													"include": "#std-type"
-												},
-												{
-													"include": "#std-cbased-type"
-												}
-											]
-										},
-										"3": {
-											"patterns": [
-												{
-													"include": "#dot"
-												},
-												{
-													"include": "#comma"
-												},
-												{
-													"include": "#colon"
-												},
-												{
-													"include": "#question"
-												},
-												{
-													"include": "#square-bracket"
-												}
-											]
-										}
-									}
+									"include": "#dot"
+								},
+								{
+									"include": "#comma"
+								},
+								{
+									"include": "#colon"
+								},
+								{
+									"include": "#question"
+								},
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#parent"
+								},
+								{
+									"include": "#square-bracket"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
 								}
 							]
 						},
-						"3": {
+						"2": {
 							"name": "punctuation.other.parent.end.v"
 						}
 					}
@@ -440,7 +443,7 @@
 		"function-exist": {
 			"patterns": [
 				{
-					"match": "\\b([\\w]+)(\\()([\\W\\S]*)(\\))",
+					"match": "([0-9a-zA-Z_]+)(\\()([\\W\\S]*)(\\))",
 					"captures": {
 						"1": {
 							"patterns": [
@@ -450,7 +453,7 @@
 								},
 								{
 									"match": "\\w*",
-									"name": "entity.name.function.v"
+									"name": "support.function.v"
 								}
 							]
 						},
@@ -470,6 +473,12 @@
 								},
 								{
 									"include": "#question"
+								},
+								{
+									"include": "#parent"
+								},
+								{
+									"include": "#generic"
 								},
 								{
 									"include": "#square-bracket"
@@ -498,55 +507,11 @@
 				}
 			]
 		},
-		"function-new-argument-parsing": {
-			"match": "\\b([\\w]*)[\\s\\,\\.\\:\\?]+([\\w]*)",
-			"captures": {
-				"0": {
-					"patterns": [
-						{
-							"include": "#dot"
-						},
-						{
-							"include": "#comma"
-						},
-						{
-							"include": "#colon"
-						},
-						{
-							"include": "#question"
-						}
-					]
-				},
-				"1": {
-					"patterns": [
-						{
-							"match": "\\d\\w*",
-							"name": "invalid.illegal.v"
-						},
-						{
-							"match": "\\w*",
-							"name": "variable.name.function.v"
-						}
-					]
-				},
-				"2": {
-					"patterns": [
-						{
-							"include": "#std-type"
-						},
-						{
-							"include": "#std-cbased-type"
-						}
-					]
-				}
-			}
-		},
 		"label": {
 			"comment": "Current unavaliable",
 			"patterns": [
 				{
-					"comment": "First version - ^\\b(\\w+\\:)\n*",
-					"match": "^\\b(\\w+)(\\:)",
+					"match": "^\\s*([0-9a-zA-Z_]+)(\\:)",
 					"captures": {
 						"1": {
 							"name": "entity.name.label.v"
@@ -557,7 +522,7 @@
 					}
 				},
 				{
-					"match": "\\b(goto)\\s+(\\w+)",
+					"match": "\\b(goto)\\s+([0-9a-zA-Z_]+)",
 					"captures": {
 						"1": {
 							"name": "keyword.control.v"
@@ -573,7 +538,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
-					"match": "\\b(type)\\s+([\\w]*)\\s*([\\w]*)",
+					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s*([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.type.v"
@@ -610,7 +575,7 @@
 			"patterns": [
 				{
 					"comment": "Enumeration",
-					"match": "\\b(enum)\\s+([\\w]*)",
+					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.enum.v"
@@ -635,7 +600,7 @@
 			"patterns": [
 				{
 					"comment": "Structure",
-					"match": "\\b(struct)\\s+([\\w]*)",
+					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.struct.v"
@@ -660,7 +625,7 @@
 			"patterns": [
 				{
 					"comment": "Interface",
-					"match": "\\b(interface)\\s+([\\w]*)",
+					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.interface.v"
@@ -738,7 +703,7 @@
 				{
 					"comment": "Assignment  operators",
 					"name": "keyword.operator.assignment.v",
-					"match": "(\\:\\=|\\=|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=)"
+					"match": "(\\:\\=|\\=|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=|\\&\\=|\\|\\=|\\^\\=|\\&\\&\\=|\\|\\|\\=|\\>\\>\\=|\\<\\<\\=)"
 				}
 			]
 		},
@@ -807,7 +772,7 @@
 		"number": {
 			"patterns": [
 				{
-					"match": "([-]?)([0-9]+)([.])+([0-9]+)",
+					"match": "([-]?)([0-9e]+)([.])+([0-9]+)",
 					"captures": {
 						"1": {
 							"name": "constant.numeric.float.v"
