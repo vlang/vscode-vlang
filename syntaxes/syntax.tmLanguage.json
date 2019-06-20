@@ -13,7 +13,7 @@
 					"name": "keyword.module.v"
 				}
 			},
-			"end": "([0-9a-zA-Z_.]*)",
+			"end": "([0-9a-zA-Z_]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.module.v"
@@ -107,11 +107,11 @@
 		},
 		{
 			"comment": "Currently Unavaliable",
-			"include": "#discard-variable-increment"
+			"include": "#variable-increment"
 		},
 		{
 			"comment": "Currently Unavaliable",
-			"include": "#discard-variable-decrement"
+			"include": "#variable-decrement"
 		},
 		{
 			"include": "#keyword"
@@ -281,13 +281,22 @@
 		"generic": {
 			"patterns": [
 				{
-					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)(?=)",
+					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
-						"0": {
+						"1": {
 							"name": "punctuation.other.anglebracket.begin.v"
 						},
 						"2": {
-							"name": "entity.name.generic.v"
+							"patterns": [
+								{
+									"match": "\\d\\w+",
+									"name": "invalid.illegal.v"
+								},
+								{
+									"match": "\\w*",
+									"name": "entity.name.generic.v"
+								}
+							]
 						},
 						"3": {
 							"name": "punctuation.other.anglebracket.end.v"
@@ -299,7 +308,7 @@
 		"variable-assignment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*([\\W\\S]*)(\/\/\/*[\\W\\S]*)",
+					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
 					"captures": {
 						"1": {
 							"name": "variable.other.assignment.v"
@@ -332,13 +341,6 @@
 								},
 								{
 									"include": "#number"
-								}
-							]
-						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#comments"
 								}
 							]
 						}
