@@ -41,7 +41,7 @@
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "(\\<)\\s*([0-9a-zA-Z_.]*)(\\>)",
+			"end": "(\\<)\\s*([0-9a-zA-Z_\\\\.\/]*)(\\>)",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -55,7 +55,7 @@
 			}
 		},
 		{
-			"match": "^\\s*(#flag)\\s+([-\/:\\w\\s]*)?",
+			"match": "^\\s*(#flag)\\s+(.*)?",
 			"captures": {
 				"1": {
 					"name": "keyword.flag.v"
@@ -349,7 +349,7 @@
 		"variable-increment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]*)(\\+\\+)",
+					"match": "([0-9a-zA-Z_]+)(\\+\\+)(?=)",
 					"captures": {
 						"1": {
 							"name": "variable.other.increment.v"
@@ -364,7 +364,7 @@
 		"variable-decrement": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]*)(\\-\\-)",
+					"match": "([0-9a-zA-Z_]+)(\\-\\-)(?=)",
 					"captures": {
 						"1": {
 							"name": "variable.other.decrement.v"
@@ -387,7 +387,7 @@
 						"2": {
 							"patterns": [
 								{
-									"match": "\\d\\w*",
+									"match": "\\d\\w+",
 									"name": "invalid.illegal.v"
 								},
 								{
@@ -448,7 +448,7 @@
 						"1": {
 							"patterns": [
 								{
-									"match": "\\d\\w*",
+									"match": "\\d\\w+",
 									"name": "invalid.illegal.v"
 								},
 								{
@@ -547,7 +547,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.type.v",
@@ -559,7 +559,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.type.v",
@@ -584,7 +584,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.enum.v",
@@ -609,7 +609,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.struct.v",
@@ -634,7 +634,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.interface.v",
@@ -655,6 +655,14 @@
 				{
 					"name": "storage.type.byte.v",
 					"match": "\\bbyte\\b"
+				},
+				{
+					"name": "storage.type.byteptr.v",
+					"match": "\\bbyteptr\\b"
+				},
+				{
+					"name": "storage.type.voidptr.v",
+					"match": "\\bvoidptr\\b"
 				},
 				{
 					"name": "storage.type.string.v",
@@ -710,14 +718,9 @@
 		"keyword": {
 			"patterns": [
 				{
-					"comment": "Keyword Builtin",
-					"name": "keyword.builtin.v",
-					"match": "\\b(in|or)\\b"
-				},
-				{
 					"comment": "Keyword Control",
 					"name": "keyword.control.v",
-					"match": "\\b(break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
+					"match": "\\b(in|or|break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
 					"comment": "Keyword Control Specific",
