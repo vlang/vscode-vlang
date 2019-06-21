@@ -513,24 +513,50 @@
 			"comment": "Current unavaliable",
 			"patterns": [
 				{
-					"match": "^\\s*([0-9a-zA-Z_]+)(\\:)",
+					"match": "^\\s*(default)([0-9a-zA-Z_]+)(:)",
 					"captures": {
 						"1": {
-							"name": "entity.name.label.v"
+							"patterns": [
+								{
+									"name": "invalid.illegal.v",
+									"match": "\\d\\w+"
+								},
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
 						},
 						"2": {
+							"patterns": [
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
+						},
+						"3": {
 							"name": "punctuation.other.colon.v"
 						}
 					}
 				},
 				{
-					"match": "\\b(goto)\\s+([0-9a-zA-Z_]+)",
+					"match": "^\\s*(\\bgoto\\b)\\s+([0-9a-zA-Z_]+)",
 					"captures": {
 						"1": {
 							"name": "keyword.control.v"
 						},
 						"2": {
-							"name": "entity.name.label.v"
+							"patterns": [
+								{
+									"name": "invalid.illegal.v",
+									"match": "\\d\\w+"
+								},
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
 						}
 					}
 				}
@@ -540,7 +566,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
-					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s*([0-9a-zA-Z_]*)",
+					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_.]*)\\s*([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.type.v"
@@ -577,7 +603,7 @@
 			"patterns": [
 				{
 					"comment": "Enumeration",
-					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_]*)",
+					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.enum.v"
@@ -602,7 +628,7 @@
 			"patterns": [
 				{
 					"comment": "Structure",
-					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z]*)",
+					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.struct.v"
@@ -627,7 +653,7 @@
 			"patterns": [
 				{
 					"comment": "Interface",
-					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z]*)",
+					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.interface.v"
@@ -777,7 +803,7 @@
 		"number": {
 			"patterns": [
 				{
-					"match": "([-]?)([0-9e]+)([.])+([0-9]+)",
+					"match": "([-]?)([0-9e]*)([.])+([0-9]+)",
 					"captures": {
 						"1": {
 							"name": "constant.numeric.float.v"
