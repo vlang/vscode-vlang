@@ -5,7 +5,7 @@
     "publisher": "0x9ef",
 
     "icon": "images/icon.png",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
         "engines": {
@@ -60,7 +60,7 @@
                     "V"
                 ],
                 "extensions": [
-                    ".v"
+                    ".v", ".vh"
                 ],
                 "configuration": "./language-configuration.json"
             }
@@ -71,6 +71,7 @@
                 "scopeName": "source.v",
                 "path": "./syntaxes/syntax.tmLanguage.json"
             }
+
         ],
         "configurationDefaults": {
             "[v]": {

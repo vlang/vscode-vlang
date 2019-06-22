@@ -2,7 +2,7 @@
 	"name": "v",
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"fileTypes": [
-		".v"
+		".v", ".vh"
 	],
 	"scopeName": "source.v",
 	"patterns": [
@@ -13,7 +13,7 @@
 					"name": "keyword.module.v"
 				}
 			},
-			"end": "([0-9a-zA-Z_.]*)",
+			"end": "([0-9a-zA-Z_]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.module.v"
@@ -41,7 +41,7 @@
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "(\\<)\\s*([0-9a-zA-Z_.]*)(\\>)",
+			"end": "(\\<)\\s*([0-9a-zA-Z_\\\\.\/]*)(\\>)",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -55,7 +55,7 @@
 			}
 		},
 		{
-			"match": "^\\s*(#flag)\\s+([-\/:\\w\\s]*)?",
+			"match": "^\\s*(#flag)\\s+(.*?)$",
 			"captures": {
 				"1": {
 					"name": "keyword.flag.v"
@@ -79,6 +79,12 @@
 		},
 		{
 			"include": "#function-exist"
+		},
+		{
+			"include": "#function-new-limited-overload"
+		},
+		{
+			"include": "#function-new-extend"
 		},
 		{
 			"comment": "Currently Unavaliable",
@@ -106,12 +112,16 @@
 			"include": "#variable-assignment"
 		},
 		{
-			"comment": "Currently Unavaliable",
-			"include": "#discard-variable-increment"
+			"include": "#variable-increment"
 		},
 		{
-			"comment": "Currently Unavaliable",
-			"include": "#discard-variable-decrement"
+			"include": "#variable-decrement"
+		},
+		{
+			"include": "#label"
+		},
+		{
+			"include": "#goto"
 		},
 		{
 			"include": "#keyword"
@@ -136,18 +146,6 @@
 		}
 	],
 	"repository": {
-		"line-continuation-character": {
-			"patterns": [
-				{
-					"match": "(\\\\)\\n",
-					"captures": {
-						"1": {
-							"name": "constant.character.escape.line-continuation.v"
-						}
-					}
-				}
-			]
-		},
 		"comments": {
 			"patterns": [
 				{
@@ -278,16 +276,47 @@
 				}
 			]
 		},
+		"punctuation-function": {
+			"patterns": [
+				{
+					"include": "#dot"
+				},
+				{
+					"include": "#comma"
+				},
+				{
+					"include": "#parent"
+				},
+				{
+					"include": "#square-bracket"
+				},
+				{
+					"include": "#colon"
+				},
+				{
+					"include": "#question"
+				}
+			]
+		},
 		"generic": {
 			"patterns": [
 				{
-					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)(?=)",
+					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
-						"0": {
+						"1": {
 							"name": "punctuation.other.anglebracket.begin.v"
 						},
 						"2": {
-							"name": "entity.name.generic.v"
+							"patterns": [
+								{
+									"match": "\\d\\w+",
+									"name": "invalid.illegal.v"
+								},
+								{
+									"match": "\\w*",
+									"name": "entity.name.generic.v"
+								}
+							]
 						},
 						"3": {
 							"name": "punctuation.other.anglebracket.end.v"
@@ -299,7 +328,7 @@
 		"variable-assignment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*([\\W\\S]*)(\/\/\/*[\\W\\S]*)",
+					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
 					"captures": {
 						"1": {
 							"name": "variable.other.assignment.v"
@@ -334,13 +363,6 @@
 									"include": "#number"
 								}
 							]
-						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#comments"
-								}
-							]
 						}
 					}
 				}
@@ -349,7 +371,7 @@
 		"variable-increment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]*)(\\+\\+)",
+					"match": "([0-9a-zA-Z_]+)(\\+\\+)(?=)",
 					"captures": {
 						"1": {
 							"name": "variable.other.increment.v"
@@ -364,7 +386,7 @@
 		"variable-decrement": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]*)(\\-\\-)",
+					"match": "([0-9a-zA-Z_]+)(\\-\\-)(?=)",
 					"captures": {
 						"1": {
 							"name": "variable.other.decrement.v"
@@ -379,7 +401,15 @@
 		"function-new": {
 			"patterns": [
 				{
-					"begin": "^\\s*(\\bfn\\b)\\s+([0-9a-zA-Z_]+)(\\()",
+					"match": "(\\bfn\\b)\\s+",
+					"captures": {
+						"1": {
+							"name": "keyword.function.v"
+						}
+					}
+				},
+				{
+					"begin": "(\\bfn\\b)\\s+(?:(?:C\\.)?)([0-9a-zA-Z_]+)([\\w\\<\\>]*)",
 					"beginCaptures": {
 						"1": {
 							"name": "keyword.function.v"
@@ -387,7 +417,7 @@
 						"2": {
 							"patterns": [
 								{
-									"match": "\\d\\w*",
+									"match": "\\d\\w+",
 									"name": "invalid.illegal.v"
 								},
 								{
@@ -397,33 +427,28 @@
 							]
 						},
 						"3": {
-							"name": "punctuation.other.parent.begin.v"
-						}
-					},
-					"end": "([\\s\\w\\,\\.\\:\\<\\>\\[\\]\\(\\)\\?]*)(\\))",
-					"endCaptures": {
-						"1": {
 							"patterns": [
 								{
-									"include": "#dot"
-								},
+									"include": "#generic"
+								}
+							]
+						}
+					},
+					"end": "(\\()(.*?)(\\))",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"2": {
+							"patterns": [
 								{
-									"include": "#comma"
-								},
-								{
-									"include": "#colon"
-								},
-								{
-									"include": "#question"
+									"include": "#punctuation-function"
 								},
 								{
 									"include": "#generic"
 								},
 								{
-									"include": "#parent"
-								},
-								{
-									"include": "#square-bracket"
+									"include": "#storage"
 								},
 								{
 									"include": "#std-type"
@@ -433,8 +458,177 @@
 								}
 							]
 						},
-						"2": {
+						"3": {
 							"name": "punctuation.other.parent.end.v"
+						}
+					}
+				}
+			]
+		},
+		"function-new-extend": {
+			"patterns": [
+				{
+					"match": "(\\bfn\\b)\\s*(\\()(.*?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)([\\w\\<\\>]*)(\\()(.*?)(\\))",
+					"captures": {
+						"1": {
+							"name": "keyword.function.v"
+						},
+						"2": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"3": {
+							"patterns": [
+								{
+									"include": "#storage"
+								},
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
+								},
+								{
+									"include": "#punctuation-function"
+								}
+							]
+						},
+						"4": {
+							"name": "punctuation.other.parent.end.v"
+						},
+						"5": {
+							"patterns": [
+								{
+									"match": "\\d\\w+",
+									"name": "invalid.illegal.v"
+								},
+								{
+									"match": "\\w*",
+									"name": "entity.name.function.v"
+								}
+							]
+						},
+						"6": {
+							"patterns": [
+								{
+									"include": "#generic"
+								}
+							]
+						},
+						"7": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"8": {
+							"patterns": [
+								{
+									"include": "#punctuation-function"
+								},
+								{
+									"include": "#storage"
+								},
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
+								}
+							]
+						},
+						"9": {
+							"name": "punctuation.other.parent.end.v"
+						}
+					}
+				}
+			]
+		},
+		"function-new-limited-overload": {
+			"patterns": [
+				{
+					"match": "(\\bfn\\b)\\s*(\\()(.+?)(\\))\\s*([\\+\\-\\*\/]?)\\s*(\\()(.+?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)([\\w\\<\\>]*)",
+					"captures": {
+						"1": {
+							"name": "keyword.function.v"
+						},
+						"2": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"3": {
+							"patterns": [
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#storage"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
+								},
+								{
+									"include": "#punctuation-function"
+								}
+							]
+						},
+						"4": {
+							"name": "punctuation.other.parent.end.v"
+						},
+						"5": {
+							"patterns": [
+								{
+									"include": "#operator"
+								}
+							]
+						},
+						"6": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"7": {
+							"patterns": [
+								{
+									"include": "#generic"
+								},
+								{
+									"include": "#storage"
+								},
+								{
+									"include": "#std-type"
+								},
+								{
+									"include": "#std-cbased-type"
+								},
+								{
+									"include": "#punctuation-function"
+								}
+							]
+						},	
+						"8": {
+							"name": "punctuation.other.parent.end.v"
+						},
+						"9": {
+							"patterns": [
+								{
+									"match": "\\d\\w+",
+									"name": "invalid.illegal.v"
+								},
+								{
+									"match": "\\w*",
+									"name": "entity.name.function.v"
+								}
+							]
+						},
+						"10": {
+							"patterns": [
+								{
+									"include": "#generic"
+								}
+							]
 						}
 					}
 				}
@@ -443,12 +637,12 @@
 		"function-exist": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)(\\()([\\W\\S]*)(\\))",
+					"match": "([0-9a-zA-Z_]+)([\\w\\<\\>]*)(\\()(.*?)(\\))",
 					"captures": {
 						"1": {
 							"patterns": [
 								{
-									"match": "\\d\\w*",
+									"match": "\\d\\w+",
 									"name": "invalid.illegal.v"
 								},
 								{
@@ -458,30 +652,25 @@
 							]
 						},
 						"2": {
-							"name": "punctuation.other.parent.begin.v"
-						},
-						"3": {
 							"patterns": [
 								{
-									"include": "#dot"
-								},
-								{
-									"include": "#comma"
-								},
-								{
-									"include": "#colon"
-								},
-								{
-									"include": "#question"
-								},
-								{
-									"include": "#parent"
-								},
+									"include": "#generic"
+								}
+							]
+						},
+						"3": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"4": {
+							"patterns": [
 								{
 									"include": "#generic"
 								},
 								{
-									"include": "#square-bracket"
+									"include": "#storage"
+								},
+								{
+									"include": "#operator"
 								},
 								{
 									"include": "#std-type"
@@ -497,10 +686,13 @@
 								},
 								{
 									"include": "#number"
+								},
+								{
+									"include": "$self"
 								}
 							]
 						},
-						"4": {
+						"5": {
 							"name": "punctuation.other.parent.end.v"
 						}
 					}
@@ -511,24 +703,50 @@
 			"comment": "Current unavaliable",
 			"patterns": [
 				{
-					"match": "^\\s*([0-9a-zA-Z_]+)(\\:)",
+					"match": "^\\s*(default)([0-9a-zA-Z_]+)(:)",
 					"captures": {
 						"1": {
-							"name": "entity.name.label.v"
+							"patterns": [
+								{
+									"name": "invalid.illegal.v",
+									"match": "\\d\\w+"
+								},
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
 						},
 						"2": {
+							"patterns": [
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
+						},
+						"3": {
 							"name": "punctuation.other.colon.v"
 						}
 					}
 				},
 				{
-					"match": "\\b(goto)\\s+([0-9a-zA-Z_]+)",
+					"match": "^\\s*(\\bgoto\\b)\\s+([0-9a-zA-Z_]+)",
 					"captures": {
 						"1": {
 							"name": "keyword.control.v"
 						},
 						"2": {
-							"name": "entity.name.label.v"
+							"patterns": [
+								{
+									"name": "invalid.illegal.v",
+									"match": "\\d\\w+"
+								},
+								{
+									"name": "entity.name.label.v",
+									"match": "\\w*"
+								}
+							]
 						}
 					}
 				}
@@ -538,7 +756,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
-					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s*([0-9a-zA-Z_]*)",
+					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_.]*)\\s*([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.type.v"
@@ -547,7 +765,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.type.v",
@@ -559,7 +777,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.type.v",
@@ -575,7 +793,7 @@
 			"patterns": [
 				{
 					"comment": "Enumeration",
-					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_]*)",
+					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.enum.v"
@@ -584,7 +802,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.enum.v",
@@ -600,7 +818,7 @@
 			"patterns": [
 				{
 					"comment": "Structure",
-					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z]*)",
+					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.struct.v"
@@ -609,7 +827,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.struct.v",
@@ -625,7 +843,7 @@
 			"patterns": [
 				{
 					"comment": "Interface",
-					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z]*)",
+					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z_.]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.interface.v"
@@ -634,7 +852,7 @@
 							"patterns": [
 								{
 									"name": "invalid.illegal.v",
-									"match": "\\d\\w*"
+									"match": "\\d\\w+"
 								},
 								{
 									"name": "entity.name.interface.v",
@@ -657,12 +875,28 @@
 					"match": "\\bbyte\\b"
 				},
 				{
+					"name": "storage.type.byteptr.v",
+					"match": "\\bbyteptr\\b"
+				},
+				{
+					"name": "storage.type.voidptr.v",
+					"match": "\\bvoidptr\\b"
+				},
+				{
 					"name": "storage.type.string.v",
 					"match": "\\bstring\\b"
 				},
 				{
+					"name": "storage.type.ustring.v",
+					"match": "\\bustring\\b"
+				},
+				{
 					"name": "storage.type.rune.v",
 					"match": "\\brune\\b"
+				},
+				{
+					"name": "storage.type.option.v",
+					"match": "\\boption\\b"
 				},
 				{
 					"name": "storage.type.numeric.v",
@@ -710,14 +944,9 @@
 		"keyword": {
 			"patterns": [
 				{
-					"comment": "Keyword Builtin",
-					"name": "keyword.builtin.v",
-					"match": "\\b(in|or)\\b"
-				},
-				{
 					"comment": "Keyword Control",
 					"name": "keyword.control.v",
-					"match": "\\b(break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
+					"match": "\\b(in|or|break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
 					"comment": "Keyword Control Specific",
@@ -772,7 +1001,7 @@
 		"number": {
 			"patterns": [
 				{
-					"match": "([-]?)([0-9e]+)([.])+([0-9]+)",
+					"match": "([-]?)([0-9e]*)([.]){1}([0-9]+)",
 					"captures": {
 						"1": {
 							"name": "constant.numeric.float.v"
@@ -813,24 +1042,68 @@
 			]
 		},
 		"singlestring": {
+			"begin": "\\'",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.begin.v"
+				}
+			},
+			"end": "\\'",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.end.v"
+				}
+			},
 			"name": "string.quoted.single.v",
-			"begin": "'",
-			"end": "'",
 			"patterns": [
 				{
-					"name": "constant.character.escape.v",
-					"match": "\\\\."
+					"include": "#string-escaped-char"
+				},
+				{
+					"include": "#string-placeholder"
 				}
 			]
 		},
 		"doublestring": {
-			"name": "string.quoted.double.v",
 			"begin": "\"",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.begin.v"
+				}
+			},
 			"end": "\"",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.end.v"
+				}
+			},
+			"name": "string.quoted.double.v",
 			"patterns": [
 				{
-					"name": "constant.character.escape.v",
-					"match": "\\\\."
+					"include": "#string-escaped-char"
+				},
+				{
+					"include": "#string-placeholder"
+				}
+			]
+		},
+		"string-escaped-char": {
+			"patterns": [
+				{
+					"match": "\\\\([0-7]{3}|[abfnrtv\\\\'\"]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})",
+					"name": "constant.character.escape.v"
+				},
+				{
+					"match": "\\\\[^0-7xuUabfnrtv\\'\"]",
+					"name": "invalid.illegal.unknown-escape.v"
+				}
+			]
+		},
+		"string-placeholder": {
+			"patterns": [
+				{
+					"match": "%(\\[\\d+\\])?([\\+#\\-0\\x20]{,2}((\\d+|\\*)?(\\.?(\\d+|\\*|(\\[\\d+\\])\\*?)?(\\[\\d+\\])?)?))?[vT%tbcdoqxXUbeEfFgGsp]",
+					"name": "constant.other.placeholder.v"
 				}
 			]
 		}

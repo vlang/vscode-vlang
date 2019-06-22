@@ -41,3 +41,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid pattern for new/exist function. 
 ### Changed
 ### Removed
+
+## [0.0.4] - 2019-06-22
+### Added
+- Pattern for static types `byteptr, voidptr, ustring`
+- Pattern for extend (extra) function syntax `fn (a mut Vector) Set() {}`
+- Pattern for limited operator overloading `fn (a Operand) + (b Operand)Operand {}`
+- String placeholder.
+- String escaped characters.
+- Highlighting for V compiler headers without open source code __`.vh`__
+### Fixed
+- Invalid pattern for floating point numbers.
+- Invalid pattern for single, double strings. 
+- Invalid pattern for new function declaration.
+- Invalid pattern for exist function.
+- Invalid patterns for `module, import, #include, #flag`
+- Invalid pattern for generic `<T>`
+- Invalid pattern for variable assignment.
+- Invalid pattern for label (conflict with default keyword) __`default:`__.
+### Changed
+- Included pattern for variable increment, decrement.  
