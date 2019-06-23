@@ -139,6 +139,9 @@
 			"include": "#number"
 		},
 		{
+			"include": "#rawstring"
+		},
+		{
 			"include": "#singlestring"
 		},
 		{
@@ -876,6 +879,10 @@
 					"match": "\\bbyteptr\\b"
 				},
 				{
+					"name": "storage.type.intptr.v",
+					"match": "\\bintptr\\b"
+				},
+				{
 					"name": "storage.type.voidptr.v",
 					"match": "\\bvoidptr\\b"
 				},
@@ -1035,6 +1042,29 @@
 							"name": "constant.numeric.integer.v"
 						}
 					}
+				}
+			]
+		},
+		"rawstring": {
+			"begin": "\\`",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.begin.v"
+				}
+			},
+			"end": "\\`",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.end.v"
+				}
+			},
+			"name": "string.quoted.raw.v",
+			"patterns": [
+				{
+					"include": "#string-escaped-char"
+				},
+				{
+					"include": "#string-placeholder"
 				}
 			]
 		},
