@@ -41,7 +41,7 @@
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "(\\<)\\s*([0-9a-zA-Z_\\\\.\/]*)(\\>)",
+			"end": "([\\<\"])\\s*([0-9a-zA-Z_\\\\.\/]*)([\\>\"])",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -637,7 +637,7 @@
 		"function-exist": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)([\\w\\<\\>]*)(\\()(.*?)(\\))",
+					"match": "([0-9a-zA-Z_]+)([\\w\\<\\>]*)(\\()(.*?)",
 					"captures": {
 						"1": {
 							"patterns": [
@@ -691,9 +691,6 @@
 									"include": "$self"
 								}
 							]
-						},
-						"5": {
-							"name": "punctuation.other.parent.end.v"
 						}
 					}
 				}
