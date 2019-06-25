@@ -345,7 +345,7 @@
 									"include": "#generic"
 								},
 								{
-									"include": "#contants"
+									"include": "#constants"
 								},
 								{
 									"include": "#storage"
