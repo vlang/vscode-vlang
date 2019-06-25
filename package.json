@@ -36,9 +36,9 @@
         "themes": [
             {
                 "id": "dev-ligth-v",
-                "label": "V Development Ligth",
+                "label": "V Development Light",
                 "uiTheme": "vs",
-                "path": "theme/dev-ligth-color-theme.json"
+                "path": "theme/dev-light-color-theme.json"
             },
             {
                 "id": "dev-dark-v",
