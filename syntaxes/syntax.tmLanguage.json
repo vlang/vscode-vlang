@@ -345,6 +345,12 @@
 									"include": "#generic"
 								},
 								{
+									"include": "#contants"
+								},
+								{
+									"include": "#storage"
+								},	
+								{
 									"include": "#std-type"
 								},
 								{
