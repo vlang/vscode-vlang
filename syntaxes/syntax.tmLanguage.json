@@ -748,7 +748,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
-					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s+(?:[0-9a-zA-Z]+\\.?)([0-9a-zA-Z_]*)",
+					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s+(?:[0-9a-zA-Z]+\\.+)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.type.v"
