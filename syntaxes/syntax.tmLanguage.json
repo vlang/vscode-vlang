@@ -887,7 +887,7 @@
 				},
 				{
 					"name": "storage.type.numeric.v",
-					"match": "\\b(int|uint|i8|i16|i32|i64|u8|u16|u32|u64|f32|f64)\\b"
+					"match": "\\b(int|uint|i(8|16|32|64|128)|u(8|16|32|64)|f(32|64))\\b"
 				}
 			]
 		},
