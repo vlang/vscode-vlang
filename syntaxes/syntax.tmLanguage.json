@@ -748,7 +748,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
-					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_.]*)\\s*([0-9a-zA-Z_.]*)",
+					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s+(?:[0-9a-zA-Z]+\\.?)([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.type.v"
@@ -785,7 +785,7 @@
 			"patterns": [
 				{
 					"comment": "Enumeration",
-					"match": "^\\s*(\\benum\\b)\\s+([0-9a-zA-Z_.]*)",
+					"match": "^\\s*(\\benum\\b)\\s+(?:[0-9a-zA-Z_]+\\.)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.enum.v"
@@ -810,7 +810,7 @@
 			"patterns": [
 				{
 					"comment": "Structure",
-					"match": "^\\s*(\\bstruct\\b)\\s+([0-9a-zA-Z_.]*)",
+					"match": "^\\s*(\\bstruct\\b)\\s+(?:[0-9a-zA-Z_]+\\.)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.struct.v"
@@ -835,7 +835,7 @@
 			"patterns": [
 				{
 					"comment": "Interface",
-					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z_.]*)",
+					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.interface.v"
