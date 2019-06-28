@@ -386,9 +386,12 @@
 		"function-new": {
 			"patterns": [
 				{
-					"begin": "^\\s*(\\bfn\\b)\\s*",
+					"begin": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*",
 					"beginCaptures": {
 						"1": {
+							"name": "storage.modifier.v"
+						},
+						"2": {
 							"name": "keyword.function.v"
 						}
 					},
@@ -448,15 +451,18 @@
 		"function-new-extend": {
 			"patterns": [
 				{
-					"match": "^\\s*(\\bfn\\b)\\s*(\\()(.*?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?(\\()(.*?)(\\))",
+					"match": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*(\\()(.*?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?(\\()(.*?)(\\))",
 					"captures": {
 						"1": {
-							"name": "keyword.function.v"
+							"name": "storage.modifier.v"
 						},
 						"2": {
-							"name": "punctuation.other.parent.begin.v"
+							"name": "keyword.function.v"
 						},
 						"3": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"4": {
 							"patterns": [
 								{
 									"include": "#storage"
@@ -478,10 +484,10 @@
 								}
 							]
 						},
-						"4": {
+						"5": {
 							"name": "punctuation.other.parent.end.v"
 						},
-						"5": {
+						"6": {
 							"patterns": [
 								{
 									"match": "\\d\\w+",
@@ -493,17 +499,17 @@
 								}
 							]
 						},
-						"6": {
+						"7": {
 							"patterns": [
 								{
 									"include": "#function-generic"
 								}
 							]
 						},
-						"7": {
+						"8": {
 							"name": "punctuation.other.parent.begin.v"
 						},
-						"8": {
+						"9": {
 							"patterns": [
 								{
 									"include": "#punctuation-function"
@@ -522,7 +528,7 @@
 								}
 							]
 						},
-						"9": {
+						"10": {
 							"name": "punctuation.other.parent.end.v"
 						}
 					}
@@ -532,15 +538,18 @@
 		"function-new-limited-overload": {
 			"patterns": [
 				{
-					"match": "^\\s*(\\bfn\\b)\\s*(\\()(.+?)(\\))\\s*([\\+\\-\\*\/]?)\\s*(\\()(.+?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?",
+					"match": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*(\\()(.+?)(\\))\\s*([\\+\\-\\*\/]?)\\s*(\\()(.+?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?",
 					"captures": {
 						"1": {
-							"name": "keyword.function.v"
+							"name": "storage.modifier.v"
 						},
 						"2": {
-							"name": "punctuation.other.parent.begin.v"
+							"name": "keyword.function.v"
 						},
 						"3": {
+							"name": "punctuation.other.parent.begin.v"
+						},
+						"4": {
 							"patterns": [
 								{
 									"include": "#generic"
@@ -559,20 +568,20 @@
 								}
 							]
 						},
-						"4": {
+						"5": {
 							"name": "punctuation.other.parent.end.v"
 						},
-						"5": {
+						"6": {
 							"patterns": [
 								{
 									"include": "#operator"
 								}
 							]
 						},
-						"6": {
+						"7": {
 							"name": "punctuation.other.parent.begin.v"
 						},
-						"7": {
+						"8": {
 							"patterns": [
 								{
 									"include": "#generic"
@@ -591,10 +600,10 @@
 								}
 							]
 						},	
-						"8": {
+						"9": {
 							"name": "punctuation.other.parent.end.v"
 						},
-						"9": {
+						"10": {
 							"patterns": [
 								{
 									"match": "\\d\\w+",
@@ -606,7 +615,7 @@
 								}
 							]
 						},
-						"10": {
+						"11": {
 							"patterns": [
 								{
 									"include": "#function-generic"
