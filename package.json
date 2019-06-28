@@ -35,7 +35,7 @@
     "contributes": {
         "themes": [
             {
-                "id": "dev-ligth-v",
+                "id": "dev-light-v",
                 "label": "V Development Light",
                 "uiTheme": "vs",
                 "path": "theme/dev-light-color-theme.json"
