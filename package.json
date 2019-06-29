@@ -3,12 +3,11 @@
     "displayName": "V",
     "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
     "publisher": "0x9ef",
-
     "icon": "images/icon.png",
     "version": "0.0.4",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
-        "engines": {
+    "engines": {
         "vscode": "^1.20.0"
     },
     "homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
@@ -71,7 +70,6 @@
                 "scopeName": "source.v",
                 "path": "./syntaxes/syntax.tmLanguage.json"
             }
-
         ],
         "configurationDefaults": {
             "[v]": {
