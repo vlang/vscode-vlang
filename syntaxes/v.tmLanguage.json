@@ -2,18 +2,19 @@
 	"name": "v",
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"fileTypes": [
-		".v", ".vh"
+		".v",
+		".vh"
 	],
 	"scopeName": "source.v",
 	"patterns": [
 		{
-			"begin": "^\\s*(module)\\s+",
+			"begin": "^\\s*(module)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.module.v"
 				}
 			},
-			"end": "([0-9a-zA-Z_]*)",
+			"end": "\\s+([0-9a-zA-Z_]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.module.v"
@@ -21,13 +22,13 @@
 			}
 		},
 		{
-			"begin": "^\\s*(import)\\s+",
+			"begin": "^\\s*(import)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.import.v"
 				}
 			},
-			"end": "([0-9a-zA-Z_.]*)",
+			"end": "\\s+([0-9a-zA-Z_.]*)",
 			"endCaptures": {
 				"1": {
 					"name": "entity.name.import.v"
@@ -35,13 +36,13 @@
 			}
 		},
 		{
-			"begin": "^\\s*(#include)\\s+",
+			"begin": "^\\s*(#include)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "([\\<\"])\\s*([0-9a-zA-Z_\\\\.\/]*)([\\>\"])",
+			"end": "\\s+([\\<\"])\\s*([0-9a-zA-Z_\\\\.\/]*)([\\>\"])",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -55,12 +56,15 @@
 			}
 		},
 		{
-			"match": "^\\s*(#flag)\\s+(.*?)$",
-			"captures": {
+			"begin": "^\\s*(#flag)",
+			"beginCaptures": {
 				"1": {
 					"name": "keyword.flag.v"
-				},
-				"2": {
+				}
+			},
+			"end": "\\s+(.*?)$",
+			"endCaptures": {
+				"1": {
 					"name": "string.quoted.double.v"
 				}
 			}
@@ -69,16 +73,13 @@
 			"include": "#comments"
 		},
 		{
-			"include": "#generic"
+			"include": "#builtin-fix"
 		},
 		{
-			"include": "#operator"
+			"include": "#generics"
 		},
 		{
-			"include": "#function-new"
-		},
-		{
-			"include": "#function-exist"
+			"include": "#operators"
 		},
 		{
 			"include": "#function-new-limited-overload"
@@ -87,8 +88,10 @@
 			"include": "#function-new-extend"
 		},
 		{
-			"comment": "Currently Unavaliable",
-			"include": "#discard-go"
+			"include": "#function-new"
+		},
+		{
+			"include": "#function-exist"
 		},
 		{
 			"include": "#type"
@@ -103,52 +106,214 @@
 			"include": "#interface"
 		},
 		{
-			"include": "#punctuation"
-		},
-		{
 			"include": "#constants"
 		},
 		{
 			"include": "#variable-assignment"
 		},
 		{
-			"include": "#variable-increment"
+			"include": "#variable-increment-decrement"
 		},
 		{
-			"include": "#variable-decrement"
-		},
-		{
-			"include": "#label"
+			"include": "#labels"
 		},
 		{
 			"include": "#goto"
 		},
 		{
-			"include": "#keyword"
+			"include": "#keywords"
 		},
 		{
 			"include": "#storage"
 		},
 		{
-			"include": "#std-type"
+			"include": "#std-types"
 		},
 		{
-			"include": "#std-cbased-type"
+			"include": "#std-cbased-types"
 		},
 		{
-			"include": "#number"
+			"include": "#numbers"
 		},
 		{
-			"include": "#rawstring"
-		},
-		{
-			"include": "#singlestring"
-		},
-		{
-			"include": "#doublestring"
+			"include": "#strings"
 		}
 	],
 	"repository": {
+		"builtin-fix": {
+			"patterns": [
+				{
+					"patterns": [
+						{
+							"match": "^\\s*(const)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.modifier.v"
+								}
+							}
+						},
+						{
+							"match": "(assert)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.assert.v"
+								}
+							}
+						},
+						{
+							"match": "(sizeof)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.sizeof.v"
+								}
+							}
+						}
+					]
+				},
+				{
+					"patterns": [
+						{
+							"match": "(in|or|switch|case|match|if|else|for|go|goto|defer|return)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.control.v"
+								}
+							}
+						}
+					]
+				},
+				{
+					"patterns": [
+						{
+							"match": "(int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64)|f?(?:32|64))\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.numeric.v"
+								}
+							}
+						},
+						{
+							"match": "(bool)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.boolean.v"
+								}
+							}
+						},
+						{
+							"match": "(byte)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.byte.v"
+								}
+							}
+						},
+						{
+							"match": "(byteptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.byteptr.v"
+								}
+							}
+						},
+						{
+							"match": "(intptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.intptr.v"
+								}
+							}
+						},
+						{
+							"match": "(voidptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.voidptr.v"
+								}
+							}
+						},
+						{
+							"match": "(string)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.string.v"
+								}
+							}
+						},
+						{
+							"match": "(ustring)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.ustring.v"
+								}
+							}
+						},
+						{
+							"match": "(rune)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.rune.v"
+								}
+							}
+						},
+						{
+							"match": "(option)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.option.v"
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		"brackets": {
+			"patterns": [
+				{
+					"begin": "{",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.curly.begin.v"
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.curly.end.v"
+						}
+					},
+					"patterns": [
+						{
+							"include": "$self"
+						}
+					]
+				},
+				{
+					"begin": "\\(",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.round.begin.v"
+						}
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.round.end.v"
+						}
+					},
+					"patterns": [
+						{
+							"include": "$self"
+						}
+					]
+				},
+				{
+					"match": "\\[|\\]",
+					"name": "punctuation.definition.bracket.square.v"
+				}
+			]
+		},
 		"comments": {
 			"patterns": [
 				{
@@ -205,62 +370,13 @@
 				}
 			]
 		},
-		"punctuation-bracket": {
+		"generics": {
 			"patterns": [
 				{
-					"name": "punctuation.other.parent.begin.v",
-					"match": "\\("
-				},
-				{
-					"name": "punctuation.other.parent.end.v",
-					"match": "\\)"
-				},
-
-				{
-					"match": "\\<",
-					"name": "punctuation.other.anglebracket.begin.v"
-				},
-				{
-					"match": "\\>",
-					"name": "punctuation.other.anglebracket.end.v"
-				},
-
-				{
-					"name": "punctuation.other.squarebracket.begin.v",
-					"match": "\\["
-				},
-				{
-					"name": "punctuation.other.squarebracket.end.v",
-					"match": "\\]"
-				},
-
-				{
-					"name": "punctuation.other.curlybracket.begin.v",
-					"match": "\\{"
-				},
-				{
-					"name": "punctuation.other.curlybracket.end.v",
-					"match": "\\}"
-				}
-			]
-		},
-		"punctuation-extend": {
-			"patterns": [
-				{
-					"include": "#punctuation"
-				},
-				{
-					"include": "#punctuation-bracket"
-				}
-			]
-		},
-		"generic": {
-			"patterns": [
-				{
-					"match": "\\w+\\s*(\\<)([0-9a-zA-Z_]+)(\\>)",
+					"match": "(?<=[\\w\\s])(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
 						"1": {
-							"name": "punctuation.other.anglebracket.begin.v"
+							"name": "punctuation.definition.bracket.angle.begin.v"
 						},
 						"2": {
 							"patterns": [
@@ -275,7 +391,7 @@
 							]
 						},
 						"3": {
-							"name": "punctuation.other.anglebracket.end.v"
+							"name": "punctuation.definition.bracket.angle.end.v"
 						}
 					}
 				}
@@ -287,7 +403,7 @@
 					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
 						"1": {
-							"name": "punctuation.other.anglebracket.begin.v"
+							"name": "punctuation.definition.bracket.angle.begin.v"
 						},
 						"2": {
 							"patterns": [
@@ -302,7 +418,7 @@
 							]
 						},
 						"3": {
-							"name": "punctuation.other.anglebracket.end.v"
+							"name": "punctuation.definition.bracket.angle.end.v"
 						}
 					}
 				}
@@ -311,7 +427,7 @@
 		"variable-assignment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
+					"match": "([0-9a-zA-Z_]+)\\s*((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
 					"captures": {
 						"1": {
 							"name": "variable.other.assignment.v"
@@ -322,34 +438,37 @@
 						"3": {
 							"patterns": [
 								{
-									"include": "#generic"
+									"include": "#builtin-fix"
+								},
+								{
+									"include": "#brackets"
+								},
+								{
+									"include": "#generics"
 								},
 								{
 									"include": "#constants"
 								},
 								{
 									"include": "#storage"
-								},	
-								{
-									"include": "#std-type"
-								},
-								{
-									"include": "#std-cbased-type"
-								},
-								{
-									"include": "#punctuation-extend"
 								},
 								{
 									"include": "#function-exist"
 								},
 								{
-									"include": "#singlestring"
+									"include": "#std-types"
 								},
 								{
-									"include": "#doublestring"
+									"include": "#std-cbased-types"
 								},
 								{
-									"include": "#number"
+									"include": "#punctuation"
+								},
+								{
+									"include": "#strings"
+								},
+								{
+									"include": "#numbers"
 								}
 							]
 						}
@@ -360,7 +479,7 @@
 		"variable-increment-decrement": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)(\\+\\+)(?=)",
+					"match": "([0-9a-zA-Z_]+)(\\+\\+)",
 					"captures": {
 						"1": {
 							"name": "variable.other.increment.v"
@@ -371,7 +490,7 @@
 					}
 				},
 				{
-					"match": "([0-9a-zA-Z_]+)(\\-\\-)(?=)",
+					"match": "([0-9a-zA-Z_]+)(\\-\\-)",
 					"captures": {
 						"1": {
 							"name": "variable.other.decrement.v"
@@ -386,7 +505,7 @@
 		"function-new": {
 			"patterns": [
 				{
-					"begin": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*",
+					"begin": "^\\s*(pub)?\\s*(fn)\\s*",
 					"beginCaptures": {
 						"1": {
 							"name": "storage.modifier.v"
@@ -395,7 +514,7 @@
 							"name": "keyword.function.v"
 						}
 					},
-					"end": "(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?(\\()(.*?)(\\))",
+					"end": "(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
 					"endCaptures": {
 						"1": {
 							"patterns": [
@@ -415,34 +534,6 @@
 									"include": "#function-generic"
 								}
 							]
-						},
-						"3": {
-							"name": "punctuation.other.parent.begin.v"
-						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#generic"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#std-type"
-								},
-								{
-									"include": "#std-cbased-type"
-								},
-								{
-									"include": "#punctuation"
-								},
-								{
-									"include": "#punctuation-bracket"
-								}
-							]
-						},
-						"5": {
-							"name": "punctuation.other.parent.end.v"
 						}
 					}
 				}
@@ -451,7 +542,7 @@
 		"function-new-extend": {
 			"patterns": [
 				{
-					"match": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*(\\()(.*?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?(\\()(.*?)(\\))",
+					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
 					"captures": {
 						"1": {
 							"name": "storage.modifier.v"
@@ -460,32 +551,32 @@
 							"name": "keyword.function.v"
 						},
 						"3": {
-							"name": "punctuation.other.parent.begin.v"
+							"name": "punctuation.definition.bracket.round.begin.v"
 						},
 						"4": {
 							"patterns": [
 								{
+									"include": "#brackets"
+								},
+								{
 									"include": "#storage"
 								},
 								{
-									"include": "#generic"
+									"include": "#generics"
 								},
 								{
-									"include": "#std-type"
+									"include": "#std-types"
 								},
 								{
-									"include": "#std-cbased-type"
+									"include": "#std-cbased-types"
 								},
 								{
 									"include": "#punctuation"
-								},
-								{
-									"include": "#punctuation-bracket"
 								}
 							]
 						},
 						"5": {
-							"name": "punctuation.other.parent.end.v"
+							"name": "punctuation.definition.bracket.round.end.v"
 						},
 						"6": {
 							"patterns": [
@@ -505,31 +596,6 @@
 									"include": "#function-generic"
 								}
 							]
-						},
-						"8": {
-							"name": "punctuation.other.parent.begin.v"
-						},
-						"9": {
-							"patterns": [
-								{
-									"include": "#punctuation-function"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#generic"
-								},
-								{
-									"include": "#std-type"
-								},
-								{
-									"include": "#std-cbased-type"
-								}
-							]
-						},
-						"10": {
-							"name": "punctuation.other.parent.end.v"
 						}
 					}
 				}
@@ -538,7 +604,7 @@
 		"function-new-limited-overload": {
 			"patterns": [
 				{
-					"match": "^\\s*(pub)?\\s*(\\bfn\\b)\\s*(\\()(.+?)(\\))\\s*([\\+\\-\\*\/]?)\\s*(\\()(.+?)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]+\\>)?",
+					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)",
 					"captures": {
 						"1": {
 							"name": "storage.modifier.v"
@@ -547,61 +613,67 @@
 							"name": "keyword.function.v"
 						},
 						"3": {
-							"name": "punctuation.other.parent.begin.v"
+							"name": "punctuation.definition.bracket.round.begin.v"
 						},
 						"4": {
 							"patterns": [
 								{
-									"include": "#generic"
+									"include": "#brackets"
 								},
 								{
 									"include": "#storage"
 								},
 								{
-									"include": "#std-type"
+									"include": "#generics"
 								},
 								{
-									"include": "#std-cbased-type"
+									"include": "#std-types"
 								},
 								{
-									"include": "#punctuation-extend"
+									"include": "#std-cbased-types"
+								},
+								{
+									"include": "#punctuation"
 								}
 							]
 						},
 						"5": {
-							"name": "punctuation.other.parent.end.v"
+							"name": "punctuation.definition.bracket.round.end.v"
 						},
 						"6": {
 							"patterns": [
 								{
-									"include": "#operator"
+									"include": "#operators"
 								}
 							]
 						},
 						"7": {
-							"name": "punctuation.other.parent.begin.v"
+							"name": "punctuation.definition.bracket.round.begin.v"
 						},
 						"8": {
 							"patterns": [
 								{
-									"include": "#generic"
+									"include": "#brackets"
 								},
 								{
 									"include": "#storage"
 								},
 								{
-									"include": "#std-type"
+									"include": "#generics"
 								},
 								{
-									"include": "#std-cbased-type"
+									"include": "#std-types"
 								},
 								{
-									"include": "#punctuation-extend"
+									"include": "#std-cbased-types"
+								},
+								{
+									"include": "#punctuation"
 								}
 							]
-						},	
+						},
 						"9": {
-							"name": "punctuation.other.parent.end.v"
+							"name": "punctuation.definition.bracket.round.end.v"
 						},
 						"10": {
 							"patterns": [
@@ -612,13 +684,6 @@
 								{
 									"match": "\\w*",
 									"name": "entity.name.function.v"
-								}
-							]
-						},
-						"11": {
-							"patterns": [
-								{
-									"include": "#function-generic"
 								}
 							]
 						}
@@ -629,7 +694,7 @@
 		"function-exist": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)([\\w\\<\\>]*)\\s*(\\()(.*?)(\\)\\s*$)",
+					"match": "([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?\\s*(\\()",
 					"captures": {
 						"1": {
 							"patterns": [
@@ -651,47 +716,13 @@
 							]
 						},
 						"3": {
-							"name": "punctuation.other.parent.begin.v"
-						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#generic"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#operator"
-								},
-								{
-									"include": "#std-type"
-								},
-								{
-									"include": "#std-cbased-type"
-								},
-								{
-									"include": "#singlestring"
-								},
-								{
-									"include": "#doublestring"
-								},
-								{
-									"include": "#number"
-								},
-								{
-									"include": "$self"
-								}
-							]
-						},
-						"5": {
-							"name": "punctuation.other.parent.end.v"
+							"name": "punctuation.definition.bracket.round.begin.v"
 						}
 					}
 				}
 			]
 		},
-		"label": {
+		"labels": {
 			"comment": "Current unavaliable",
 			"patterns": [
 				{
@@ -856,7 +887,7 @@
 				}
 			]
 		},
-		"std-type": {
+		"std-types": {
 			"patterns": [
 				{
 					"name": "storage.type.boolean.v",
@@ -900,7 +931,7 @@
 				}
 			]
 		},
-		"std-cbased-type": {
+		"std-cbased-types": {
 			"patterns": [
 				{
 					"name": "storage.type.numeric.cbased.v",
@@ -908,7 +939,7 @@
 				}
 			]
 		},
-		"operator": {
+		"operators": {
 			"patterns": [
 				{
 					"comment": "Arithmethic operators",
@@ -928,7 +959,7 @@
 				{
 					"comment": "Bitwise operators",
 					"name": "keyword.operator.bitwise.v",
-					"match": "(\\&|\\||\\^|\\<\\<|\\>\\>)"
+					"match": "(\\&|\\||\\^|<(?!<)|>(?!>))"
 				},
 				{
 					"comment": "Assignment  operators",
@@ -937,7 +968,7 @@
 				}
 			]
 		},
-		"keyword": {
+		"keywords": {
 			"patterns": [
 				{
 					"comment": "Keyword Control",
@@ -945,9 +976,12 @@
 					"match": "\\b(in|or|break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
-					"comment": "Keyword Control Specific",
 					"name": "keyword.control.v",
 					"match": "(\\$if)"
+				},
+				{
+					"name": "keyword.control.v",
+					"match": "(\\$else)"
 				},
 				{
 					"comment": "Keyword Type",
@@ -994,7 +1028,7 @@
 				}
 			]
 		},
-		"number": {
+		"numbers": {
 			"patterns": [
 				{
 					"match": "([-]?)([0-9e]*)([.]){1}([0-9]+)",
@@ -1037,72 +1071,76 @@
 				}
 			]
 		},
-		"rawstring": {
-			"begin": "\\`",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.begin.v"
-				}
-			},
-			"end": "\\`",
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.end.v"
-				}
-			},
-			"name": "string.quoted.raw.v",
+		"strings": {
 			"patterns": [
 				{
-					"include": "#string-escaped-char"
+					"begin": "\\`",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.raw.begin.v"
+						}
+					},
+					"end": "\\`",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.raw.end.v"
+						}
+					},
+					"name": "string.quoted.raw.v",
+					"patterns": [
+						{
+							"include": "#string-escaped-char"
+						},
+						{
+							"include": "#string-placeholder"
+						}
+					]
 				},
 				{
-					"include": "#string-placeholder"
-				}
-			]
-		},
-		"singlestring": {
-			"begin": "\\'",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.begin.v"
-				}
-			},
-			"end": "\\'",
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.end.v"
-				}
-			},
-			"name": "string.quoted.single.v",
-			"patterns": [
-				{
-					"include": "#string-escaped-char"
+					"begin": "\\'",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.single.begin.v"
+						}
+					},
+					"end": "\\'",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.single.end.v"
+						}
+					},
+					"name": "string.quoted.single.v",
+					"patterns": [
+						{
+							"include": "#string-escaped-char"
+						},
+						{
+							"include": "#string-placeholder"
+						}
+					]
 				},
 				{
-					"include": "#string-placeholder"
-				}
-			]
-		},
-		"doublestring": {
-			"begin": "\"",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.begin.v"
-				}
-			},
-			"end": "\"",
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.definition.string.end.v"
-				}
-			},
-			"name": "string.quoted.double.v",
-			"patterns": [
-				{
-					"include": "#string-escaped-char"
-				},
-				{
-					"include": "#string-placeholder"
+					"begin": "\"",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.double.begin.v"
+						}
+					},
+					"end": "\"",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.double.end.v"
+						}
+					},
+					"name": "string.quoted.double.v",
+					"patterns": [
+						{
+							"include": "#string-escaped-char"
+						},
+						{
+							"include": "#string-placeholder"
+						}
+					]
 				}
 			]
 		},

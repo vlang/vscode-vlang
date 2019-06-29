@@ -4,7 +4,7 @@
     "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
     "publisher": "0x9ef",
     "icon": "images/icon.png",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
     "engines": {
@@ -69,7 +69,7 @@
             {
                 "language": "v",
                 "scopeName": "source.v",
-                "path": "./syntaxes/syntax.tmLanguage.json"
+                "path": "./syntaxes/v.tmLanguage.json"
             }
         ],
         "configuration": {
@@ -128,15 +128,23 @@
         ]
     },
     "activationEvents": [
-        "onLanguage:v"
+        "onLanguage:v",
+        "onCommand:v.run",
+        "onCommand:v.prod",
+        "onCommand:v.help",
+        "onCommand:v.ver",
+        "onCommand:v.path",
+        "onCommand:v.test.file",
+        "onCommand:v.test.package",
+        "onCommand:v.playground"
     ],
     "main": "./out/extension.js",
     "dependencies": {
-        "vscode": "~1.1.35",
+        "vscode": "~1.1.20",
         "vscode-languageclient": "~5.2.1"
     },
     "devDependencies": {
-        "@types/vscode": "~1.26.0",
+        "@types/vscode": "~1.20.0",
         "typescript": "~3.5.2"
     },
     "scripts": {

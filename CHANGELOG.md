@@ -58,6 +58,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid patterns for `module, import, #include, #flag`
 - Invalid pattern for generic `<T>`
 - Invalid pattern for variable assignment.
-- Invalid pattern for label (conflict with default keyword) __`default:`__.
+- Invalid pattern for label (conflict with default keyword) __`default:`__
 ### Changed
 - Included pattern for variable increment, decrement.  
+
+## [0.0.5] - 2019-06-05
+### Added 
+- Pattern for static type `intptr`
+- Pattern for control keyword `$else`
+- Pattern for builtin casting/control function ([f877c3b](https://github.com/0x9ef/vscode-vlang/commit/f877c3b844564125431f9bd4accda0b4924f5f6c)).
+- String placeholder, escaped characters.
+- Auto closed multiline comments ([b173e1e](https://github.com/0x9ef/vscode-vlang/pull/8))
+- Launch script for debuggin ([24b183a](https://github.com/0x9ef/vscode-vlang/commit/24b183aa79964962a1e6083ac5847a207935629b))
+- Added two commands `v.ver, v.prod` ([d1d99a9](https://github.com/0x9ef/vscode-vlang/commit/d1d99a9806f9ffbbe235974f153fa837f2eb6b3b))
+- Added TypeScript based project ([9fa4992](https://github.com/0x9ef/vscode-vlang/commit/9fa4992a7f549351c97d17b1ff95c94970e74bb3))
+- Created `package-lock.json` ([16114d6](https://github.com/0x9ef/vscode-vlang/commit/16114d69ece533c217a0153655a2796c717fd02c))
+### Fixed
+- Invalid pattern for new-exist-extend-limited-overloaded functions ([8952a71](https://github.com/0x9ef/vscode-vlang/commit/8952a717ecd2683cfc69caca52f232a5540cd2b5))
+- Invalid pattern for `module, import, #include`
+- Invalid pattern for `enum, type, struct, interface` ([83e27e0](https://github.com/0x9ef/vscode-vlang/commit/83e27e0e64a4a51414ec8ed80dbc6f03fb8bb517))
+- Invalid typo `ligth` to `light` ([09b5257](https://github.com/0x9ef/vscode-vlang/commit/09b5257c7e0d4e10735d3c23d9cfa2eb27735dab))
+- Invalid pattern for variable assignment.
