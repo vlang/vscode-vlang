@@ -128,7 +128,15 @@
         ]
     },
     "activationEvents": [
-        "onLanguage:v"
+        "onLanguage:v",
+        "onCommand:v.run",
+        "onCommand:v.prod",
+        "onCommand:v.help",
+        "onCommand:v.ver",
+        "onCommand:v.path",
+        "onCommand:v.test.file",
+        "onCommand:v.test.package",
+        "onCommand:v.playground"
     ],
     "main": "./out/extension.js",
     "dependencies": {
