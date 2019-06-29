@@ -88,8 +88,16 @@
                 "title": "V: Run current file"
             },
             {
+                "command": "v.prod",
+                "title": "V: Build an optimized executable from current file"
+            },
+            {
                 "command": "v.help",
                 "title": "V: Show help info"
+            },
+            {
+                "command": "v.ver",
+                "title": "V: Show version info"
             },
             {
                 "command": "v.path",
