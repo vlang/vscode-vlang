@@ -128,13 +128,12 @@
         "vscode-languageclient": "~5.2.1"
     },
     "devDependencies": {
-        "@types/vscode": "~1.35.0",
+        "@types/vscode": "~1.26.0",
         "typescript": "~3.5.2"
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "watch": "tsc -watch -p ./"
     }
 }
