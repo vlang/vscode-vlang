@@ -3,12 +3,11 @@
     "displayName": "V",
     "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
     "publisher": "0x9ef",
-
     "icon": "images/icon.png",
     "version": "0.0.4",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
-        "engines": {
+    "engines": {
         "vscode": "^1.20.0"
     },
     "homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
@@ -60,7 +59,8 @@
                     "V"
                 ],
                 "extensions": [
-                    ".v", ".vh"
+                    ".v",
+                    ".vh"
                 ],
                 "configuration": "./language-configuration.json"
             }
@@ -71,8 +71,18 @@
                 "scopeName": "source.v",
                 "path": "./syntaxes/syntax.tmLanguage.json"
             }
-
         ],
+        "configuration": {
+            "title": "V",
+            "properties": {
+                "v.format.enable": {
+                    "scope": "resource",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable/disable the V formatter (not yet implemented)."
+                }
+            }
+        },
         "configurationDefaults": {
             "[v]": {
                 "editor.insertSpaces": true,
@@ -108,5 +118,23 @@
                 "title": "V: Upload and share current code to V playground"
             }
         ]
+    },
+    "activationEvents": [
+        "onLanguage:v"
+    ],
+    "main": "./out/extension.js",
+    "dependencies": {
+        "vscode": "~1.1.35",
+        "vscode-languageclient": "~5.2.1"
+    },
+    "devDependencies": {
+        "@types/vscode": "~1.35.0",
+        "typescript": "~3.5.2"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install"
     }
 }
