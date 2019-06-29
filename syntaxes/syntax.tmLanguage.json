@@ -2,7 +2,8 @@
 	"name": "v",
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"fileTypes": [
-		".v", ".vh"
+		".v",
+		".vh"
 	],
 	"scopeName": "source.v",
 	"patterns": [
@@ -72,6 +73,9 @@
 			"include": "#comments"
 		},
 		{
+			"include": "#builtin-fix"
+		},
+		{
 			"include": "#generics"
 		},
 		{
@@ -136,6 +140,134 @@
 		}
 	],
 	"repository": {
+		"builtin-fix": {
+			"patterns": [
+				{
+					"patterns": [
+						{
+							"match": "^\\s*(const)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.modifier.v"
+								}
+							}
+						},
+						{
+							"match": "(assert)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.assert.v"
+								}
+							}
+						},
+						{
+							"match": "(sizeof)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.sizeof.v"
+								}
+							}
+						}
+					]
+				},
+				{
+					"patterns": [
+						{
+							"match": "(in|or|switch|case|match|if|else|for|go|goto|defer|return)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "keyword.control.v"
+								}
+							}
+						}
+					]
+				},
+				{
+					"patterns": [
+						{
+							"match": "(int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64)|f?(?:32|64))\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.numeric.v"
+								}
+							}
+						},
+						{
+							"match": "(bool)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.boolean.v"
+								}
+							}
+						},
+						{
+							"match": "(byte)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.byte.v"
+								}
+							}
+						},
+						{
+							"match": "(byteptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.byteptr.v"
+								}
+							}
+						},
+						{
+							"match": "(intptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.intptr.v"
+								}
+							}
+						},
+						{
+							"match": "(voidptr)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.voidptr.v"
+								}
+							}
+						},
+						{
+							"match": "(string)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.string.v"
+								}
+							}
+						},
+						{
+							"match": "(ustring)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.ustring.v"
+								}
+							}
+						},
+						{
+							"match": "(rune)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.rune.v"
+								}
+							}
+						},
+						{
+							"match": "(option)\\s*\\(",
+							"captures": {
+								"1": {
+									"name": "storage.type.option.v"
+								}
+							}
+						}
+					]
+				}
+			]
+		},
 		"brackets": {
 			"patterns": [
 				{
@@ -295,7 +427,7 @@
 		"variable-assignment": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)\\s*(:=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
+					"match": "([0-9a-zA-Z_]+)\\s*((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
 					"captures": {
 						"1": {
 							"name": "variable.other.assignment.v"
@@ -305,6 +437,9 @@
 						},
 						"3": {
 							"patterns": [
+								{
+									"include": "#builtin-fix"
+								},
 								{
 									"include": "#brackets"
 								},
@@ -316,7 +451,7 @@
 								},
 								{
 									"include": "#storage"
-								},	
+								},
 								{
 									"include": "#function-exist"
 								},
@@ -344,7 +479,7 @@
 		"variable-increment-decrement": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)(\\+\\+)(?=)",
+					"match": "([0-9a-zA-Z_]+)(\\+\\+)",
 					"captures": {
 						"1": {
 							"name": "variable.other.increment.v"
@@ -355,7 +490,7 @@
 					}
 				},
 				{
-					"match": "([0-9a-zA-Z_]+)(\\-\\-)(?=)",
+					"match": "([0-9a-zA-Z_]+)(\\-\\-)",
 					"captures": {
 						"1": {
 							"name": "variable.other.decrement.v"
@@ -536,7 +671,7 @@
 									"include": "#punctuation"
 								}
 							]
-						},	
+						},
 						"9": {
 							"name": "punctuation.definition.bracket.round.end.v"
 						},
@@ -841,9 +976,12 @@
 					"match": "\\b(in|or|break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
-					"comment": "Keyword Control Specific",
 					"name": "keyword.control.v",
 					"match": "(\\$if)"
+				},
+				{
+					"name": "keyword.control.v",
+					"match": "(\\$else)"
 				},
 				{
 					"comment": "Keyword Type",
