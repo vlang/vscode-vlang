@@ -4,9 +4,19 @@
 export function run() { }
 
 /**
+ * Build an optimized executable from current file.
+ */
+export function prod() { }
+
+/**
  * Show help info.
  */
 export function help() { }
+
+/**
+ * Show version info.
+ */
+export function ver() { }
 
 /**
  * Show local paths info.
