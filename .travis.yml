@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+  - 10
+  - 9
+  - 8
+
+cache: npm
+
+install:
+  - npm install
+
+before_script:
+  - npm install -g typescript@1.0
+
+script:
+  - npm run compile
+  - tsc -p ./
+  - tsc -watch -p ./
