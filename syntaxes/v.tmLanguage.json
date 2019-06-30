@@ -255,7 +255,7 @@
 							"name": "meta.expr.string.cast.v"
 						},
 						{
-							"match": "(ustring)\\s*\\(",
+							"match": "(ustring)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.ustring.v"
