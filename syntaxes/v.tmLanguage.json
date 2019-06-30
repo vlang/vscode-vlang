@@ -8,6 +8,7 @@
 	"scopeName": "source.v",
 	"patterns": [
 		{
+			"name": "meta.definition.module.v",
 			"begin": "^\\s*(module)",
 			"beginCaptures": {
 				"1": {
@@ -22,6 +23,7 @@
 			}
 		},
 		{
+			"name": "meta.definition.import.v",
 			"begin": "^\\s*(import)",
 			"beginCaptures": {
 				"1": {
@@ -36,6 +38,7 @@
 			}
 		},
 		{
+			"name": "meta.definition.include.v",
 			"begin": "^\\s*(#include)",
 			"beginCaptures": {
 				"1": {
@@ -56,6 +59,7 @@
 			}
 		},
 		{
+			"name": "meta.definition.flag.v",
 			"begin": "^\\s*(#flag)",
 			"beginCaptures": {
 				"1": {
@@ -71,6 +75,9 @@
 		},
 		{
 			"include": "#comments"
+		},
+		{
+			"include": "#brackets"
 		},
 		{
 			"include": "#builtin-fix"
@@ -145,7 +152,7 @@
 				{
 					"patterns": [
 						{
-							"match": "^\\s*(const)\\s*\\(",
+							"match": "^\\s*(const)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.modifier.v"
@@ -153,7 +160,7 @@
 							}
 						},
 						{
-							"match": "(assert)\\s*\\(",
+							"match": "(assert)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "keyword.assert.v"
@@ -161,7 +168,7 @@
 							}
 						},
 						{
-							"match": "(sizeof)\\s*\\(",
+							"match": "(sizeof)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "keyword.sizeof.v"
@@ -173,7 +180,7 @@
 				{
 					"patterns": [
 						{
-							"match": "(in|or|switch|case|match|if|else|for|go|goto|defer|return)\\s*\\(",
+							"match": "(in|or|switch|case|match|if|else|for|go|goto|defer|return)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "keyword.control.v"
@@ -185,84 +192,94 @@
 				{
 					"patterns": [
 						{
-							"match": "(int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64)|f?(?:32|64))\\s*\\(",
+							"match": "(int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64)|f?(?:32|64))(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.numeric.v"
 								}
-							}
+							},
+							"name": "meta.expr.numeric.cast.v"
 						},
 						{
-							"match": "(bool)\\s*\\(",
+							"match": "(bool)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.boolean.v"
 								}
-							}
+							},
+							"name": "meta.expr.bool.cast.v"
 						},
 						{
-							"match": "(byte)\\s*\\(",
+							"match": "(byte)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.byte.v"
 								}
-							}
+							},
+							"name": "meta.expr.byte.cast.v"
 						},
 						{
-							"match": "(byteptr)\\s*\\(",
+							"match": "(byteptr)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.byteptr.v"
 								}
-							}
+							},
+							"name": "meta.expr.byteptr.cast.v"
 						},
 						{
-							"match": "(intptr)\\s*\\(",
+							"match": "(intptr)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.intptr.v"
 								}
-							}
+							},
+							"name": "meta.expr.intptr.cast.v"
 						},
 						{
-							"match": "(voidptr)\\s*\\(",
+							"match": "(voidptr)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.voidptr.v"
 								}
-							}
+							},
+							"name": "meta.expr.voidptr.cast.v"
 						},
 						{
-							"match": "(string)\\s*\\(",
+							"match": "(string)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.string.v"
 								}
-							}
+							},
+							"name": "meta.expr.string.cast.v"
 						},
 						{
-							"match": "(ustring)\\s*\\(",
+							"match": "(ustring)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.ustring.v"
 								}
-							}
+							},
+							"name": "meta.expr.ustring.cast.v"
 						},
 						{
-							"match": "(rune)\\s*\\(",
+							"match": "(rune)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.rune.v"
 								}
-							}
+							},
+							"name": "meta.expr.rune.cast.v"
 						},
 						{
-							"match": "(option)\\s*\\(",
+							"match": "(option)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.option.v"
 								}
-							}
+							},
+							"name": "meta.expr.option.cast.v"
 						}
 					]
 				}
@@ -321,7 +338,7 @@
 					"end": "\\*/",
 					"captures": {
 						"0": {
-							"name": "punctuation.other.comment.v"
+							"name": "comment.block.documentation.v"
 						}
 					},
 					"name": "comment.block.v"
@@ -330,7 +347,7 @@
 					"begin": "//",
 					"beginCaptures": {
 						"0": {
-							"name": "punctuation.other.comment.v"
+							"name": "comment.block.documentation.v"
 						}
 					},
 					"end": "$",
@@ -373,6 +390,7 @@
 		"generics": {
 			"patterns": [
 				{
+					"name": "meta.definition.generic.v",
 					"match": "(?<=[\\w\\s])(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
 						"1": {
@@ -400,6 +418,7 @@
 		"function-generic": {
 			"patterns": [
 				{
+					"name": "meta.definition.generic.v",
 					"match": "(\\<)([0-9a-zA-Z_]+)(\\>)",
 					"captures": {
 						"1": {
@@ -427,10 +446,11 @@
 		"variable-assignment": {
 			"patterns": [
 				{
+					"name": "meta.definition.var.v",
 					"match": "([0-9a-zA-Z_]+)\\s*((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
 					"captures": {
 						"1": {
-							"name": "variable.other.assignment.v"
+							"name": "entity.name.var.v"
 						},
 						"2": {
 							"name": "keyword.operator.assignment.v"
@@ -470,7 +490,8 @@
 								{
 									"include": "#numbers"
 								}
-							]
+							],
+							"name": "meta.var.expr.v"
 						}
 					}
 				}
@@ -479,7 +500,8 @@
 		"variable-increment-decrement": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)(\\+\\+)",
+					"name": "meta.var.increment.expr.v",
+					"match": "([0-9a-zA-Z_.]+)(\\+\\+)",
 					"captures": {
 						"1": {
 							"name": "variable.other.increment.v"
@@ -490,7 +512,8 @@
 					}
 				},
 				{
-					"match": "([0-9a-zA-Z_]+)(\\-\\-)",
+					"name": "meta.var.decrement.expr.v",
+					"match": "([0-9a-zA-Z_.]+)(\\-\\-)",
 					"captures": {
 						"1": {
 							"name": "variable.other.decrement.v"
@@ -505,6 +528,7 @@
 		"function-new": {
 			"patterns": [
 				{
+					"name": "meta.function.v",
 					"begin": "^\\s*(pub)?\\s*(fn)\\s*",
 					"beginCaptures": {
 						"1": {
@@ -516,6 +540,9 @@
 					},
 					"end": "(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
 					"endCaptures": {
+						"0": {
+							"name": "meta.definition.function.v"
+						},
 						"1": {
 							"patterns": [
 								{
@@ -542,8 +569,12 @@
 		"function-new-extend": {
 			"patterns": [
 				{
+					"name": "meta.function.v",
 					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
 					"captures": {
+						"0": {
+							"name": "meta.definition.function.v"
+						},
 						"1": {
 							"name": "storage.modifier.v"
 						},
@@ -604,8 +635,12 @@
 		"function-new-limited-overload": {
 			"patterns": [
 				{
+					"name": "meta.function.v",
 					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)",
 					"captures": {
+						"0": {
+							"name": "meta.definition.function.v"
+						},
 						"1": {
 							"name": "storage.modifier.v"
 						},
@@ -694,8 +729,12 @@
 		"function-exist": {
 			"patterns": [
 				{
-					"match": "([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?\\s*(\\()",
+					"name": "meta.function.v",
+					"match": "([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?(?=\\s*\\()",
 					"captures": {
+						"0": {
+							"name": "meta.function.call.v"
+						},
 						"1": {
 							"patterns": [
 								{
@@ -714,9 +753,6 @@
 									"include": "#function-generic"
 								}
 							]
-						},
-						"3": {
-							"name": "punctuation.definition.bracket.round.begin.v"
 						}
 					}
 				}
@@ -726,6 +762,7 @@
 			"comment": "Current unavaliable",
 			"patterns": [
 				{
+					"name": "meta.definition.label.v",
 					"match": "^\\s*(default)([0-9a-zA-Z_]+)(:)",
 					"captures": {
 						"1": {
@@ -754,6 +791,7 @@
 					}
 				},
 				{
+					"name": "meta.goto.expr.v",
 					"match": "^\\s*(\\bgoto\\b)\\s+([0-9a-zA-Z_]+)",
 					"captures": {
 						"1": {
@@ -779,6 +817,7 @@
 			"patterns": [
 				{
 					"comment": "Type definition",
+					"name": "meta.definition.type.v",
 					"match": "^\\s*(\\btype\\b)\\s+([0-9a-zA-Z_]*)\\s+(?:[0-9a-zA-Z]+\\.+)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
@@ -816,6 +855,7 @@
 			"patterns": [
 				{
 					"comment": "Enumeration",
+					"name": "meta.definition.enum.v",
 					"match": "^\\s*(\\benum\\b)\\s+(?:[0-9a-zA-Z_]+\\.)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
@@ -841,6 +881,7 @@
 			"patterns": [
 				{
 					"comment": "Structure",
+					"name": "meta.definition.struct.v",
 					"match": "^\\s*(\\bstruct\\b)\\s+(?:[0-9a-zA-Z_]+\\.)?([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
@@ -866,6 +907,7 @@
 			"patterns": [
 				{
 					"comment": "Interface",
+					"name": "meta.definition.interface.v",
 					"match": "^\\s*(\\binterface\\b)\\s+([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
