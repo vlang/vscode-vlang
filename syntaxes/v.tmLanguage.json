@@ -447,51 +447,13 @@
 			"patterns": [
 				{
 					"name": "meta.definition.var.v",
-					"match": "([0-9a-zA-Z_]+)\\s*((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s*(.+?)(?=(?:(?:\/\/|\/\\*).*)?$)",
+					"match": "([0-9a-zA-Z_]+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
 					"captures": {
 						"1": {
 							"name": "entity.name.var.v"
 						},
 						"2": {
 							"name": "keyword.operator.assignment.v"
-						},
-						"3": {
-							"patterns": [
-								{
-									"include": "#builtin-fix"
-								},
-								{
-									"include": "#brackets"
-								},
-								{
-									"include": "#generics"
-								},
-								{
-									"include": "#constants"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#function-exist"
-								},
-								{
-									"include": "#std-types"
-								},
-								{
-									"include": "#std-cbased-types"
-								},
-								{
-									"include": "#punctuation"
-								},
-								{
-									"include": "#strings"
-								},
-								{
-									"include": "#numbers"
-								}
-							],
-							"name": "meta.var.expr.v"
 						}
 					}
 				}
