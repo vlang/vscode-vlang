@@ -45,7 +45,7 @@
 					"name": "keyword.include.v"
 				}
 			},
-			"end": "\\s+([\\<\"])\\s*([0-9a-zA-Z_\\\\.\/]*)([\\>\"])",
+			"end": "\\s+([\\<\"])\\s*([0-9a-zA-Z_\\-\\\\.\/]*)([\\>\"])",
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
@@ -70,6 +70,15 @@
 			"endCaptures": {
 				"1": {
 					"name": "string.quoted.double.v"
+				}
+			}
+		},
+		{
+			"name": "meta.definition.reference.v",
+			"match": "(&)\\s*(?=[0-9a-zA-Z_])",
+			"captures": {
+				"1": {
+					"name": "keyword.operator.address.v"
 				}
 			}
 		},
