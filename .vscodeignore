@@ -1,6 +1,5 @@
 .vscode/**
 .vscode-test/**
-out/**
 node_modules/fs-extra/**
 .gitignore
 .tmp
