@@ -79,3 +79,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid pattern for `enum, type, struct, interface` ([83e27e0](https://github.com/0x9ef/vscode-vlang/commit/83e27e0e64a4a51414ec8ed80dbc6f03fb8bb517))
 - Invalid typo `ligth` to `light` ([09b5257](https://github.com/0x9ef/vscode-vlang/commit/09b5257c7e0d4e10735d3c23d9cfa2eb27735dab))
 - Invalid pattern for variable assignment.
+
+## [0.0.6] - 2019-07-15
+### Added
+- Metadata properties [37dd64b](https://github.com/0x9ef/vscode-vlang/commit/37dd64bcaf1a7799260d29773f55bf23f5f28247)
+- Ignore for specify files [45fbdd9](https://github.com/0x9ef/vscode-vlang/commit/45fbdd952a7c8dc6e971f52388b9629c9fd6ba4e)
+- Pattern for reference [b495745](https://github.com/0x9ef/vscode-vlang/commit/b495745e4354aee7d609adef164fc48be3a75d7e)
+### Fixed
+- Invalid pattern for `ustring` [f7f32d1](https://github.com/0x9ef/vscode-vlang/commit/f7f32d108f2aa031b8335073ef77ab774a77f284)
+- Travis support [d1931ed](https://github.com/0x9ef/vscode-vlang/commit/d1931ed55b42161f6bd1df023685c1d060471165)
+- Invalid pattern for `variable-assignment` [c2ad846](https://github.com/0x9ef/vscode-vlang/commit/c2ad846e79aed3e5c4add8ee2e48aa3d20f18607)
+- `#include` pattern [ecf50c0](https://github.com/0x9ef/vscode-vlang/commit/ecf50c0a830923090b6f13700e8baca9bc3c3c86)
+### Changed
+- types/vscode version to 1.20.0 [37dd64b](https://github.com/0x9ef/vscode-vlang/commit/37dd64bcaf1a7799260d29773f55bf23f5f28247)
+### Removed
+- Autoclosed multilines comments (block) [012e640](https://github.com/0x9ef/vscode-vlang/commit/012e640a84772162a7d822c3b87890c20244fa78)
