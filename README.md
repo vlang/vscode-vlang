@@ -21,8 +21,6 @@ https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang&ssr=false
 ## Preview
 ![First demo screenshot](./images/demo1.PNG)
 ![Second demo screenshot](./images/demo2.PNG)
-![Third demo screenshot](./images/demo3.PNG)
-![Fourth demo screenshot](./images/demo4.PNG)
 
 ## License
 [MIT](./LICENSE)
