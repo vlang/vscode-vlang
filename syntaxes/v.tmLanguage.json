@@ -424,6 +424,10 @@
 				{
 					"name": "constant.language.v",
 					"match": "\\b(true|false)\\b"
+				},
+				{
+					"name": "constant.other.v",
+					"match": "([0-9A-Z]+)(?=\\s*\\=)"
 				}
 			]
 		},
@@ -563,7 +567,7 @@
 			"patterns": [
 				{
 					"name": "meta.function.v",
-					"begin": "(pub)?\\s*(fn)\\s*",
+					"begin": "^\\s*(pub)?\\s*(fn)\\s*",
 					"beginCaptures": {
 						"1": {
 							"name": "storage.modifier.v"
@@ -604,7 +608,7 @@
 			"patterns": [
 				{
 					"name": "meta.function.v",
-					"match": "(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
+					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)(\\<[0-9a-zA-Z_]*\\>)?",
 					"captures": {
 						"0": {
 							"name": "meta.definition.function.v"
@@ -670,7 +674,7 @@
 			"patterns": [
 				{
 					"name": "meta.function.v",
-					"match": "(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)",
+					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([0-9a-zA-Z_]+)",
 					"captures": {
 						"0": {
 							"name": "meta.definition.function.v"
