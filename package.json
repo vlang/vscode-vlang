@@ -4,7 +4,7 @@
     "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
     "publisher": "0x9ef",
     "icon": "images/icon.png",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
     "engines": {
