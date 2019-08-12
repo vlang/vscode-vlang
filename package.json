@@ -27,25 +27,10 @@
         "autocompletion"
     ],
     "categories": [
-        "Themes",
         "Snippets",
         "Programming Languages"
     ],
     "contributes": {
-        "themes": [
-            {
-                "id": "dev-light-v",
-                "label": "V Development Light",
-                "uiTheme": "vs",
-                "path": "theme/dev-light-color-theme.json"
-            },
-            {
-                "id": "dev-dark-v",
-                "label": "V Development Dark",
-                "uiTheme": "vs-dark",
-                "path": "theme/dev-dark-color-theme.json"
-            }
-        ],
         "snippets": [
             {
                 "language": "v",
