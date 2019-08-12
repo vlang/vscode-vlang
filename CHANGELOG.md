@@ -94,3 +94,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - types/vscode version to 1.20.0 [37dd64b](https://github.com/0x9ef/vscode-vlang/commit/37dd64bcaf1a7799260d29773f55bf23f5f28247)
 ### Removed
 - Autoclosed multilines comments (block) [012e640](https://github.com/0x9ef/vscode-vlang/commit/012e640a84772162a7d822c3b87890c20244fa78)
+
+# [0.0.7] - 2019-08-12
+### Added
+- New demos [636c358](https://github.com/0x9ef/vscode-vlang/commit/636c358eb53104f0b3f42f214305f9ef10fb9599)
+- New badges [ab94ea7](https://github.com/0x9ef/vscode-vlang/commit/ab94ea75950a59a5832cb6a6f32e6e8d5197e63a)
+
+### Changed
+- Fixed function declaration from new line [cede5204](https://github.com/0x9ef/vscode-vlang/commit/cede52044e7acd56f880b0729dc3280c16d4c3e9)
+- Fixed invalid function space pattern [88477c2](https://github.com/0x9ef/vscode-vlang/commit/88477c24709836dd8e7d5fdd01d0f729870c278b)
+- Fixed import, module (s) bag [ef56b2c](https://github.com/0x9ef/vscode-vlang/commit/ef56b2c8020d7b6d4d5408635339fa29265ad216)
+
+### Removed
+- Old demos [636c358](https://github.com/0x9ef/vscode-vlang/commit/636c358eb53104f0b3f42f214305f9ef10fb9599)
+- testv.tmLanguage.json [4e3a353](https://github.com/0x9ef/vscode-vlang/commit/4e3a35358d7927efbd47b25911b50e9ad3ee1cd2)
+- Themes for prefering used defined themes [ef56b2c](https://github.com/0x9ef/vscode-vlang/commit/ef56b2c8020d7b6d4d5408635339fa29265ad216)
