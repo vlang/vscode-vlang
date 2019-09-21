@@ -388,6 +388,11 @@
 				{
 					"begin": "/\\*",
 					"end": "\\*/",
+					"patterns": [
+						{
+							"include":"#comments"
+						}
+					],
 					"captures": {
 						"0": {
 							"name": "comment.block.documentation.v"
