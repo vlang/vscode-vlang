@@ -332,6 +332,15 @@
 								}
 							},
 							"name": "meta.expr.rune.cast.v"
+						},
+						{
+							"match": "(none)(?=\\s*\\()",
+							"captures": {
+								"1": {
+									"name": "storage.type.none.v"
+								}
+							},
+							"name": "meta.expr.none.cast.v"
 						}
 					]
 				}
