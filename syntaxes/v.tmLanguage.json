@@ -951,6 +951,10 @@
 				{
 					"name": "storage.type.numeric.v",
 					"match": "\\b(int|uint|i(8|16|32|64|128)|u(8|16|32|64|u128)|f(32|64))\\b"
+				},
+				{
+					"name": "storage.type.none.v",
+					"match": "\\none\\b"
 				}
 			]
 		},
