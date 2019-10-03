@@ -954,7 +954,7 @@
 				},
 				{
 					"name": "storage.type.none.v",
-					"match": "\\none\\b"
+					"match": "\\bnone\\b"
 				}
 			]
 		},
