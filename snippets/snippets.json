@@ -195,7 +195,7 @@
 		"prefix": "stru",
 		"scope": "v,vlang",
 		"body": [
-			"struct ${1:name} {",
+			"struct ${1:Name} {",
 			"\t$0",
 			"}"
 		],
