@@ -95,6 +95,9 @@
 			"include": "#comments"
 		},
 		{
+			"include": "#attributes"
+		},
+		{
 			"include": "#brackets"
 		},
 		{
@@ -197,21 +200,37 @@
 			"patterns": [
 				{
 					"comment": "Before function definition",
-					"name": "meta.function.attribute.v",
-					"match": "^\\s*(?=\\[(live|inline)\\])",
+					"match": "^\\s*((\\[)(live|inline)(\\]))",
 					"captures": {
 						"1": {
-							"name": "entity.function.attribute.v"
+							"name": "meta.function.attribute.v"
+						},
+						"2": {
+							"name": "punctuation.definition.begin.bracket.square.v"
+						},
+						"3": {
+							"name": "storage.modifier.attribute.v"
+						},
+						"4": {
+							"name": "punctuation.definition.end.bracket.square.v"
 						}
 					}
 				},
 				{
 					"comment": "After struct literals",
-					"name": "meta.struct.attribute.v",
-					"match": "(?<=[0-9a-zA-Z_\\s])(?=\\[(skip)\\])",
+					"match": "(?<=[0-9a-zA-Z_\\s])((\\[)(skip)(\\]))",
 					"captures": {
+						"0": {
+							"name": "meta.struct.attribute.v"
+						},
 						"1": {
+							"name": "punctuation.definition.begin.bracket.square.v"
+						},
+						"2": {
 							"name": "entity.struct.attribute.v"
+						},
+						"3": {
+							"name": "punctuation.definition.end.bracket.square.v"
 						}
 					}
 				}
