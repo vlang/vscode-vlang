@@ -415,24 +415,29 @@
 			"patterns": [
 				{
 					"begin": "/\\*",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.begin.v"
+						}
+					},
 					"end": "\\*/",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.end.v"
+						}
+					},
 					"patterns": [
 						{
 							"include":"#comments"
 						}
 					],
-					"captures": {
-						"0": {
-							"name": "comment.block.documentation.v"
-						}
-					},
-					"name": "comment.block.v"
+					"name": "comment.block.documentation.v"
 				},
 				{
 					"begin": "//",
 					"beginCaptures": {
 						"0": {
-							"name": "comment.block.documentation.v"
+							"name": "punctuation.definition.comment.begin.v"
 						}
 					},
 					"end": "$",
