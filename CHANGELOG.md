@@ -109,3 +109,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Old demos [636c358](https://github.com/0x9ef/vscode-vlang/commit/636c358eb53104f0b3f42f214305f9ef10fb9599)
 - testv.tmLanguage.json [4e3a353](https://github.com/0x9ef/vscode-vlang/commit/4e3a35358d7927efbd47b25911b50e9ad3ee1cd2)
 - Themes for prefering used defined themes [ef56b2c](https://github.com/0x9ef/vscode-vlang/commit/ef56b2c8020d7b6d4d5408635339fa29265ad216)
+
+# [0.0.8] - 2019-10-20
+### Added
+- Highlighting for attributes. [f85aec5](https://github.com/0x9ef/vscode-vlang/commit/f85aec57a46116204c9f3fbe370277907ff00a9c)
+- Highlighting for `${...}` syntax [f11581d](https://github.com/0x9ef/vscode-vlang/commit/f11581dcaaadb88da2130a4d9b444d4281f1c0d4)
+- Highlighting for `none` keyword. [d682dbe](https://github.com/0x9ef/vscode-vlang/commit/d682dbefb6330b9383d849334da7677d6f6cf2d6)
+
+### Changed 
+- Fixed nested comments. [f19d486](https://github.com/0x9ef/vscode-vlang/commit/f19d4868dd34a729bee01441eb62c6a59a16a1e6)
+- Insert tabs instead of spaces. [f4525ca](https://github.com/0x9ef/vscode-vlang/commit/f4525ca1eb3d514eeb2bb2956724dc18a2645235)
+- Corrupted icon. [beeb022](https://github.com/0x9ef/vscode-vlang/commit/beeb0223c03a1a40b976ef350d546282b3cfa8ff)
+- Infinity recursion in certain grammar patterns [a40e951](https://github.com/0x9ef/vscode-vlang/commit/1638585f838e30c2587eaf9ee8a08c28785b6f42)
