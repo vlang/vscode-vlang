@@ -4,6 +4,7 @@
 	"fileTypes": [
 		".v",
 		".vh"
+		".vsh"
 	],
 	"scopeName": "source.v",
 	"patterns": [
