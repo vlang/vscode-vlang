@@ -19,11 +19,5 @@ You will install Visual Studio Code `0.26`. In the command palette (cmd-shift-p)
 
 _Note_: It is recommended to turn `Auto Save` on in Visual Studio Code (`File -> Auto Save`) when using this extension.
 
-## TODO
-* IntelliSense
-* Code diagnostic
-* Code testing
-* Hot commands
-
 ## License
 [MIT](./LICENSE)
