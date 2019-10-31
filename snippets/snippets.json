@@ -314,5 +314,133 @@
 			"}"
 		],
 		"description": "Code snippet for 'init' function"
+	},
+	"snippet.return": {
+		"prefix": "return",
+		"scope": "v,vlang",
+		"body": [
+			"return ${1:value}"
+		],
+		"description": "Code snippet for 'match' statement"
+	},
+	"snippet.type.bool": {
+		"prefix": "bool",
+		"scope": "v,vlang",
+		"body": [
+			"bool"
+		],
+		"description": "Boolean"
+	},
+	"snippet.type.string": {
+		"prefix": "str",
+		"scope": "v,vlang",
+		"body": [
+			"string"
+		],
+		"description": "String"
+	},
+	"snippet.type.i8": {
+		"prefix": "int8",
+		"scope": "v,vlang",		
+		"body": [
+			"i8"
+		],
+		"description": "Signed 8-bit Integer"
+	},
+	"snippet.type.i16": {
+		"prefix": "int16",
+		"scope": "v,vlang",
+		"body": [
+			"i16"
+		],
+		"description": "Signed 16-bit Integer"
+	},
+	"snippet.type.int": {
+		"prefix": "int",
+		"scope": "v,vlang",
+		"body": [
+			"int"
+		],
+		"description": "Signed 32-bit Integer"
+	},
+	"snippet.type.i64": {
+		"prefix": "int64",
+		"scope": "v,vlang",
+		"body": [
+			"i64"
+		],
+		"description": "Signed 64-bit Integer"
+	},
+	"snippet.type.byte": {
+		"prefix": "byte",
+		"scope": "v,vlang",
+		"body": [
+			"byte"
+		],
+		"description": "Unsigned 8-bit Integer"
+	},
+	"snippet.type.u16": {
+		"prefix": "u16",
+		"scope": "v,vlang",
+		"body": [
+			"u16"
+		],
+		"description": "Unsigned 16-bit Integer"
+	},
+	"snippet.type.u32": {
+		"prefix": "u32",
+		"scope": "v,vlang",
+		"body": [
+			"u32"
+		],
+		"description": "Unsigned 32-bit Integer"
+	},
+	"snippet.type.u64": {
+		"prefix": "u64",
+		"scope": "v,vlang",
+		"body": [
+			"u64"
+		],
+		"description": "Unsigned 64-bit Integer"
+	},
+	"snippet.type.rune": {
+		"prefix": "rune",
+		"scope": "v,vlang",
+		"body": [
+			"rune"
+		],
+		"description": "Represents a Unicode CodePoint"
+	},
+	"snippet.type.f32": {
+		"prefix": "float",
+		"scope": "v,vlang",
+		"body": [
+			"f32"
+		],
+		"description": "32-bit FloatingPoint"
+	},
+	"snippet.type.f64": {
+		"prefix": "float64",
+		"scope": "v,vlang",
+		"body": [
+			"f64"
+		],
+		"description": "64-bit FloatingPoint"
+	},
+	"snippet.type.byteptr": {
+		"prefix": "byteptr",
+		"scope": "v,vlang",
+		"body": [
+			"byteptr"
+		],
+		"description": "byte*"
+	},
+	"snippet.type.voidptr": {
+		"prefix": "voidptr",
+		"scope": "v,vlang",
+		"body": [
+			"voidptr"
+		],
+		"description": "void*"
 	}
 }
