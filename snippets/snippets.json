@@ -316,7 +316,7 @@
 		"description": "Code snippet for 'init' function"
 	},
 	"snippet.return": {
-		"prefix": "return",
+		"prefix": "ret",
 		"scope": "v,vlang",
 		"body": [
 			"return ${1:value}"
@@ -428,7 +428,7 @@
 		"description": "64-bit FloatingPoint"
 	},
 	"snippet.type.byteptr": {
-		"prefix": "byteptr",
+		"prefix": "bptr",
 		"scope": "v,vlang",
 		"body": [
 			"byteptr"
@@ -436,7 +436,7 @@
 		"description": "byte*"
 	},
 	"snippet.type.voidptr": {
-		"prefix": "voidptr",
+		"prefix": "vptr",
 		"scope": "v,vlang",
 		"body": [
 			"voidptr"
