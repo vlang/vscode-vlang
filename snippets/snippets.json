@@ -321,7 +321,7 @@
 		"body": [
 			"return ${1:value}"
 		],
-		"description": "Code snippet for 'match' statement"
+		"description": "Code snippet for 'return'"
 	},
 	"snippet.type.bool": {
 		"prefix": "bool",
@@ -329,7 +329,7 @@
 		"body": [
 			"bool"
 		],
-		"description": "Boolean"
+		"description": "Code snippet for Boolean"
 	},
 	"snippet.type.string": {
 		"prefix": "str",
@@ -337,7 +337,7 @@
 		"body": [
 			"string"
 		],
-		"description": "String"
+		"description": "Code snippet for String"
 	},
 	"snippet.type.i8": {
 		"prefix": "int8",
@@ -345,7 +345,7 @@
 		"body": [
 			"i8"
 		],
-		"description": "Signed 8-bit Integer"
+		"description": "Code snippet for Signed 8-bit Integer"
 	},
 	"snippet.type.i16": {
 		"prefix": "int16",
@@ -353,7 +353,7 @@
 		"body": [
 			"i16"
 		],
-		"description": "Signed 16-bit Integer"
+		"description": "Code snippet for Signed 16-bit Integer"
 	},
 	"snippet.type.int": {
 		"prefix": "int",
@@ -361,7 +361,7 @@
 		"body": [
 			"int"
 		],
-		"description": "Signed 32-bit Integer"
+		"description": "Code snippet for Signed 32-bit Integer"
 	},
 	"snippet.type.i64": {
 		"prefix": "int64",
@@ -369,7 +369,7 @@
 		"body": [
 			"i64"
 		],
-		"description": "Signed 64-bit Integer"
+		"description": "Code snippet for Signed 64-bit Integer"
 	},
 	"snippet.type.byte": {
 		"prefix": "byte",
@@ -377,7 +377,7 @@
 		"body": [
 			"byte"
 		],
-		"description": "Unsigned 8-bit Integer"
+		"description": "Code snippet for Unsigned 8-bit Integer"
 	},
 	"snippet.type.u16": {
 		"prefix": "u16",
@@ -385,7 +385,7 @@
 		"body": [
 			"u16"
 		],
-		"description": "Unsigned 16-bit Integer"
+		"description": "Code snippet for Unsigned 16-bit Integer"
 	},
 	"snippet.type.u32": {
 		"prefix": "u32",
@@ -393,7 +393,7 @@
 		"body": [
 			"u32"
 		],
-		"description": "Unsigned 32-bit Integer"
+		"description": "Code snippet for Unsigned 32-bit Integer"
 	},
 	"snippet.type.u64": {
 		"prefix": "u64",
@@ -401,7 +401,7 @@
 		"body": [
 			"u64"
 		],
-		"description": "Unsigned 64-bit Integer"
+		"description": "Code snippet for Unsigned 64-bit Integer"
 	},
 	"snippet.type.rune": {
 		"prefix": "rune",
@@ -409,7 +409,7 @@
 		"body": [
 			"rune"
 		],
-		"description": "Represents a Unicode CodePoint"
+		"description": "Code snippet for Represents a Unicode CodePoint"
 	},
 	"snippet.type.f32": {
 		"prefix": "float",
@@ -417,7 +417,7 @@
 		"body": [
 			"f32"
 		],
-		"description": "32-bit FloatingPoint"
+		"description": "Code snippet for 32-bit FloatingPoint"
 	},
 	"snippet.type.f64": {
 		"prefix": "float64",
@@ -425,7 +425,7 @@
 		"body": [
 			"f64"
 		],
-		"description": "64-bit FloatingPoint"
+		"description": "Code snippet for 64-bit FloatingPoint"
 	},
 	"snippet.type.byteptr": {
 		"prefix": "bptr",
@@ -433,7 +433,7 @@
 		"body": [
 			"byteptr"
 		],
-		"description": "byte*"
+		"description": "Code snippet for Byte*"
 	},
 	"snippet.type.voidptr": {
 		"prefix": "vptr",
@@ -441,6 +441,6 @@
 		"body": [
 			"voidptr"
 		],
-		"description": "void*"
+		"description": "Code snippet for Void*"
 	}
 }
