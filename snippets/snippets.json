@@ -115,15 +115,15 @@
 		],
 		"description": "Code snippet for index based loop 'for'"
 	},
-	"snippet.switch": {
-		"prefix": "sw",
+	"snippet.match": {
+		"prefix": "ma",
 		"scope": "v,vlang",
 		"body": [
-			"switch ${1:expression} {",
+			"match ${1:expression} {",
 			"\t$0",
 			"}"
 		],
-		"description": "Code snippet for 'switch' statement"
+		"description": "Code snippet for 'match' statement"
 	},
 	"snippet.break": {
 		"prefix": "br",
@@ -314,5 +314,133 @@
 			"}"
 		],
 		"description": "Code snippet for 'init' function"
+	},
+	"snippet.return": {
+		"prefix": "ret",
+		"scope": "v,vlang",
+		"body": [
+			"return ${1:value}"
+		],
+		"description": "Code snippet for 'return'"
+	},
+	"snippet.type.bool": {
+		"prefix": "bool",
+		"scope": "v,vlang",
+		"body": [
+			"bool"
+		],
+		"description": "Code snippet for Boolean"
+	},
+	"snippet.type.string": {
+		"prefix": "str",
+		"scope": "v,vlang",
+		"body": [
+			"string"
+		],
+		"description": "Code snippet for String"
+	},
+	"snippet.type.i8": {
+		"prefix": "int8",
+		"scope": "v,vlang",		
+		"body": [
+			"i8"
+		],
+		"description": "Code snippet for Signed 8-bit Integer"
+	},
+	"snippet.type.i16": {
+		"prefix": "int16",
+		"scope": "v,vlang",
+		"body": [
+			"i16"
+		],
+		"description": "Code snippet for Signed 16-bit Integer"
+	},
+	"snippet.type.int": {
+		"prefix": "int",
+		"scope": "v,vlang",
+		"body": [
+			"int"
+		],
+		"description": "Code snippet for Signed 32-bit Integer"
+	},
+	"snippet.type.i64": {
+		"prefix": "int64",
+		"scope": "v,vlang",
+		"body": [
+			"i64"
+		],
+		"description": "Code snippet for Signed 64-bit Integer"
+	},
+	"snippet.type.byte": {
+		"prefix": "byte",
+		"scope": "v,vlang",
+		"body": [
+			"byte"
+		],
+		"description": "Code snippet for Unsigned 8-bit Integer"
+	},
+	"snippet.type.u16": {
+		"prefix": "u16",
+		"scope": "v,vlang",
+		"body": [
+			"u16"
+		],
+		"description": "Code snippet for Unsigned 16-bit Integer"
+	},
+	"snippet.type.u32": {
+		"prefix": "u32",
+		"scope": "v,vlang",
+		"body": [
+			"u32"
+		],
+		"description": "Code snippet for Unsigned 32-bit Integer"
+	},
+	"snippet.type.u64": {
+		"prefix": "u64",
+		"scope": "v,vlang",
+		"body": [
+			"u64"
+		],
+		"description": "Code snippet for Unsigned 64-bit Integer"
+	},
+	"snippet.type.rune": {
+		"prefix": "rune",
+		"scope": "v,vlang",
+		"body": [
+			"rune"
+		],
+		"description": "Code snippet for Represents a Unicode CodePoint"
+	},
+	"snippet.type.f32": {
+		"prefix": "float",
+		"scope": "v,vlang",
+		"body": [
+			"f32"
+		],
+		"description": "Code snippet for 32-bit FloatingPoint"
+	},
+	"snippet.type.f64": {
+		"prefix": "float64",
+		"scope": "v,vlang",
+		"body": [
+			"f64"
+		],
+		"description": "Code snippet for 64-bit FloatingPoint"
+	},
+	"snippet.type.byteptr": {
+		"prefix": "bptr",
+		"scope": "v,vlang",
+		"body": [
+			"byteptr"
+		],
+		"description": "Code snippet for Byte*"
+	},
+	"snippet.type.voidptr": {
+		"prefix": "vptr",
+		"scope": "v,vlang",
+		"body": [
+			"voidptr"
+		],
+		"description": "Code snippet for Void*"
 	}
 }
