@@ -116,7 +116,7 @@
 		"description": "Code snippet for index based loop 'for'"
 	},
 	"snippet.match": {
-		"prefix": "match",
+		"prefix": "ma",
 		"scope": "v,vlang",
 		"body": [
 			"match ${1:expression} {",
