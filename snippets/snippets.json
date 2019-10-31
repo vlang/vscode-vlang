@@ -115,15 +115,15 @@
 		],
 		"description": "Code snippet for index based loop 'for'"
 	},
-	"snippet.switch": {
-		"prefix": "sw",
+	"snippet.match": {
+		"prefix": "match",
 		"scope": "v,vlang",
 		"body": [
-			"switch ${1:expression} {",
+			"match ${1:expression} {",
 			"\t$0",
 			"}"
 		],
-		"description": "Code snippet for 'switch' statement"
+		"description": "Code snippet for 'match' statement"
 	},
 	"snippet.break": {
 		"prefix": "br",
