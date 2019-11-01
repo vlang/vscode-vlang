@@ -201,7 +201,7 @@
 			"patterns": [
 				{
 					"comment": "Before function definition",
-					"match": "^\\s*((\\[)(live|inline)(\\]))",
+					"match": "^\\s*((\\[)(unsafe_fn|deprecated|live|inline)(\\]))",
 					"captures": {
 						"1": {
 							"name": "meta.function.attribute.v"
