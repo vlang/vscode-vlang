@@ -341,7 +341,7 @@
 	},
 	"snippet.type.i8": {
 		"prefix": "int8",
-		"scope": "v,vlang",		
+		"scope": "v,vlang",
 		"body": [
 			"i8"
 		],
@@ -442,5 +442,37 @@
 			"voidptr"
 		],
 		"description": "Code snippet for Void*"
+	},
+	"snippet.attr.live": {
+		"prefix": "liv",
+		"scope": "v,vlang",
+		"body": [
+			"[live]"
+		],
+		"description": "Code snippet for '[live]' attribute"
+	},
+	"snippet.attr.inline": {
+		"prefix": "inl",
+		"scope": "v,vlang",
+		"body": [
+			"[inline]"
+		],
+		"description": "Code snippet for '[inline]' attribute"
+	},
+	"snippet.attr.unsafe_fn": {
+		"prefix": "uns",
+		"scope": "v,vlang",
+		"body": [
+			"[unsafe_fn]"
+		],
+		"description": "Code snippet for '[unsafe_fn]' attribute"
+	},
+	"snippet.attr.deprecated": {
+		"prefix": "dep",
+		"scope": "v,vlang",
+		"body": [
+			"[deprecated]"
+		],
+		"description": "Code snippet for '[deprecated]' attribute"
 	}
 }
