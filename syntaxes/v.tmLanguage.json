@@ -85,7 +85,7 @@
 		},
 		{
 			"name": "meta.definition.escaped.keyword.v",
-			"match": "((?:@)(?:mut|pub|fn|module|import|const|map|assert|sizeof|type|struct|interface|enum|in|or|switch|case|match|if|else|for|go|goto|defer|return|int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|voidptr|string|ustring|rune|none))",
+			"match": "((?:@)(?:mut|pub|fn|module|import|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|voidptr|string|ustring|rune|none))",
 			"captures": {
 				"0": {
 					"name": "keyword.other.escaped.v"
@@ -201,7 +201,7 @@
 			"patterns": [
 				{
 					"comment": "Before function definition",
-					"match": "^\\s*((\\[)(live|inline)(\\]))",
+					"match": "^\\s*((\\[)(unsafe_fn|deprecated|live|inline)(\\]))",
 					"captures": {
 						"1": {
 							"name": "meta.function.attribute.v"
@@ -270,7 +270,7 @@
 				{
 					"patterns": [
 						{
-							"match": "(in|or|switch|case|match|if|else|for|go|goto|defer|return)(?=\\s*\\()",
+							"match": "(in|or|match|if|else|for|go|goto|defer|return)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "keyword.control.v"
@@ -282,7 +282,7 @@
 				{
 					"patterns": [
 						{
-							"match": "(int|uint|i?(?:8|16|32|64|128)|u?(?:8|16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
+							"match": "(i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.numeric.v"
@@ -975,7 +975,7 @@
 				},
 				{
 					"name": "storage.type.numeric.v",
-					"match": "\\b(int|uint|i(8|16|32|64|128)|u(8|16|32|64|u128)|f(32|64))\\b"
+					"match": "\\b(i(8|16|nt|64|128)|u(16|32|64|u128)|f(32|64))\\b"
 				},
 				{
 					"name": "storage.type.none.v",
@@ -1025,7 +1025,7 @@
 				{
 					"comment": "Keyword Control",
 					"name": "keyword.control.v",
-					"match": "\\b(in|or|break|continue|switch|case|default|match|if|else|for|go|goto|defer|return)\\b"
+					"match": "\\b(in|or|break|continue|default|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
 					"name": "keyword.control.v",
