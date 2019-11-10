@@ -45,6 +45,7 @@
         ],
         "extensions": [
           ".v",
+          ".vh",
           ".vsh"
         ],
         "configuration": "./language-configuration.json"
@@ -63,8 +64,8 @@
         "v.format.enable": {
           "scope": "resource",
           "type": "boolean",
-          "default": false,
-          "description": "Enable/disable the V formatter (not yet implemented)."
+          "default": true,
+          "description": "Enable/disable the V formatter (vfmt)"
         }
       }
     },
