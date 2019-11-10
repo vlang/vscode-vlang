@@ -64,7 +64,7 @@
         "v.format.enable": {
           "scope": "resource",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable/disable the V formatter (vfmt)"
         },
         "v.format.args": {
