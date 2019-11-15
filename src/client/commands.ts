@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 // import * as superchild from 'superchild';
 
-let v_run_term: vscode.Terminal = null
+let vRunTerm: vscode.Terminal = null
 
 // PRIVATE FUNCTIONS
-function run_term(term, cmd) {
+function runTerm(term, cmd) {
     term.show()
     term.sendText(cmd)
 } 
@@ -18,15 +18,15 @@ export function run() {
     
     vscode.window.activeTextEditor.document.save()
     
-    if (!v_run_term) {
-        v_run_term = vscode.window.createTerminal(cmd)
-        run_term(v_run_term, cmd)
+    if (!vRunTerm) {
+        vRunTerm = vscode.window.createTerminal(cmd)
+        runTerm(vRunTerm, cmd)
     } else {
-        run_term(v_run_term, cmd)
+        runTerm(vRunTerm, cmd)
     }
 
     vscode.window.onDidCloseTerminal((term)=> {
-        if (term.name == cmd) v_run_term = null 
+        if (term.name == cmd) vRunTerm = null 
     })
 }
 
