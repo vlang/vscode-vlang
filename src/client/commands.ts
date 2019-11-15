@@ -13,8 +13,7 @@ function runTerm(term, cmd) {
  * Run current file.
  */
 export function run() {
-    const filename = vscode.window.activeTextEditor.document.fileName
-    const cmd = 'v run ' + filename
+    const cmd = 'v run ' + vscode.window.activeTextEditor.document.fileName
     
     vscode.window.activeTextEditor.document.save()
     
