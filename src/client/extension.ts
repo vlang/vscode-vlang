@@ -34,7 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
 /**
  * This method is called when the extension is deactivated.
  */
-export function deactivate() {}
 
 // Private functions -----------------------------------------------------------
 
@@ -97,3 +96,5 @@ function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
     document.lineAt(lastLineId).text.length
   );
 }
+
+export function deactivate() { }
