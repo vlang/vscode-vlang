@@ -4,9 +4,9 @@ import * as vscode from 'vscode';
 let vRunTerm: vscode.Terminal = null
 
 // PRIVATE FUNCTIONS
-function runTerm(term, cmd) {
-    term.show()
-    term.sendText(cmd)
+function runTerm(cmd) {
+    vRunTerm.show()
+    vRunTerm.sendText(cmd)
 } 
 
 /**
@@ -19,9 +19,9 @@ export function run() {
     
     if (!vRunTerm) {
         vRunTerm = vscode.window.createTerminal(cmd)
-        runTerm(vRunTerm, cmd)
+        runTerm(cmd)
     } else {
-        runTerm(vRunTerm, cmd)
+        runTerm(cmd)
     }
 
     vscode.window.onDidCloseTerminal((term)=> {
