@@ -81,7 +81,7 @@
     },
     {
       "name": "meta.definition.escaped.keyword.v",
-      "match": "((?:@)(?:mut|pub|fn|module|import|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|voidptr|string|ustring|rune|none))",
+      "match": "((?:@)(?:mut|pub|fn|module|import|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none))",
       "captures": {
         "0": {
           "name": "keyword.other.escaped.v"
