@@ -1,32 +1,32 @@
 import * as vscode from 'vscode';
 // import * as superchild from 'superchild';
 
-let vRunTerm: vscode.Terminal = null
+let vRunTerm: vscode.Terminal = null;
 
 // PRIVATE FUNCTIONS
 function runTerm(term, cmd) {
-    term.show()
-    term.sendText(cmd)
-} 
+    term.show();
+    term.sendText(cmd);
+}
 
 /**
  * Run current file.
  */
 export function run() {
-    const cmd = 'v run ' + vscode.window.activeTextEditor.document.fileName
-    
-    vscode.window.activeTextEditor.document.save()
-    
+    const cmd = 'v run ' + vscode.window.activeTextEditor.document.fileName;
+
+    vscode.window.activeTextEditor.document.save();
+
     if (!vRunTerm) {
-        vRunTerm = vscode.window.createTerminal(cmd)
-        runTerm(vRunTerm, cmd)
+        vRunTerm = vscode.window.createTerminal(cmd);
+        runTerm(vRunTerm, cmd);
     } else {
-        runTerm(vRunTerm, cmd)
+        runTerm(vRunTerm, cmd);
     }
 
-    vscode.window.onDidCloseTerminal((term)=> {
-        if (term.name == cmd) vRunTerm = null 
-    })
+    vscode.window.onDidCloseTerminal(term => {
+        if (term.name == cmd) vRunTerm = null;
+    });
 }
 
 /**
@@ -62,4 +62,4 @@ export function testPackage() {}
 /**
  * Upload and share current code to V playground.
  */
-export function playground() { }
+export function playground() {}
