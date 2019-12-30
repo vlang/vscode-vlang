@@ -63,7 +63,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
     // Create vfmt command
     const vfmtArgs: string =
       vscode.workspace.getConfiguration('v.format').get('args') || '';
-    const cmd = `vfmt ${vfmtArgs} ${document.fileName}`;
+    const cmd = `v fmt ${vfmtArgs} ${document.fileName}`;
 
     console.log(`Running ${cmd}...`);
 
@@ -97,4 +97,4 @@ function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
   );
 }
 
-export function deactivate() { }
+export function deactivate() {}
