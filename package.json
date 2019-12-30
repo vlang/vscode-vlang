@@ -1,154 +1,154 @@
 {
-  "name": "vscode-vlang",
-  "displayName": "V",
-  "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
-  "publisher": "0x9ef",
-  "icon": "icons/icon.png",
-  "version": "0.0.8",
-  "license": "SEE LICENSE IN LICENSE",
-  "private": true,
-  "engines": {
-    "vscode": "^1.20.0"
-  },
-  "homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
-  "bugs": {
-    "url": "https://github.com/0x9ef/vscode-vlang/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/0x9ef/vscode-vlang.git"
-  },
-  "keywords": [
-    "V",
-    "v",
-    "v language",
-    "vlang",
-    "extension",
-    "autocompletion"
-  ],
-  "categories": [
-    "Snippets",
-    "Programming Languages"
-  ],
-  "contributes": {
-    "snippets": [
-      {
-        "language": "v",
-        "path": "snippets/snippets.json"
-      }
-    ],
-    "languages": [
-      {
-        "id": "v",
-        "aliases": [
-          "V"
-        ],
-        "extensions": [
-          ".v",
-          ".vh",
-          ".vsh"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "v",
-        "scopeName": "source.v",
-        "path": "./syntaxes/v.tmLanguage.json"
-      }
-    ],
-    "configuration": {
-      "title": "V",
-      "properties": {
-        "v.format.enable": {
-          "scope": "resource",
-          "type": "boolean",
-          "default": false,
-          "description": "Enable/disable the V formatter (vfmt)"
-        },
-        "v.format.args": {
-          "scope": "resource",
-          "type": "string",
-          "default": "",
-          "description": "Arguments to pass to 'vfmt'"
-        }
-      }
-    },
-    "configurationDefaults": {
-      "[v]": {
-        "editor.insertSpaces": false,
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.organizeImports": true
-        }
-      }
-    },
-    "commands": [
-      {
-        "command": "v.run",
-        "title": "V: Run current file"
-      },
-      {
-        "command": "v.prod",
-        "title": "V: Build an optimized executable from current file"
-      },
-      {
-        "command": "v.help",
-        "title": "V: Show help info"
-      },
-      {
-        "command": "v.ver",
-        "title": "V: Show version info"
-      },
-      {
-        "command": "v.path",
-        "title": "V: Show local paths info"
-      },
-      {
-        "command": "v.test.file",
-        "title": "V: Test current file"
-      },
-      {
-        "command": "v.test.package",
-        "title": "V: Test current package"
-      },
-      {
-        "command": "v.playground",
-        "title": "V: Upload and share current code to V playground"
-      }
-    ],
-    "iconThemes": [
-      {
-        "id": "v",
-        "label": "V",
-        "path": "./theme/icon-theme.json"
-      }
-    ]
-  },
-  "activationEvents": [
-    "onLanguage:v",
-    "onCommand:v.run",
-    "onCommand:v.prod",
-    "onCommand:v.help",
-    "onCommand:v.ver",
-    "onCommand:v.path",
-    "onCommand:v.test.file",
-    "onCommand:v.test.package",
-    "onCommand:v.playground"
-  ],
-  "main": "./out/extension.js",
-  "dependencies": {
-    "@types/node": "^13.1.1",
-    "vscode-languageclient": "~5.2.1"
-  },
-  "devDependencies": {
-    "@types/vscode": "~1.20.0",
-    "typescript": "~3.5.2"
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  }
+	"name": "vscode-vlang",
+	"displayName": "V",
+	"description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
+	"publisher": "0x9ef",
+	"icon": "icons/icon.png",
+	"version": "0.0.9",
+	"license": "SEE LICENSE IN LICENSE",
+	"private": true,
+	"engines": {
+		"vscode": "^1.20.0"
+	},
+	"homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
+	"bugs": {
+		"url": "https://github.com/0x9ef/vscode-vlang/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/0x9ef/vscode-vlang.git"
+	},
+	"keywords": [
+		"V",
+		"v",
+		"v language",
+		"vlang",
+		"extension",
+		"autocompletion"
+	],
+	"categories": [
+		"Snippets",
+		"Programming Languages"
+	],
+	"contributes": {
+		"snippets": [
+			{
+				"language": "v",
+				"path": "snippets/snippets.json"
+			}
+		],
+		"languages": [
+			{
+				"id": "v",
+				"aliases": [
+					"V"
+				],
+				"extensions": [
+					".v",
+					".vh",
+					".vsh"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "v",
+				"scopeName": "source.v",
+				"path": "./syntaxes/v.tmLanguage.json"
+			}
+		],
+		"configuration": {
+			"title": "V",
+			"properties": {
+				"v.format.enable": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": false,
+					"description": "Enable/disable the V formatter (vfmt)"
+				},
+				"v.format.args": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "Arguments to pass to 'vfmt'"
+				}
+			}
+		},
+		"configurationDefaults": {
+			"[v]": {
+				"editor.insertSpaces": false,
+				"editor.formatOnSave": true,
+				"editor.codeActionsOnSave": {
+					"source.organizeImports": true
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "v.run",
+				"title": "V: Run current file"
+			},
+			{
+				"command": "v.prod",
+				"title": "V: Build an optimized executable from current file"
+			},
+			{
+				"command": "v.help",
+				"title": "V: Show help info"
+			},
+			{
+				"command": "v.ver",
+				"title": "V: Show version info"
+			},
+			{
+				"command": "v.path",
+				"title": "V: Show local paths info"
+			},
+			{
+				"command": "v.test.file",
+				"title": "V: Test current file"
+			},
+			{
+				"command": "v.test.package",
+				"title": "V: Test current package"
+			},
+			{
+				"command": "v.playground",
+				"title": "V: Upload and share current code to V playground"
+			}
+		],
+		"iconThemes": [
+			{
+				"id": "v",
+				"label": "V",
+				"path": "./theme/icon-theme.json"
+			}
+		]
+	},
+	"activationEvents": [
+		"onLanguage:v",
+		"onCommand:v.run",
+		"onCommand:v.prod",
+		"onCommand:v.help",
+		"onCommand:v.ver",
+		"onCommand:v.path",
+		"onCommand:v.test.file",
+		"onCommand:v.test.package",
+		"onCommand:v.playground"
+	],
+	"main": "./out/extension.js",
+	"dependencies": {
+		"@types/node": "^13.1.1",
+		"vscode-languageclient": "~5.2.1"
+	},
+	"devDependencies": {
+		"@types/vscode": "~1.20.0",
+		"typescript": "~3.5.2"
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./"
+	}
 }
