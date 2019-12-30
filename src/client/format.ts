@@ -17,9 +17,10 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
         return reject(message);
       }
       console.log('Formatting complete');
-      return [vscode.TextEdit.replace(fullDocumentRange(document), stdout)];
+      return resolve([vscode.TextEdit.replace(fullDocumentRange(document), stdout)]);
     }
     
+    // TODO: vscode.workspace.rootPath is deprecated. 
     childProcess.exec(cmd, { cwd: vscode.workspace.rootPath }, callback);
   });
 }
