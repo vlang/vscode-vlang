@@ -121,3 +121,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Insert tabs instead of spaces. [f4525ca](https://github.com/0x9ef/vscode-vlang/commit/f4525ca1eb3d514eeb2bb2956724dc18a2645235)
 - Corrupted icon. [beeb022](https://github.com/0x9ef/vscode-vlang/commit/beeb0223c03a1a40b976ef350d546282b3cfa8ff)
 - Infinity recursion in certain grammar patterns [a40e951](https://github.com/0x9ef/vscode-vlang/commit/1638585f838e30c2587eaf9ee8a08c28785b6f42)
+
+# [0.0.9] - 2019-12-30
+### Added
+- Highlighting for `as` keyword [e7c72b2](https://github.com/0x9ef/vscode-vlang/commit/e7c72b2cb23444d5c1fa5e5aa2f61e64eaa8264f)
+- Highlighting for `charptr` keyword [b9f16bc](https://github.com/0x9ef/vscode-vlang/commit/b9f16bce1e8089d0b2b2dd50bf09ff8aec621122)
+- Support for `.vsh` [e79a22e](https://github.com/0x9ef/vscode-vlang/commit/e79a22e72dabeca2cc26e08829e6da6f1a957e3c)
+- Some more snippets [b06ae81](https://github.com/0x9ef/vscode-vlang/commit/b06ae81b47ec6354ef1ed887ce6357ef03cd712c)
+
+### Changed
+- Fixed invalid icon theme [be3fcb3](https://github.com/0x9ef/vscode-vlang/commit/be3fcb399a309d52e8869f6ac9067aa454dd3b8a)
+- Fixed `vfmt` [3522196](https://github.com/0x9ef/vscode-vlang/commit/3522196890c4f89da2f173684fe326e79fbb4c52)
+- Cleaned up resource usage [4f587ed](https://github.com/0x9ef/vscode-vlang/commit/4f587ed1cbcd6e884da250528ba7f2e0728127cb)
+- Removed unused entries from `.travis.yml` [96e1a0b](https://github.com/0x9ef/vscode-vlang/commit/96e1a0b06946d2659d5e92242aeabbfc56faf909)

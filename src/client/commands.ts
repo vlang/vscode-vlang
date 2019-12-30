@@ -4,7 +4,7 @@ import { vrun } from './run';
  * Run current file.
  */
 export function run() {
-    vrun();
+	vrun();
 }
 
 /**
@@ -40,4 +40,4 @@ export function testPackage() {}
 /**
  * Upload and share current code to V playground.
  */
-export function playground() { }
+export function playground() {}
