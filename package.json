@@ -3,7 +3,7 @@
   "displayName": "V",
   "description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
   "publisher": "0x9ef",
-  "icon": "images/icon.png",
+  "icon": "icons/icon.png",
   "version": "0.0.8",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,

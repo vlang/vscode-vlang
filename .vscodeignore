@@ -1,7 +1,9 @@
 .vscode/**
 .vscode-test/**
-node_modules/fs-extra/**
+node_modules/
+src/
+images/
+
+**/tslint.json
 .gitignore
 tsconfig.json
-**/tslint.json
-vsc-extension-quickstart.md
