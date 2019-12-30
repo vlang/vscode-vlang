@@ -1,13 +1,13 @@
 {
-  "iconDefinitions": {
-    "_v_file": {
-      "iconPath": "./images/v.svg"
-    }
-  },
-  "fileExtensions": {
-    "v": "_v_file"
-  },
-  "fileNames": {
-    ".v": "_v_file"
-  }
+	"iconDefinitions": {
+		"_v_file": {
+			"iconPath": "./images/v.svg"
+		}
+	},
+	"fileExtensions": {
+		"v": "_v_file"
+	},
+	"fileNames": {
+		".v": "_v_file"
+	}
 }
