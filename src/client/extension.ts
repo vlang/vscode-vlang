@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as commands from './commands';
-import childProcess = require('child_process');
+// import childProcess = require('child_process');
 
 // Public functions ------------------------------------------------------------
 
@@ -28,75 +28,74 @@ export function activate(context: vscode.ExtensionContext) {
         commands.playground
     );
 
-    registerFormatter();
+    // registerFormatter();
 }
+
+// Private functions -----------------------------------------------------------
+
+// function registerFormatter() {
+//     const formatterDisabled = !vscode.workspace
+//         .getConfiguration('v.format')
+//         .get('enable');
+//     if (formatterDisabled) {
+//         console.log('Formatter not enabled');
+//         return;
+//     }
+
+//     // Register the vfmt formatter
+//     vscode.languages.registerDocumentFormattingEditProvider('v', {
+//         provideDocumentFormattingEdits(
+//             document: vscode.TextDocument
+//         ): Thenable<vscode.TextEdit[]> {
+//             return document.save().then(() => {
+//                 return format(document);
+//             });
+//         }
+//     });
+// }
+
+// function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
+//     return new Promise((resolve, reject) => {
+//         // Create vfmt command
+//         const vfmtArgs: string =
+//             vscode.workspace.getConfiguration('v.format').get('args') || '';
+//         const cmd = `vfmt ${vfmtArgs} ${document.fileName}`;
+
+//         console.log(`Running ${cmd}...`);
+
+//         // Run the command
+//         childProcess.exec(
+//             cmd,
+//             {
+//                 cwd: vscode.workspace.rootPath
+//             },
+//             function(error, stdout, stderr) {
+//                 if (error !== null) {
+//                     const message = `Cannot format due to the following errors: ${stderr}`;
+//                     vscode.window.showErrorMessage(message);
+//                     return reject(message);
+//                 }
+
+//                 console.log('Formatting complete');
+//                 return [
+//                     vscode.TextEdit.replace(fullDocumentRange(document), stdout)
+//                 ];
+//             }
+//         );
+//     });
+// }
+
+// function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
+//     const lastLineId = document.lineCount - 1;
+//     return new vscode.Range(
+//         0,
+//         0,
+//         lastLineId,
+//         document.lineAt(lastLineId).text.length
+//     );
+// }
 
 /**
  * This method is called when the extension is deactivated.
  */
-
-// Private functions -----------------------------------------------------------
-
-function registerFormatter() {
-    const formatterDisabled = !vscode.workspace
-        .getConfiguration('v.format')
-        .get('enable');
-    if (formatterDisabled) {
-        console.log('Formatter not enabled');
-        return;
-    }
-
-    // Register the vfmt formatter
-    vscode.languages.registerDocumentFormattingEditProvider('v', {
-        provideDocumentFormattingEdits(
-            document: vscode.TextDocument
-        ): Thenable<vscode.TextEdit[]> {
-            return document.save().then(() => {
-                return format(document);
-            });
-        }
-    });
-}
-
-function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
-    return new Promise((resolve, reject) => {
-        // Create vfmt command
-        const vfmtArgs: string =
-            vscode.workspace.getConfiguration('v.format').get('args') || '';
-        const cmd = `vfmt ${vfmtArgs} ${document.fileName}`;
-
-        console.log(`Running ${cmd}...`);
-
-        // Run the command
-        childProcess.exec(
-            cmd,
-            {
-                cwd: vscode.workspace.rootPath
-            },
-            function(error, stdout, stderr) {
-                if (error !== null) {
-                    const message = `Cannot format due to the following errors: ${stderr}`;
-                    vscode.window.showErrorMessage(message);
-                    return reject(message);
-                }
-
-                console.log('Formatting complete');
-                return [
-                    vscode.TextEdit.replace(fullDocumentRange(document), stdout)
-                ];
-            }
-        );
-    });
-}
-
-function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
-    const lastLineId = document.lineCount - 1;
-    return new vscode.Range(
-        0,
-        0,
-        lastLineId,
-        document.lineAt(lastLineId).text.length
-    );
-}
-
 export function deactivate() {}
