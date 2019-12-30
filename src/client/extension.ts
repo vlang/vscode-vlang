@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as commands from './commands';
 import { registerFormatter } from './format'
-
 /**
  * This method is called when the extension is activated.
  * @param context The extension context is a collection of utilities private to

@@ -19,8 +19,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
       console.log('Formatting complete');
       return [vscode.TextEdit.replace(fullDocumentRange(document), stdout)];
     }
-
-    // Run the command
+    
     childProcess.exec(cmd, { cwd: vscode.workspace.rootPath }, callback);
   });
 }
