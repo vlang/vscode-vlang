@@ -8,6 +8,11 @@ cache: npm
 
 install:
   - npm install
+  - npm install -g markdownlint-cli
 
-script:
-  - npm run compile
+jobs:
+  include:
+    - stage: Compilation
+      script: npm run compile
+    - stage: Markdown Linting
+      script: markdownlint *.md

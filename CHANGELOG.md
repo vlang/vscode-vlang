@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Invalid patterns for assignment operator. 
+- Invalid patterns for assignment operator.
 - Invalid patterns for integer, float, hex numerics.
 - Invalid patterns for new/exist function arguments.
 
@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Invalid pattern for floating point numbers.
-- Invalid pattern for single, double strings. 
+- Invalid pattern for single, double strings.
 - Invalid pattern for new function declaration.
 - Invalid pattern for exist function.
 - Invalid patterns for `module, import, #include, #flag`
