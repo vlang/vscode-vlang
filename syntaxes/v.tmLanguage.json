@@ -901,28 +901,102 @@
 		"struct": {
 			"patterns": [
 				{
-					"comment": "Structure",
 					"name": "meta.definition.struct.v",
-					"match": "^\\s*(\\bstruct\\b)\\s+(?:[0-9a-zA-Z_]+\\.)?([0-9a-zA-Z_]*)",
-					"captures": {
+					"begin": "\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)\\s+([0-9a-zA-Z_.]+)\\s*({)",
+					"beginCaptures": {
 						"1": {
-							"name": "keyword.struct.v"
+							"name": "storage.modifier.$1.v"
 						},
 						"2": {
-							"patterns": [
-								{
-									"name": "invalid.illegal.v",
-									"match": "\\d\\w+"
+							"name": "storage.type.struct.v"
+						},
+						"3": {
+							"name": "entity.name.struct.v"
+						},
+						"4": {
+							"name": "punctuation.definition.bracket.curly.begin.v"
+						}
+					},
+					"end": "\\s*(})",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.bracket.curly.end.v"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#struct-access-modifier"
+						},
+						{
+							"match": "\\b(\\w+)\\s+(\\w+)(?:\\s*(=)\\s*((?:.(?=$|//|/\\*))*+))?",
+							"captures": {
+								"1": {
+									"name": "variable.other.property.v"
 								},
-								{
-									"name": "entity.name.struct.v",
-									"match": "\\w+"
+								"2": {
+									"patterns": [
+										{
+											"include": "#std-types"
+										},
+										{
+											"include": "#std-cbased-types"
+										},
+										{
+											"match": "\\w+",
+											"name": "storage.type.other.v"
+										}
+									]
+								},
+								"3": {
+									"name": "keyword.operator.assignment.v"
+								},
+								"4": {
+									"patterns": [
+										{
+											"include": "$self"
+										}
+									]
 								}
-							]
+							}
+						},
+						{
+							"include": "#std-types"
+						},
+						{
+							"include": "#std-cbased-types"
+						},
+						{
+							"include": "$self"
+						}
+					]
+				},
+				{
+					"name": "meta.definition.struct.v",
+					"match": "(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)(?:\\s+([0-9a-zA-Z_.]+))?",
+					"captures": {
+						"1": {
+							"name": "storage.modifier.$1.v"
+						},
+						"2": {
+							"name": "storage.type.struct.v"
+						},
+						"3": {
+							"name": "entity.name.struct.v"
 						}
 					}
 				}
 			]
+		},
+		"struct-access-modifier": {
+			"match": "(?<=\\s|^)(mut|pub(?:\\s+mut)?|__global)(:|\\b)",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.$1.v"
+				},
+				"2": {
+					"name": "punctuation.separator.struct.key-value.v"
+				}
+			}
 		},
 		"interface": {
 			"patterns": [
@@ -1059,11 +1133,6 @@
 					"comment": "Keyword Based Enumeration",
 					"name": "keyword.enum.v",
 					"match": "\\benum\\b"
-				},
-				{
-					"comment": "Keyword Based Structure",
-					"name": "keyword.struct.v",
-					"match": "\\bstruct\\b"
 				},
 				{
 					"comment": "Keyword Based Interface",
