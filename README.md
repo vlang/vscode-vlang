@@ -5,7 +5,8 @@
 [![Build Status](https://travis-ci.org/0x9ef/vscode-vlang.svg?branch=master)](https://travis-ci.org/0x9ef/vscode-vlang)
 
 [**V Language**](https://vlang.io) support extension for Visual Studio Code. Syntax highlighting and code snippets.
-https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang&ssr=false
+
+<https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang&ssr=false>
 
 ## Features
 
