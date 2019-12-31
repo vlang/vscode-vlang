@@ -777,6 +777,10 @@
 										},
 										{
 											"include": "#std-types"
+										},
+										{
+											"match": "\\w+",
+											"name": "storage.type.other.v"
 										}
 									]
 								},
