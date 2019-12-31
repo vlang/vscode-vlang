@@ -832,7 +832,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.interface.v",
-					"match": "(pub)?(interface)\\s+([0-9a-zA-Z_]*)",
+					"match": "\\s*(?:(pub)?\\s+)?(interface)\\s+([0-9a-zA-Z_]*)",
 					"captures": {
 						"1": {
 							"name": "keyword.pub.v"
