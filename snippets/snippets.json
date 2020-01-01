@@ -304,5 +304,11 @@
 		"description": "Code snippet for Void*",
 		"prefix": "vptr",
 		"scope": "v,vlang"
+	},
+	"snippet.type.charptr": {
+		"body": ["charptr"],
+		"description": "Code snippet for char*",
+		"prefix": "cptr",
+		"scope": "v,vlang"
 	}
 }
