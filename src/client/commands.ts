@@ -12,12 +12,12 @@ export function run() {
 /**
  * Build an optimized executable from current file.
  */
-export function prod() { }
+export function prod() {}
 
 /**
  * Show help info.
  */
-export function help() { }
+export function help() {}
 
 /**
  * Show version info.
@@ -25,7 +25,9 @@ export function help() { }
 export function ver() {
 	childProcess.exec('v -v', (err, stdout, stderr) => {
 		if (err) {
-			vscode.window.showErrorMessage('Unable to get the version number. Is V installed correctly?');
+			vscode.window.showErrorMessage(
+				'Unable to get the version number. Is V installed correctly?'
+			);
 			return;
 		}
 
@@ -36,19 +38,19 @@ export function ver() {
 /**
  * Show local paths info.
  */
-export function path() { }
+export function path() {}
 
 /**
  * Test current file.
  */
-export function testFile() { }
+export function testFile() {}
 
 /**
  * Test current package.
  */
-export function testPackage() { }
+export function testPackage() {}
 
 /**
  * Upload and share current code to V playground.
  */
-export function playground() { }
+export function playground() {}
