@@ -7,7 +7,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 		// Create `vfmt` command with entered arguments.
 		const vfmtArgs: string = vscode.workspace.getConfiguration('v.format').get('args') || '';
 		const cmd = `v fmt ${vfmtArgs} ${document.fileName}`;
-		const workspace = vscode.workspace.workspaceFolders[0]
+		const workspace = vscode.workspace.workspaceFolders[0];
 
 		// Create new `callback` function for
 		function callback(
