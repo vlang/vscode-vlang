@@ -10,9 +10,10 @@ export function vrun() {
 	}
 	vRunTerm.show();
 	vRunTerm.sendText(cmd);
-	vscode.window.onDidCloseTerminal(term => {
-		if (term.name == 'V') { 
-			vRunTerm = null; 
-		} 
-	});
+}
+
+export function attachOnCloseTerminalListener() {
+	vscode.window.onDidCloseTerminal((term)=> {
+		if (term.name == 'V') vRunTerm = null;
+	})
 }

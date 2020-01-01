@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as commands from './commands';
 import { registerFormatter } from './format';
+import { attachOnCloseTerminalListener } from './run';
 /**
  * This method is called when the extension is activated.
  * @param context The extension context is a collection of utilities private to
@@ -15,8 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
 	let testFile = vscode.commands.registerCommand('v.test.file',commands.testFile);
 	let testPackage = vscode.commands.registerCommand('v.test.package',commands.testPackage);
 	let playground = vscode.commands.registerCommand('v.playground',commands.playground);
-	
+
 	registerFormatter();
+	attachOnCloseTerminalListener()
 }
 
 /**
