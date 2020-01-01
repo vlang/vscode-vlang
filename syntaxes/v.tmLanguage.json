@@ -212,7 +212,7 @@
 			"patterns": [
 				{
 					"comment": "Before function definition",
-					"match": "^\\s*((\\[)(unsafe_fn|deprecated|live|inline)(\\]))",
+					"match": "^\\s*((\\[)(unsafe_fn|deprecated|live|inline|typedef)(\\]))",
 					"captures": {
 						"1": {
 							"name": "meta.function.attribute.v"
@@ -1321,7 +1321,7 @@
 						}
 					}
 				}
-			] 
+			]
 		},
 		"string-placeholder": {
 			"patterns": [
@@ -1330,6 +1330,6 @@
 					"name": "constant.other.placeholder.v"
 				}
 			]
-		} 
+		}
 	}
 }
