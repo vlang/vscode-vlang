@@ -9,5 +9,9 @@ cache: npm
 install:
   - npm install
 
-script:
-  - npm run compile
+jobs:
+  include:
+    - stage: Compilation
+      script: npm run compile
+    - stage: Markdown Linting
+      script: npm run lint
