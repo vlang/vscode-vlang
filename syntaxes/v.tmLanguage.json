@@ -172,7 +172,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.attribute.v",
-					"match": "^\\s*((\\[)(unsafe_fn|deprecated|live|inline)(\\]))",
+					"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline)(\\]))",
 					"captures": {
 						"1": {
 							"name": "meta.function.attribute.v"
@@ -293,7 +293,7 @@
 			"patterns": [
 				{
 					"name": "meta.escaped.keyword.v",
-					"match": "((?:@)(?:mut|pub|fn|module|import|as|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none))",
+					"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none))",
 					"captures": {
 						"0": {
 							"name": "keyword.other.escaped.v"
@@ -572,7 +572,7 @@
 								},
 								{
 									"match": "\\w+",
-									"name": "support.function.v"
+									"name": "entity.name.function.v"
 								}
 							]
 						},
@@ -806,11 +806,11 @@
 				},
 				{
 					"name": "keyword.control.v",
-					"match": "\\b(in|or|break|continue|default|match|if|else|for|go|goto|defer|return)\\b"
+					"match": "\\b(in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
 					"name": "keyword.$1.v",
-					"match": "\\b(fn|type|enum|struct|interface|map|assert|sizeof)\\b"
+					"match": "\\b(fn|type|enum|unsafe|struct|interface|map|assert|sizeof)\\b"
 				}
 			]
 		},
