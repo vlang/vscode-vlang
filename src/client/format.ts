@@ -5,9 +5,9 @@ import { fullDocumentRange } from './utils';
 function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 	return new Promise((resolve, reject) => {
 		// Create `vfmt` command with entered arguments.
-		const vfmtArgs: string =
-			vscode.workspace.getConfiguration('v.format').get('args') || '';
+		const vfmtArgs: string = vscode.workspace.getConfiguration('v.format').get('args') || '';
 		const cmd = `v fmt ${vfmtArgs} ${document.fileName}`;
+		const workspace = vscode.workspace.workspaceFolders[0]
 
 		// Create new `callback` function for
 		function callback(
@@ -25,7 +25,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 		}
 
 		console.log(`Running ${cmd}...`);
-		childProcess.exec(cmd, { cwd: vscode.workspace.workspaceFolders[0].name }, callback);
+		childProcess.exec(cmd, { cwd: workspace.uri.path }, callback);
 	});
 }
 
