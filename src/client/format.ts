@@ -1,17 +1,16 @@
 import * as vscode from 'vscode';
-import * as childProcess from 'child_process';
-import { fullDocumentRange } from './utils';
+import { ExecException } from 'child_process';
+import { fullDocumentRange, getVExecCommand, executeV } from './utils';
 
 function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 	return new Promise((resolve, reject) => {
-		// Create `vfmt` command with entered arguments.
-		const vfmtArgs: string = vscode.workspace.getConfiguration('v.format').get('args') || '';
-		const cmd = `v fmt ${vfmtArgs} ${document.fileName}`;
+		const vfmtArgs = vscode.workspace.getConfiguration('v.format').get('args', '');
+		const args = `fmt ${vfmtArgs} ${document.fileName}`;
 		const workspace = vscode.workspace.workspaceFolders[0];
 
 		// Create new `callback` function for
 		function callback(
-			error: childProcess.ExecException,
+			error: ExecException,
 			stdout: string,
 			stderr: string
 		) {
@@ -21,17 +20,20 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 				vscode.window.showErrorMessage(errMessage);
 				return reject(errMessage);
 			}
-			return resolve([vscode.TextEdit.replace(fullDocumentRange(document), stdout)]);
+			return resolve([
+				vscode.TextEdit.replace(fullDocumentRange(document), stdout)
+			]);
 		}
 
-		console.log(`Running ${cmd}...`);
-		childProcess.exec(cmd, { cwd: workspace.uri.fsPath }, callback);
+		executeV(args, { cwd: workspace.uri.fsPath }, callback);
 	});
 }
 
 export function registerFormatter() {
 	const provider: vscode.DocumentFormattingEditProvider = {
-		provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
+		provideDocumentFormattingEdits(
+			document: vscode.TextDocument
+		): Thenable<vscode.TextEdit[]> {
 			return document.save().then(() => format(document));
 		}
 	};

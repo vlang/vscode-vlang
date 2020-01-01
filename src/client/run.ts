@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
+import { getVExecCommand } from './utils';
 
 let vRunTerm: vscode.Terminal = null;
 
 export function vrun() {
-	const cmd = 'v run ' + vscode.window.activeTextEditor.document.fileName;
+	const currentFilePath = vscode.window.activeTextEditor.document.fileName;
+	const args = `run ${currentFilePath}`;
+	const cmd = getVExecCommand(args);
+
 	vscode.window.activeTextEditor.document.save();
 	if (!vRunTerm) vRunTerm = vscode.window.createTerminal('V');
 	vRunTerm.show();
