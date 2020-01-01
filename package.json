@@ -144,11 +144,13 @@
 	"devDependencies": {
 		"@types/node": "^13.1.1",
 		"@types/vscode": "~1.20.0",
+		"markdownlint-cli": "0.20.0",
 		"typescript": "~3.5.2"
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
+		"lint": "node_modules/.bin/markdownlint *.md",
 		"watch": "tsc -watch -p ./"
 	}
 }
