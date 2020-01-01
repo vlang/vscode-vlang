@@ -31,18 +31,10 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 }
 
 export function registerFormatter() {
-	const formatterEnabled = vscode.workspace.getConfiguration('v.format').get('enable');
-	if (!formatterEnabled) {
-		console.log('Formatter not enabled!');
-		return;
-	}
-
 	const provider: vscode.DocumentFormattingEditProvider = {
-		provideDocumentFormattingEdits(
-			document: vscode.TextDocument
-		): Thenable<vscode.TextEdit[]> {
+		provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
 			return document.save().then(() => format(document));
-		}
+		},
 	};
 	vscode.languages.registerDocumentFormattingEditProvider('v', provider);
 }
