@@ -61,12 +61,6 @@
 		"configuration": {
 			"title": "V",
 			"properties": {
-				"v.format.enable": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": false,
-					"description": "Enable/disable the V formatter (vfmt)"
-				},
 				"v.format.args": {
 					"scope": "resource",
 					"type": "string",
