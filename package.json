@@ -117,13 +117,6 @@
 				"command": "v.playground",
 				"title": "V: Upload and share current code to V playground"
 			}
-		],
-		"iconThemes": [
-			{
-				"id": "v",
-				"label": "V",
-				"path": "./theme/icon-theme.json"
-			}
 		]
 	},
 	"activationEvents": [
