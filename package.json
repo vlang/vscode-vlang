@@ -1,7 +1,7 @@
 {
 	"name": "vscode-vlang",
 	"displayName": "V",
-	"description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
+	"description": "V Language everywhere (syntax highlighting & snippets) for Visual Studio Code.",
 	"publisher": "0x9ef",
 	"icon": "icons/icon.png",
 	"version": "0.0.9",
