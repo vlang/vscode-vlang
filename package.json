@@ -81,11 +81,13 @@
 		"commands": [
 			{
 				"command": "v.run",
-				"title": "V: Run current file"
+				"title": "V: Run current file",
+				"enablement": "editorLangId == v"
 			},
 			{
 				"command": "v.prod",
-				"title": "V: Build an optimized executable from current file"
+				"title": "V: Build an optimized executable from current file",
+				"enablement": "editorLangId == v"
 			},
 			{
 				"command": "v.help",
@@ -101,11 +103,13 @@
 			},
 			{
 				"command": "v.test.file",
-				"title": "V: Test current file"
+				"title": "V: Test current file",
+				"enablement": "editorLangId == v"
 			},
 			{
 				"command": "v.test.package",
-				"title": "V: Test current package"
+				"title": "V: Test current package",
+				"enablement": "editorLangId == v"
 			},
 			{
 				"command": "v.playground",
