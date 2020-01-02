@@ -25,7 +25,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 		}
 
 		console.log(`Running ${cmd}...`);
-		childProcess.exec(cmd, { cwd: workspace.uri.path }, callback);
+		childProcess.exec(cmd, { cwd: workspace.uri.fsPath }, callback);
 	});
 }
 
