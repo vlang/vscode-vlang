@@ -111,7 +111,31 @@
 				"command": "v.playground",
 				"title": "V: Upload and share current code to V playground"
 			}
-		]
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "v.run",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.file",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.package",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.playground",
+					"when": "editorLangId == v"
+				}
+			]
+		  }
 	},
 	"activationEvents": [
 		"onLanguage:v",
