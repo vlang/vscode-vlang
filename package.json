@@ -81,13 +81,11 @@
 		"commands": [
 			{
 				"command": "v.run",
-				"title": "V: Run current file",
-				"enablement": "editorLangId == v"
+				"title": "V: Run current file"
 			},
 			{
 				"command": "v.prod",
-				"title": "V: Build an optimized executable from current file",
-				"enablement": "editorLangId == v"
+				"title": "V: Build an optimized executable from current file"
 			},
 			{
 				"command": "v.help",
@@ -103,19 +101,41 @@
 			},
 			{
 				"command": "v.test.file",
-				"title": "V: Test current file",
-				"enablement": "editorLangId == v"
+				"title": "V: Test current file"
 			},
 			{
 				"command": "v.test.package",
-				"title": "V: Test current package",
-				"enablement": "editorLangId == v"
+				"title": "V: Test current package"
 			},
 			{
 				"command": "v.playground",
 				"title": "V: Upload and share current code to V playground"
 			}
-		]
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "v.run",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.file",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.package",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.playground",
+					"when": "editorLangId == v"
+				}
+			]
+		  }
 	},
 	"activationEvents": [
 		"onLanguage:v",
