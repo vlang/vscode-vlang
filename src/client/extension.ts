@@ -2,23 +2,32 @@ import * as vscode from 'vscode';
 import * as commands from './commands';
 import { registerFormatter } from './format';
 import { attachOnCloseTerminalListener } from './run';
+
+const cmds = {
+	'v.run': commands.run,
+	'v.ver': commands.ver,
+	'v.help': commands.help,
+	'v.path': commands.path,
+	'v.prod': commands.prod,
+	'v.test.file': commands.testFile,
+	'v.playground': commands.playground,
+	'v.test.package': commands.testPackage,
+}
+
 /**
  * This method is called when the extension is activated.
- * @param context The extension context is a collection of utilities private to
- * the extension.
+ * @param context The extension context
  */
 export function activate(context: vscode.ExtensionContext) {
-	let run = vscode.commands.registerCommand('v.run', commands.run);
-	let prod = vscode.commands.registerCommand('v.prod', commands.prod);
-	let help = vscode.commands.registerCommand('v.help', commands.help);
-	let ver = vscode.commands.registerCommand('v.ver', commands.ver);
-	let path = vscode.commands.registerCommand('v.path', commands.path);
-	let testFile = vscode.commands.registerCommand('v.test.file',commands.testFile);
-	let testPackage = vscode.commands.registerCommand('v.test.package',commands.testPackage);
-	let playground = vscode.commands.registerCommand('v.playground',commands.playground);
+	for (const cmd in cmds) {
+		const handler = cmds[cmd];
+
+		const disposable = vscode.commands.registerCommand(cmd, handler);
+		context.subscriptions.push(disposable);
+	}
 
 	registerFormatter();
-	attachOnCloseTerminalListener()
+	attachOnCloseTerminalListener();
 }
 
 /**

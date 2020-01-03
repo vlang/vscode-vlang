@@ -93,7 +93,7 @@
 			},
 			{
 				"command": "v.ver",
-				"title": "V: Show version info"
+				"title": "V: Show V version"
 			},
 			{
 				"command": "v.path",
@@ -111,18 +111,38 @@
 				"command": "v.playground",
 				"title": "V: Open current file on DevBits V playground"
 			}
-		]
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "v.run",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.file",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.test.package",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.playground",
+					"when": "editorLangId == v"
+				}
+			]
+		  }
 	},
 	"activationEvents": [
+		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.run",
-		"onCommand:v.prod",
 		"onCommand:v.help",
 		"onCommand:v.ver",
-		"onCommand:v.path",
-		"onCommand:v.test.file",
-		"onCommand:v.test.package",
-		"onCommand:v.playground"
+		"onCommand:v.path"
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
