@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { exec, ExecOptions, ExecException } from 'child_process';
+import { exec } from 'child_process';
 
 export function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
 	const lastLineId = document.lineCount - 1;
