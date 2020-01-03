@@ -109,7 +109,7 @@
 			},
 			{
 				"command": "v.playground",
-				"title": "V: Upload and share current code to V playground"
+				"title": "V: Open current file on DevBits V playground"
 			}
 		]
 	},
@@ -130,7 +130,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^13.1.1",
-		"@types/vscode": "~1.20.0",
+		"@types/vscode": "^1.41.0",
 		"markdownlint-cli": "0.20.0",
 		"typescript": "~3.5.2"
 	},

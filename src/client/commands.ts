@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { vrun } from './run';
 
 /**
@@ -40,4 +41,9 @@ export function testPackage() {}
 /**
  * Upload and share current code to V playground.
  */
-export function playground() {}
+export function playground() {
+	const fileContent = vscode.window.activeTextEditor.document.getText();
+	const buffer = new Buffer(fileContent).toString('base64');
+	const url = vscode.Uri.parse(`https://devbits.app/play?lang=v&code64=${buffer}`);
+	vscode.env.openExternal(url);
+}
