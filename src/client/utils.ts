@@ -6,10 +6,12 @@ export function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
 	return new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
 }
 
-export function executeV(args: string, options: ExecOptions, callback: Function) {
+export function executeV(args: string, callback: Function) {
 	const cmd = getVExecCommand(args);
+	const cwd = getCwd();
+
 	console.log(`Executing ${cmd}`);
-	exec(cmd, options, (err, stdout, stderr) => {
+	exec(cmd, { cwd }, (err, stdout, stderr) => {
 		callback(err, stdout, stderr);
 	});
 }
@@ -22,4 +24,9 @@ export function getVExecCommand(args: string): string {
 	}
 
 	return `v ${args}`;
+}
+
+function getCwd() {
+	const workspace = vscode.workspace.workspaceFolders[0];
+	return workspace.uri.fsPath;
 }

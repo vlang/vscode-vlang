@@ -23,7 +23,7 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	executeV('-v', null, (err: Error, stdout: string) => {
+	executeV('-v', (err: Error, stdout: string) => {
 		if (err) {
 			vscode.window.showErrorMessage(
 				'Unable to get the version number. Is V installed correctly?'

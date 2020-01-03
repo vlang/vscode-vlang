@@ -6,7 +6,6 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 	return new Promise((resolve, reject) => {
 		const vfmtArgs = vscode.workspace.getConfiguration('v.format').get('args', '');
 		const args = `fmt ${vfmtArgs} ${document.fileName}`;
-		const workspace = vscode.workspace.workspaceFolders[0];
 
 		// Create new `callback` function for
 		function callback(
@@ -25,7 +24,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 			]);
 		}
 
-		executeV(args, { cwd: workspace.uri.fsPath }, callback);
+		executeV(args, callback);
 	});
 }
 
