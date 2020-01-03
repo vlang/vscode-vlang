@@ -93,7 +93,7 @@
 			},
 			{
 				"command": "v.ver",
-				"title": "V: Show version info"
+				"title": "V: Show V version"
 			},
 			{
 				"command": "v.path",
