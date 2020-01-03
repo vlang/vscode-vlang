@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ExecException } from 'child_process';
-import { fullDocumentRange, getVExecCommand, executeV } from './utils';
+import { fullDocumentRange, executeV } from './utils';
 
 function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 	return new Promise((resolve, reject) => {
