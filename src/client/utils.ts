@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 
+const defaultCommand = 'v';
+
 export function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
 	const lastLineId = document.lineCount - 1;
 	return new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
@@ -18,12 +20,9 @@ export function executeV(args: string, callback: Function) {
 
 export function getVExecCommand(args: string): string {
 	const config = vscode.workspace.getConfiguration('v');
-	const vPath = config.get('pathToExecutableFile', '');
-	if (vPath) {
-		return `${vPath} ${args}`;
-	}
+	const vPath = config.get('pathToExecutableFile', '') || defaultCommand;
 
-	return `v ${args}`;
+	return `${vPath} ${args}`;
 }
 
 function getCwd() {
