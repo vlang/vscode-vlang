@@ -261,7 +261,7 @@
 						},
 						{
 							"name": "keyword.$1.v",
-							"match": "(fn|assert|sizeof)(?=\\s*\\()"
+							"match": "\\b(fn|assert|sizeof)\\b(?=\\s*\\()"
 						}
 					]
 				},
@@ -704,7 +704,7 @@
 							"include": "#struct-access-modifier"
 						},
 						{
-							"match": "\\b(\\w+)\\s+([\\w\\[\\].]+)(?:\\s*(=)\\s*((?:.(?=$|//|/\\*))*+))?",
+							"match": "\\b(\\w+)\\s+([\\w\\[\\]\\*&.]+)(?:\\s*(=)\\s*((?:.(?=$|//|/\\*))*+))?",
 							"captures": {
 								"1": {
 									"name": "variable.other.property.v"
@@ -777,24 +777,24 @@
 		"punctuation": {
 			"patterns": [
 				{
-					"match": "\\.",
-					"name": "punctuation.delimiter.period.dot.v"
+					"name": "punctuation.delimiter.period.dot.v",
+					"match": "\\."
 				},
 				{
-					"match": ",",
-					"name": "punctuation.delimiter.comma.v"
+					"name": "punctuation.delimiter.comma.v",
+					"match": ","
 				},
 				{
-					"match": ":",
-					"name": "punctuation.separator.key-value.colon.v"
+					"name": "punctuation.separator.key-value.colon.v",
+					"match": ":"
 				},
 				{
-					"match": ";",
-					"name": "punctuation.definition.other.semicolon.v"
+					"name": "punctuation.definition.other.semicolon.v",
+					"match": ";"
 				},
 				{
-					"match": "\\?",
-					"name": "punctuation.definition.other.questionmark.v"
+					"name": "punctuation.definition.other.questionmark.v",
+					"match": "\\?"
 				}
 			]
 		},
