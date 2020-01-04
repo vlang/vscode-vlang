@@ -7,3 +7,4 @@ images/
 **/tslint.json
 .gitignore
 tsconfig.json
+.markdownlint.json
