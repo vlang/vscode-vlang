@@ -1,25 +1,55 @@
-# V for Visual Studio Code
+# V Language support for Visual Studio Code
 
 [![Version](https://vsmarketplacebadge.apphb.com/version/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
 [![Installs](https://vsmarketplacebadge.apphb.com/installs/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
 [![Build Status](https://travis-ci.org/0x9ef/vscode-vlang.svg?branch=master)](https://travis-ci.org/0x9ef/vscode-vlang)
 
-[**V Language**](https://vlang.io) support extension for Visual Studio Code. Syntax highlighting and code snippets.
+Provides [V language](https://vlang.io) support for Visual Studio Code.
 
-<https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang&ssr=false>
-
-## Features
-
-* Snippets
-* Syntax highlighting
-* Code formatting
+- [Preview](#previe)
+- [Features](#features)
+  - [IntelliSense](#intellisense)
+  - [Code Navigation](#code-navigation)
+  - [Code Editing](#code-editing)
+  - [Testing](#testing)
+  - [Debugging](#debugging)
+  - [Others](#others)
 
 ## Preview
 
 ![First demo screenshot](./images/demo1.PNG)
 ![Second demo screenshot](./images/demo2.PNG)
 
-## Using
+## Features
+
+### Intellisense
+
+> WIP
+
+### Code Navigation
+
+> WIP
+
+### Code Editing
+
+- Code Snippets for quick coding.
+- Format code on file save as well as format manually (using `v fmt`). To disable the format on save feature, add `"[v]": {"editor.formatOnSave": false}` to your settings.
+- Run V file (using `v run`).
+
+### Testing
+
+- Run Tests under the cursor, in current file, in current package, in the whole workspace using either commands or codelens. [WIP]
+
+### Debugging
+
+> WIP
+
+### Others
+
+- Upload to the V Playground. [WIP]
+- Upload to the DevBits V Playground.
+
+## Usage
 
 You will need to install Visual Studio Code >= `0.26`. In the command palette (cmd-shift-p) select Install Extension and choose `V`.
 
