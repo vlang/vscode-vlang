@@ -1,4 +1,4 @@
-# V Language support for Visual Studio Code
+# V language support for Visual Studio Code
 
 [![Version](https://vsmarketplacebadge.apphb.com/version/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
 [![Installs](https://vsmarketplacebadge.apphb.com/installs/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
@@ -8,11 +8,8 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 - [Preview](#previe)
 - [Features](#features)
-  - [IntelliSense](#intellisense)
-  - [Code Navigation](#code-navigation)
   - [Code Editing](#code-editing)
   - [Testing](#testing)
-  - [Debugging](#debugging)
   - [Others](#others)
 
 ## Preview
@@ -21,14 +18,6 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 ![Second demo screenshot](./images/demo2.PNG)
 
 ## Features
-
-### Intellisense
-
-> WIP
-
-### Code Navigation
-
-> WIP
 
 ### Code Editing
 
@@ -39,10 +28,6 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 ### Testing
 
 - Run Tests under the cursor, in current file, in current package, in the whole workspace using either commands or codelens. [WIP]
-
-### Debugging
-
-> WIP
 
 ### Others
 
