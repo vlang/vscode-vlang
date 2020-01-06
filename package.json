@@ -66,6 +66,12 @@
 					"type": "string",
 					"default": "",
 					"description": "Arguments to pass to 'vfmt'"
+				},
+				"v.pathToExecutableFile": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "Path to V executable file"
 				}
 			}
 		},

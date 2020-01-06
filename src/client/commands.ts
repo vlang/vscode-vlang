@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as childProcess from 'child_process';
 import { vrun } from './run';
+import { executeV } from './utils';
 
 /**
  * Run current file.
@@ -23,7 +23,7 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	childProcess.exec('v -v', (err, stdout, stderr) => {
+	executeV('-v', (err: Error, stdout: string) => {
 		if (err) {
 			vscode.window.showErrorMessage(
 				'Unable to get the version number. Is V installed correctly?'
