@@ -6,7 +6,7 @@
 
 Provides [V language](https://vlang.io) support for Visual Studio Code.
 
-- [Preview](#previe)
+- [Preview](#preview)
 - [Features](#features)
   - [Code Editing](#code-editing)
   - [Testing](#testing)
