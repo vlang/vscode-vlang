@@ -17,8 +17,7 @@ function format(document: TextDocument): Promise<TextEdit[]> {
 
 		// Create new `callback` function for
 		function callback(error: ExecException, stdout: string, stderr: string) {
-			const isErr = error !== null;
-			if (isErr) {
+			if (error) {
 				const errMessage = `Cannot format due to the following errors: ${stderr}`;
 				window.showErrorMessage(errMessage);
 				return reject(errMessage);
