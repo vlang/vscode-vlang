@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ExecException } from 'child_process';
-import { fullDocumentRange, executeV } from './utils';
+import { execV } from './exec';
+import { fullDocumentRange } from './utils';
 
 function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 	return new Promise((resolve, reject) => {
@@ -8,11 +9,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 		const args = `fmt ${vfmtArgs} ${document.fileName}`;
 
 		// Create new `callback` function for
-		function callback(
-			error: ExecException,
-			stdout: string,
-			stderr: string
-		) {
+		function callback(error: ExecException, stdout: string, stderr: string) {
 			const isErr = error !== null;
 			if (isErr) {
 				const errMessage = `Cannot format due to the following errors: ${stderr}`;
@@ -24,7 +21,7 @@ function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
 			]);
 		}
 
-		executeV(args, callback);
+		execV(args, callback);
 	});
 }
 
