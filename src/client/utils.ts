@@ -1,31 +1,31 @@
-import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { Range, TextDocument, window, workspace, WorkspaceConfiguration } from 'vscode';
 
 const defaultCommand = 'v';
 
-export function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
+export function fullDocumentRange(document: TextDocument): Range {
 	const lastLineId = document.lineCount - 1;
-	return new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
-}
-
-export function executeV(args: string, callback: Function) {
-	const cmd = getVExecCommand(args);
-	const cwd = getCwd();
-
-	console.log(`Executing ${cmd}`);
-	exec(cmd, { cwd }, (err, stdout, stderr) => {
-		callback(err, stdout, stderr);
-	});
+	return new Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
 }
 
 export function getVExecCommand(args: string): string {
-	const config = vscode.workspace.getConfiguration('v');
-	const vPath = config.get('pathToExecutableFile', '') || defaultCommand;
+	const config = getVConfig();
+	const vPath = config.get('pathToExecutableFile', defaultCommand) || defaultCommand;
 
 	return `${vPath} ${args}`;
 }
 
-function getCwd() {
-	const workspace = vscode.workspace.workspaceFolders[0];
-	return workspace.uri.fsPath;
+export function getVConfig(document?: TextDocument): WorkspaceConfiguration {
+	let vConfig = workspace.getConfiguration('v', null);
+	if (document) vConfig = workspace.getConfiguration('v', document.uri);
+	return vConfig;
+}
+
+export function getCurrentFilePath(): string {
+	return window.activeTextEditor.document.fileName;
+}
+
+export function getCwd(document?: TextDocument): string {
+	let folder = workspace.workspaceFolders[0];
+	if (document) folder = workspace.getWorkspaceFolder(document.uri);
+	return folder.uri.fsPath;
 }

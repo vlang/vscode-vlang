@@ -1,18 +1,23 @@
-import * as vscode from 'vscode';
-import { vrun } from './run';
-import { executeV } from './utils';
+import { window } from 'vscode';
+import { execVInTerminal, execV } from './exec';
+import { getCurrentFilePath } from './utils';
+import { ExecException } from 'child_process';
 
 /**
  * Run current file.
  */
 export function run() {
-	vrun();
+	const filePath = getCurrentFilePath();
+	execVInTerminal(`run ${filePath}`);
 }
 
 /**
  * Build an optimized executable from current file.
  */
-export function prod() {}
+export function prod() {
+	const filePath = getCurrentFilePath();
+	execVInTerminal(`-prod ${filePath}`);
+}
 
 /**
  * Show help info.
@@ -23,15 +28,15 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	executeV('-v', (err: Error, stdout: string) => {
+	execV('-v', (err: ExecException, stdout: string) => {
 		if (err) {
-			vscode.window.showErrorMessage(
+			window.showErrorMessage(
 				'Unable to get the version number. Is V installed correctly?'
 			);
 			return;
 		}
 
-		vscode.window.showInformationMessage(stdout);
+		window.showInformationMessage(stdout);
 	});
 }
 

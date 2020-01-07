@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as commands from './commands';
 import { registerFormatter } from './format';
-import { attachOnCloseTerminalListener } from './run';
+import { attachOnCloseTerminalListener } from './exec';
 
 const cmds = {
 	'v.run': commands.run,
@@ -11,8 +11,8 @@ const cmds = {
 	'v.prod': commands.prod,
 	'v.test.file': commands.testFile,
 	'v.playground': commands.playground,
-	'v.test.package': commands.testPackage,
-}
+	'v.test.package': commands.testPackage
+};
 
 /**
  * This method is called when the extension is activated.

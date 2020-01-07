@@ -1,40 +1,39 @@
-import * as vscode from 'vscode';
+import {
+	TextDocument,
+	TextEdit,
+	window,
+	DocumentFormattingEditProvider,
+	languages
+} from 'vscode';
 import { ExecException } from 'child_process';
-import { fullDocumentRange, executeV } from './utils';
+import { execV } from './exec';
+import { fullDocumentRange, getVConfig } from './utils';
 
-function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
+function format(document: TextDocument): Promise<TextEdit[]> {
 	return new Promise((resolve, reject) => {
-		const vfmtArgs = vscode.workspace.getConfiguration('v.format').get('args', '');
+		const config = getVConfig(document);
+		const vfmtArgs = config.get('args', '');
 		const args = `fmt ${vfmtArgs} ${document.fileName}`;
 
 		// Create new `callback` function for
-		function callback(
-			error: ExecException,
-			stdout: string,
-			stderr: string
-		) {
-			const isErr = error !== null;
-			if (isErr) {
+		function callback(error: ExecException, stdout: string, stderr: string) {
+			if (error) {
 				const errMessage = `Cannot format due to the following errors: ${stderr}`;
-				vscode.window.showErrorMessage(errMessage);
+				window.showErrorMessage(errMessage);
 				return reject(errMessage);
 			}
-			return resolve([
-				vscode.TextEdit.replace(fullDocumentRange(document), stdout)
-			]);
+			return resolve([TextEdit.replace(fullDocumentRange(document), stdout)]);
 		}
 
-		executeV(args, callback);
+		execV(args, callback);
 	});
 }
 
 export function registerFormatter() {
-	const provider: vscode.DocumentFormattingEditProvider = {
-		provideDocumentFormattingEdits(
-			document: vscode.TextDocument
-		): Thenable<vscode.TextEdit[]> {
+	const provider: DocumentFormattingEditProvider = {
+		provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
 			return document.save().then(() => format(document));
 		}
 	};
-	vscode.languages.registerDocumentFormattingEditProvider('v', provider);
+	languages.registerDocumentFormattingEditProvider('v', provider);
 }
