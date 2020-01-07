@@ -1,7 +1,6 @@
 import { window } from 'vscode';
 import { execVInTerminal, execV } from './exec';
 import { getCurrentFilePath } from './utils';
-import { ExecException } from 'child_process';
 
 /**
  * Run current file.
@@ -28,7 +27,7 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	execV('-v', (err: ExecException, stdout: string) => {
+	execV('-v', (err, stdout) => {
 		if (err) {
 			window.showErrorMessage(
 				'Unable to get the version number. Is V installed correctly?'

@@ -141,7 +141,7 @@
 					"when": "editorLangId == v"
 				}
 			]
-		  }
+		}
 	},
 	"activationEvents": [
 		"workspaceContains:**/*.v",

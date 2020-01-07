@@ -1,6 +1,7 @@
 import { window, Terminal } from 'vscode';
 import { getVExecCommand, getCwd } from './utils';
 import { exec } from 'child_process';
+import { ExecVCallback } from './type';
 
 let vRunTerm: Terminal = null;
 
@@ -13,7 +14,7 @@ export function execVInTerminal(args: string) {
 	vRunTerm.sendText(cmd);
 }
 
-export function execV(args: string, callback: Function) {
+export function execV(args: string, callback: ExecVCallback) {
 	const cmd = getVExecCommand(args);
 	const cwd = getCwd();
 
