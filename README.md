@@ -2,7 +2,7 @@
 
 [![Version](https://vsmarketplacebadge.apphb.com/version/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
 [![Installs](https://vsmarketplacebadge.apphb.com/installs/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
-[![Build Status](https://travis-ci.org/0x9ef/vscode-vlang.svg?branch=master)](https://travis-ci.org/0x9ef/vscode-vlang)
+[![Build Status](https://github.com/0x9ef/vscode-vlang/workflows/CI/badge.svg)](https://github.com/0x9ef/vscode-vlang/commits/master)
 
 Provides [V language](https://vlang.io) support for Visual Studio Code.
 
