@@ -22,7 +22,6 @@ export function getCwd() {
 	return folder.uri.fsPath;
 }
 
-
 export function saveCurrentFile(): Thenable<boolean> {
 	return window.activeTextEditor.document.save();
 }
