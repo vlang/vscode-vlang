@@ -15,7 +15,7 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ## Preview
 
-![First demo screenshot](./images/demo1.PNG)
+![First demo screenshot](./images/demo.png)
 
 ## Features
 
