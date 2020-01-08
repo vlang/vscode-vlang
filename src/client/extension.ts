@@ -7,7 +7,6 @@ const cmds = {
 	'v.run': commands.run,
 	'v.ver': commands.ver,
 	'v.help': commands.help,
-	'v.path': commands.path,
 	'v.prod': commands.prod,
 	'v.test.file': commands.testFile,
 	'v.playground': commands.playground,
