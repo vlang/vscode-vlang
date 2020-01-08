@@ -13,7 +13,6 @@ let vRunTerm: Terminal = null;
 export function execVInTerminal(args: string) {
 	const cmd = getVExecCommand(args);
 
-	window.activeTextEditor.document.save();
 	if (!vRunTerm) {
 		vRunTerm = window.createTerminal('V');
 	}

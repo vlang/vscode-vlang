@@ -1,21 +1,24 @@
 import { window } from 'vscode';
 import { execVInTerminal, execV } from './exec';
-import { getCurrentFilePath } from './utils';
 
 /**
  * Run current file.
  */
-export function run() {
-	const filePath = getCurrentFilePath();
-	execVInTerminal(`run ${filePath}`);
+export async function run() {
+	const document = window.activeTextEditor.document;
+	await document.save();
+
+	execVInTerminal(`run ${document.fileName}`);
 }
 
 /**
  * Build an optimized executable from current file.
  */
-export function prod() {
-	const filePath = getCurrentFilePath();
-	execVInTerminal(`-prod ${filePath}`);
+export async function prod() {
+	const document = window.activeTextEditor.document;
+	await document.save();
+
+	execVInTerminal(`-prod ${document.fileName}`);
 }
 
 /**

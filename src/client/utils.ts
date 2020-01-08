@@ -13,10 +13,6 @@ export function getVExecCommand(args: string): string {
 	return `${vPath} ${args}`;
 }
 
-export function getCurrentFilePath(): string {
-	return window.activeTextEditor.document.fileName;
-}
-
 export function getCwd() {
 	const folder = workspace.workspaceFolders[0];
 	return folder.uri.fsPath;
