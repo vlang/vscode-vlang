@@ -16,7 +16,6 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 ## Preview
 
 ![First demo screenshot](./images/demo1.PNG)
-![Second demo screenshot](./images/demo2.PNG)
 
 ## Features
 
@@ -27,7 +26,7 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ### Testing
 
-- Run Tests under the cursor, in current file, in current package, in the whole workspace using either commands or codelens. [WIP]
+- Run Tests under the cursor, in current file, in current package, in the whole workspace using either commands or codelens.
 
 ### Others
 
@@ -41,14 +40,14 @@ You will need to install [Visual Studio Code](https://code.visualstudio.com/) >=
 _Note_: It is recommended to turn `Auto Save` on in Visual Studio Code (`File -> Auto Save`) when using this extension.
 
 ## Commands
-* `V: Run current file`
-* `V: Build an optimized executable from current file`
-* `V: Show help info`
-* `V: Show V version`
-* `V: Show local paths info`
-* `V: Test current file`
-* `V: Test current package`
-* `V: Upload and share current code to V playground`
+- `V: Run current file`
+- `V: Build an optimized executable from current file`
+- `V: Show help info`
+- `V: Show V version`
+- `V: Show local paths info`
+- `V: Test current file`
+- `V: Test current package`
+- `V: Upload and share current code to V playground`
 
 You can access all of the above commands from the command palette (Cmd+Shift+P or Ctrl+Shift+P).
 

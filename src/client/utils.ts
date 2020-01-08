@@ -21,7 +21,6 @@ export function executeV(args: string, callback: Function) {
 export function getVExecCommand(args: string): string {
 	const config = vscode.workspace.getConfiguration('v');
 	const vPath = config.get('pathToExecutableFile', '') || defaultCommand;
-
 	return `${vPath} ${args}`;
 }
 

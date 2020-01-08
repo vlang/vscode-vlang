@@ -9,13 +9,17 @@ export function vrun() {
 	const cmd = getVExecCommand(args);
 
 	vscode.window.activeTextEditor.document.save();
-	if (!vRunTerm) vRunTerm = vscode.window.createTerminal('V');
+	if (!vRunTerm) {
+		vRunTerm = vscode.window.createTerminal('V');
+	}
 	vRunTerm.show();
 	vRunTerm.sendText(cmd);
 }
 
 export function attachOnCloseTerminalListener() {
 	vscode.window.onDidCloseTerminal(term => {
-		if (term.name == 'V') vRunTerm = null;
+		if (term.name == 'V') {
+			vRunTerm = null;
+		}
 	});
 }

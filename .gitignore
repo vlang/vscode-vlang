@@ -1,6 +1,5 @@
 .vscode/ipch
 node_modules
 out
-test.v
-testDpm.v
+*.exe
 *.vsix
