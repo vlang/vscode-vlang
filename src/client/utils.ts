@@ -21,3 +21,8 @@ export function getCwd() {
 	const folder = workspace.workspaceFolders[0];
 	return folder.uri.fsPath;
 }
+
+
+export function saveCurrentFile(): Thenable<boolean> {
+	return window.activeTextEditor.document.save();
+}
