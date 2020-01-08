@@ -44,7 +44,6 @@ _Note_: It is recommended to turn `Auto Save` on in Visual Studio Code (`File ->
 - `V: Build an optimized executable from current file`
 - `V: Show help info`
 - `V: Show V version`
-- `V: Show local paths info`
 - `V: Test current file`
 - `V: Test current package`
 - `V: Upload and share current code to V playground`

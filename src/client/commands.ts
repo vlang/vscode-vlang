@@ -40,11 +40,6 @@ export function ver() {
 }
 
 /**
- * Show local paths info.
- */
-export function path() {}
-
-/**
  * Test current file.
  */
 export function testFile() {}
