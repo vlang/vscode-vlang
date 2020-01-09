@@ -3,7 +3,8 @@ import {
 	languages,
 	TextDocument,
 	TextEdit,
-	window
+	window,
+	Disposable
 } from "vscode";
 import { execV } from "./exec";
 import { fullDocumentRange, getVConfig } from "./utils";
@@ -24,11 +25,11 @@ function format(document: TextDocument): Promise<TextEdit[]> {
 	});
 }
 
-export function registerFormatter() {
+export function registerFormatter(): Disposable {
 	const provider: DocumentFormattingEditProvider = {
 		provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
 			return document.save().then(() => format(document));
 		}
 	};
-	languages.registerDocumentFormattingEditProvider("v", provider);
+	return languages.registerDocumentFormattingEditProvider("v", provider);
 }

@@ -25,8 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	registerFormatter();
-	attachOnCloseTerminalListener();
+	context.subscriptions.push(registerFormatter());
+	context.subscriptions.push(attachOnCloseTerminalListener());
 }
 
 /**
