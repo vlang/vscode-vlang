@@ -1,37 +1,34 @@
-import * as vscode from 'vscode';
-import { ExecException } from 'child_process';
-import { execV } from './exec';
-import { fullDocumentRange } from './utils';
+import {
+	DocumentFormattingEditProvider,
+	languages,
+	TextDocument,
+	TextEdit,
+	window
+} from "vscode";
+import { execV } from "./exec";
+import { fullDocumentRange, getVConfig } from "./utils";
 
-function format(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
+function format(document: TextDocument): Promise<TextEdit[]> {
 	return new Promise((resolve, reject) => {
-		const vfmtArgs = vscode.workspace.getConfiguration('v.format').get('args', '');
+		const vfmtArgs = getVConfig().get("format.args", "");
 		const args = `fmt ${vfmtArgs} ${document.fileName}`;
 
-		// Create new `callback` function for
-		function callback(error: ExecException, stdout: string, stderr: string) {
-			const isErr = error !== null;
-			if (isErr) {
+		execV(args, (err, stdout, stderr) => {
+			if (err) {
 				const errMessage = `Cannot format due to the following errors: ${stderr}`;
-				vscode.window.showErrorMessage(errMessage);
+				window.showErrorMessage(errMessage);
 				return reject(errMessage);
 			}
-			return resolve([
-				vscode.TextEdit.replace(fullDocumentRange(document), stdout)
-			]);
-		}
-
-		execV(args, callback);
+			return resolve([TextEdit.replace(fullDocumentRange(document), stdout)]);
+		});
 	});
 }
 
 export function registerFormatter() {
-	const provider: vscode.DocumentFormattingEditProvider = {
-		provideDocumentFormattingEdits(
-			document: vscode.TextDocument
-		): Thenable<vscode.TextEdit[]> {
+	const provider: DocumentFormattingEditProvider = {
+		provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
 			return document.save().then(() => format(document));
 		}
 	};
-	vscode.languages.registerDocumentFormattingEditProvider('v', provider);
+	languages.registerDocumentFormattingEditProvider("v", provider);
 }

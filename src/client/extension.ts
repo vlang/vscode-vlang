@@ -1,16 +1,16 @@
-import * as vscode from 'vscode';
-import * as commands from './commands';
-import { registerFormatter } from './format';
-import { attachOnCloseTerminalListener } from './exec';
+import * as vscode from "vscode";
+import * as commands from "./commands";
+import { registerFormatter } from "./format";
+import { attachOnCloseTerminalListener } from "./exec";
 
 const cmds = {
-	'v.run': commands.run,
-	'v.ver': commands.ver,
-	'v.help': commands.help,
-	'v.prod': commands.prod,
-	'v.test.file': commands.testFile,
-	'v.playground': commands.playground,
-	'v.test.package': commands.testPackage
+	"v.run": commands.run,
+	"v.ver": commands.ver,
+	"v.help": commands.help,
+	"v.prod": commands.prod,
+	"v.test.file": commands.testFile,
+	"v.playground": commands.playground,
+	"v.test.package": commands.testPackage
 };
 
 /**
