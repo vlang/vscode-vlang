@@ -1,21 +1,16 @@
-import { window, Terminal } from 'vscode';
-import { getVExecCommand, getCwd } from './utils';
-import { exec, ExecException } from 'child_process';
+import { window, Terminal, Disposable } from "vscode";
+import { getVExecCommand, getCwd } from "./utils";
+import { exec, ExecException } from "child_process";
 
-type ExecCallback = (
-	error: ExecException | null,
-	stdout: string,
-	stderr: string
-) => void;
+type ExecCallback = (error: ExecException | null, stdout: string, stderr: string) => void;
 
 let vRunTerm: Terminal = null;
 
 export function execVInTerminal(args: string) {
 	const cmd = getVExecCommand(args);
 
-	if (!vRunTerm) {
-		vRunTerm = window.createTerminal('V');
-	}
+	if (!vRunTerm) vRunTerm = window.createTerminal("V");
+
 	vRunTerm.show();
 	vRunTerm.sendText(cmd);
 }
@@ -30,10 +25,8 @@ export function execV(args: string, callback: ExecCallback) {
 	});
 }
 
-export function attachOnCloseTerminalListener() {
-	window.onDidCloseTerminal(term => {
-		if (term.name == 'V') {
-			vRunTerm = null;
-		}
+export function attachOnCloseTerminalListener(): Disposable {
+	return window.onDidCloseTerminal(term => {
+		if (term.name == "V") vRunTerm = null;
 	});
 }
