@@ -8,12 +8,11 @@ import {
 	workspace,
 	Uri
 } from "vscode";
-import { createHash } from "crypto";
 import { tmpdir } from "os";
 import { sep } from "path";
 import { arrayInclude, trimBoth, getCwd } from "./utils";
 import { execV } from "./exec";
-import { relative, resolve } from "path";
+import { resolve } from "path";
 
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 
@@ -32,11 +31,11 @@ export function lint(document: TextDocument): boolean {
 	if (!workspace.getWorkspaceFolder(document.uri)) {
 		return false;
 	}
-	const cwd = getCwd();
-	const filename = relative(cwd, document.uri.fsPath);
-	const cFileName = createMd5Hash(filename) + ".c";
 
-	const cmd = `-o ${outDir}${cFileName} .`;
+	const cwd = getCwd();
+	// const filename = relative(cwd, document.uri.fsPath);
+
+	const cmd = `-o ${outDir}lint.c .`;
 
 	let status = true;
 	let fileuri = document.uri;
@@ -89,10 +88,4 @@ function removeWarning(stderr: string): string {
 		}
 	});
 	return split.slice(n).join("\n");
-}
-
-function createMd5Hash(str: string): string {
-	return createHash("md5")
-		.update(str)
-		.digest("hex");
 }
