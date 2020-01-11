@@ -1,7 +1,11 @@
 {
 	"name": "V",
 	"scopeName": "source.v",
-	"fileTypes": [".v", ".vh", ".vsh"],
+	"fileTypes": [
+		".v",
+		".vh",
+		".vsh"
+	],
 	"patterns": [
 		{
 			"include": "#comments"
@@ -101,61 +105,46 @@
 			}
 		},
 		"assignment": {
-			"patterns": [
-				{
-					"name": "meta.definition.variable.v",
-					"match": "(\\w\\d+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
-					"captures": {
-						"1": {
-							"name": "variable.assignment.other.v"
+			"name": "meta.definition.variable.v",
+			"match": "([\\w.]+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
+			"captures": {
+				"1": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
 						},
-						"2": {
-							"patterns": [
-								{
-									"include": "#operators"
-								}
-							]
+						{
+							"match": "\\w+",
+							"name": "variable.assignment.other.v"
 						}
-					}
+					]
+				},
+				"2": {
+					"patterns": [
+						{
+							"include": "#operators"
+						}
+					]
 				}
-			]
+			}
 		},
 		"attributes": {
-			"patterns": [
-				{
-					"name": "meta.definition.attribute.v",
-					"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline)(\\]))",
-					"captures": {
-						"1": {
-							"name": "meta.function.attribute.v"
-						},
-						"2": {
-							"name": "punctuation.definition.begin.bracket.square.v"
-						},
-						"3": {
-							"name": "storage.modifier.attribute.v"
-						},
-						"4": {
-							"name": "punctuation.definition.end.bracket.square.v"
-						}
-					}
+			"name": "meta.definition.attribute.v",
+			"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline)(\\]))",
+			"captures": {
+				"1": {
+					"name": "meta.function.attribute.v"
 				},
-				{
-					"name": "meta.definition.support.attribute.v",
-					"match": "(?<=[\\w\\s])(?:(\\[)(skip)(\\]))",
-					"captures": {
-						"1": {
-							"name": "punctuation.definition.begin.bracket.square.v"
-						},
-						"2": {
-							"name": "storage.modifier.support.attribute.v"
-						},
-						"3": {
-							"name": "punctuation.definition.end.bracket.square.v"
-						}
-					}
+				"2": {
+					"name": "punctuation.definition.begin.bracket.square.v"
+				},
+				"3": {
+					"name": "storage.modifier.attribute.v"
+				},
+				"4": {
+					"name": "punctuation.definition.end.bracket.square.v"
 				}
-			]
+			}
 		},
 		"module-decl": {
 			"name": "meta.module.v",
@@ -288,7 +277,19 @@
 						},
 						{
 							"name": "keyword.$1.v",
-							"match": "\\b(fn|assert|sizeof)\\b(?=\\s*\\()"
+							"match": "\\b(fn|type|enum|struct|interface|map|assert|sizeof)\\b(?=\\s*\\()"
+						}
+					]
+				},
+				{
+					"patterns": [
+						{
+							"name": "keyword.control.v",
+							"match": "(\\$if|\\$else)(?=\\s*\\()"
+						},
+						{
+							"name": "keyword.control.v",
+							"match": "\\b(in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return)\\b(?=\\s*\\()"
 						}
 					]
 				},
@@ -317,17 +318,13 @@
 			]
 		},
 		"escaped-fix": {
-			"patterns": [
-				{
-					"name": "meta.escaped.keyword.v",
-					"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none))",
-					"captures": {
-						"0": {
-							"name": "keyword.other.escaped.v"
-						}
-					}
+			"name": "meta.escaped.keyword.v",
+			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|type|struct|interface|enum|in|or|match|if|else|for|go|goto|defer|return|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none))",
+			"captures": {
+				"0": {
+					"name": "keyword.other.escaped.v"
 				}
-			]
+			}
 		},
 		"comments": {
 			"patterns": [
@@ -364,12 +361,8 @@
 			]
 		},
 		"constants": {
-			"patterns": [
-				{
-					"name": "constant.language.v",
-					"match": "\\b(true|false)\\b"
-				}
-			]
+			"name": "constant.language.v",
+			"match": "\\b(true|false)\\b"
 		},
 		"generic": {
 			"patterns": [
@@ -383,8 +376,7 @@
 						"2": {
 							"patterns": [
 								{
-									"match": "\\d\\w+",
-									"name": "invalid.illegal.v"
+									"include": "#illegal-name"
 								},
 								{
 									"match": "\\w+",
@@ -400,311 +392,283 @@
 			]
 		},
 		"function-decl": {
-			"patterns": [
-				{
-					"name": "meta.definition.function.v",
-					"begin": "^\\s*(pub)?\\s*(fn)\\s+",
-					"beginCaptures": {
-						"1": {
-							"name": "storage.modifier.v"
-						},
-						"2": {
-							"name": "keyword.function.v"
-						}
-					},
-					"end": "(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
-					"endCaptures": {
-						"1": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"match": "\\w+",
-									"name": "entity.name.function.v"
-								}
-							]
-						},
-						"2": {
-							"patterns": [
-								{
-									"include": "#generic"
-								}
-							]
-						}
-					}
+			"name": "meta.definition.function.v",
+			"begin": "^\\s*(pub)?\\s*(fn)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.modifier.v"
+				},
+				"2": {
+					"name": "keyword.function.v"
 				}
-			]
+			},
+			"end": "(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
+			"endCaptures": {
+				"1": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"match": "\\w+",
+							"name": "entity.name.function.v"
+						}
+					]
+				},
+				"2": {
+					"patterns": [
+						{
+							"include": "#generic"
+						}
+					]
+				}
+			}
 		},
 		"function-extend-decl": {
-			"patterns": [
-				{
-					"name": "meta.definition.function.v",
-					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.v"
+			"name": "meta.definition.function.v",
+			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.v"
+				},
+				"2": {
+					"name": "keyword.function.v"
+				},
+				"3": {
+					"name": "punctuation.definition.bracket.round.begin.v"
+				},
+				"4": {
+					"patterns": [
+						{
+							"include": "#brackets"
 						},
-						"2": {
-							"name": "keyword.function.v"
+						{
+							"include": "#storage"
 						},
-						"3": {
-							"name": "punctuation.definition.bracket.round.begin.v"
+						{
+							"include": "#generics"
 						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#brackets"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#generics"
-								},
-								{
-									"include": "#types"
-								},
-								{
-									"include": "#punctuation"
-								}
-							]
+						{
+							"include": "#types"
 						},
-						"5": {
-							"name": "punctuation.definition.bracket.round.end.v"
-						},
-						"6": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"match": "\\w+",
-									"name": "entity.name.function.v"
-								}
-							]
-						},
-						"7": {
-							"patterns": [
-								{
-									"include": "#generic"
-								}
-							]
+						{
+							"include": "#punctuation"
 						}
-					}
+					]
+				},
+				"5": {
+					"name": "punctuation.definition.bracket.round.end.v"
+				},
+				"6": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"match": "\\w+",
+							"name": "entity.name.function.v"
+						}
+					]
+				},
+				"7": {
+					"patterns": [
+						{
+							"include": "#generic"
+						}
+					]
 				}
-			]
+			}
 		},
 		"function-limited-overload-decl": {
-			"patterns": [
-				{
-					"name": "meta.definition.function.v",
-					"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.v"
+			"name": "meta.definition.function.v",
+			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.v"
+				},
+				"2": {
+					"name": "keyword.function.v"
+				},
+				"3": {
+					"name": "punctuation.definition.bracket.round.begin.v"
+				},
+				"4": {
+					"patterns": [
+						{
+							"include": "#brackets"
 						},
-						"2": {
-							"name": "keyword.function.v"
+						{
+							"include": "#storage"
 						},
-						"3": {
-							"name": "punctuation.definition.bracket.round.begin.v"
+						{
+							"include": "#generics"
 						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#brackets"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#generics"
-								},
-								{
-									"include": "#types"
-								},
-								{
-									"include": "#punctuation"
-								}
-							]
+						{
+							"include": "#types"
 						},
-						"5": {
-							"name": "punctuation.definition.bracket.round.end.v"
-						},
-						"6": {
-							"patterns": [
-								{
-									"include": "#operators"
-								}
-							]
-						},
-						"7": {
-							"name": "punctuation.definition.bracket.round.begin.v"
-						},
-						"8": {
-							"patterns": [
-								{
-									"include": "#brackets"
-								},
-								{
-									"include": "#storage"
-								},
-								{
-									"include": "#generics"
-								},
-								{
-									"include": "#types"
-								},
-								{
-									"include": "#punctuation"
-								}
-							]
-						},
-						"9": {
-							"name": "punctuation.definition.bracket.round.end.v"
-						},
-						"10": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"match": "\\w+",
-									"name": "entity.name.function.v"
-								}
-							]
+						{
+							"include": "#punctuation"
 						}
-					}
+					]
+				},
+				"5": {
+					"name": "punctuation.definition.bracket.round.end.v"
+				},
+				"6": {
+					"patterns": [
+						{
+							"include": "#operators"
+						}
+					]
+				},
+				"7": {
+					"name": "punctuation.definition.bracket.round.begin.v"
+				},
+				"8": {
+					"patterns": [
+						{
+							"include": "#brackets"
+						},
+						{
+							"include": "#storage"
+						},
+						{
+							"include": "#generics"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"include": "#punctuation"
+						}
+					]
+				},
+				"9": {
+					"name": "punctuation.definition.bracket.round.end.v"
+				},
+				"10": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"match": "\\w+",
+							"name": "entity.name.function.v"
+						}
+					]
 				}
-			]
+			}
 		},
 		"function-exist": {
-			"patterns": [
-				{
-					"name": "meta.support.function.v",
-					"match": "([\\w]+)(\\<[\\w]*\\>)?(?=\\s*\\()",
-					"captures": {
-						"0": {
-							"name": "meta.function.call.v"
+			"name": "meta.support.function.v",
+			"match": "([\\w]+)(\\<[\\w]*\\>)?(?=\\s*\\()",
+			"captures": {
+				"0": {
+					"name": "meta.function.call.v"
+				},
+				"1": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
 						},
-						"1": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"match": "\\w+",
-									"name": "entity.name.function.v"
-								}
-							]
-						},
-						"2": {
-							"patterns": [
-								{
-									"include": "#generic"
-								}
-							]
+						{
+							"match": "\\w+",
+							"name": "entity.name.function.v"
 						}
-					}
+					]
+				},
+				"2": {
+					"patterns": [
+						{
+							"include": "#generic"
+						}
+					]
 				}
-			]
+			}
 		},
 		"type": {
-			"patterns": [
-				{
-					"name": "meta.definition.type.v",
-					"match": "\\s*(?:(pub)?\\s+)?(type)\\s+([\\w]*)\\s+(?:[\\w]+\\.+)?([\\w]*)",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.$1.v"
+			"name": "meta.definition.type.v",
+			"match": "^\\s*(?:(pub)?\\s+)?(type)\\s+([\\w]*)\\s+(?:[\\w]+\\.+)?([\\w]*)",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.$1.v"
+				},
+				"2": {
+					"name": "storage.type.type.v"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
 						},
-						"2": {
-							"name": "storage.type.type.v"
+						{
+							"include": "#types"
 						},
-						"3": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"include": "#types"
-								},
-								{
-									"name": "entity.name.type.v",
-									"match": "\\w+"
-								}
-							]
-						},
-						"4": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"include": "#types"
-								},
-								{
-									"name": "entity.name.type.v",
-									"match": "\\w+"
-								}
-							]
+						{
+							"name": "entity.name.type.v",
+							"match": "\\w+"
 						}
-					}
+					]
+				},
+				"4": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"name": "entity.name.type.v",
+							"match": "\\w+"
+						}
+					]
 				}
-			]
+			}
 		},
 		"enum": {
-			"patterns": [
-				{
-					"name": "meta.definition.enum.v",
-					"match": "\\s*(?:(pub)?\\s+)?(enum)\\s+(?:[\\w]+\\.)?([\\w]*)",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.$1.v"
-						},
-						"2": {
-							"name": "storage.type.enum.v"
-						},
-						"3": {
-							"name": "entity.name.enum.v"
-						}
-					}
+			"name": "meta.definition.enum.v",
+			"match": "^\\s*(?:(pub)?\\s+)?(enum)\\s+(?:[\\w]+\\.)?([\\w]*)",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.$1.v"
+				},
+				"2": {
+					"name": "storage.type.enum.v"
+				},
+				"3": {
+					"name": "entity.name.enum.v"
 				}
-			]
+			}
 		},
 		"interface": {
-			"patterns": [
-				{
-					"name": "meta.definition.interface.v",
-					"match": "\\s*(?:(pub)?\\s+)?(interface)\\s+([\\w]*)",
-					"captures": {
-						"1": {
-							"name": "keyword.pub.v"
+			"name": "meta.definition.interface.v",
+			"match": "^\\s*(?:(pub)?\\s+)?(interface)\\s+([\\w]*)",
+			"captures": {
+				"1": {
+					"name": "keyword.pub.v"
+				},
+				"2": {
+					"name": "keyword.interface.v"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
 						},
-						"2": {
-							"name": "keyword.interface.v"
-						},
-						"3": {
-							"patterns": [
-								{
-									"include": "#illegal-name"
-								},
-								{
-									"name": "entity.name.interface.v",
-									"match": "\\w+"
-								}
-							]
+						{
+							"name": "entity.name.interface.v",
+							"match": "\\w+"
 						}
-					}
+					]
 				}
-			]
+			}
 		},
 		"struct": {
 			"patterns": [
 				{
 					"name": "meta.definition.struct.v",
-					"begin": "\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)\\s+([\\w.]+)\\s*({)",
+					"begin": "^\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)\\s+([\\w.]+)\\s*({)",
 					"beginCaptures": {
 						"1": {
 							"name": "storage.modifier.$1.v"
@@ -836,7 +800,23 @@
 				},
 				{
 					"name": "keyword.$1.v",
-					"match": "\\b(fn|type|enum|unsafe|struct|interface|map|assert|sizeof)\\b"
+					"match": "\\b(fn|type|enum|struct|interface|map|assert|sizeof)\\b"
+				}
+			]
+		},
+		"storage": {
+			"name": "storage.modifier.v",
+			"match": "\\b(const|mut|pub)\\b"
+		},
+		"types": {
+			"patterns": [
+				{
+					"name": "storage.type.numeric.v",
+					"match": "\\b(i(8|16|nt|64|128)|u(16|32|64|u128)|f(32|64))\\b"
+				},
+				{
+					"name": "storage.type.$1.v",
+					"match": "\\b(bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none)\\b"
 				}
 			]
 		},
@@ -877,26 +857,6 @@
 				{
 					"name": "constant.numeric.integer.v",
 					"match": "\\b(?:[-]?)(?:[0-9]+)"
-				}
-			]
-		},
-		"storage": {
-			"patterns": [
-				{
-					"name": "storage.modifier.v",
-					"match": "\\b(const|mut|pub)\\b"
-				}
-			]
-		},
-		"types": {
-			"patterns": [
-				{
-					"name": "storage.type.numeric.v",
-					"match": "\\b(i(8|16|nt|64|128)|u(16|32|64|u128)|f(32|64))\\b"
-				},
-				{
-					"name": "storage.type.$1.v",
-					"match": "\\b(bool|byte|byteptr|charptr|voidptr|string|ustring|rune|none)\\b"
 				}
 			]
 		},
@@ -995,34 +955,26 @@
 			]
 		},
 		"string-interpolation": {
-			"patterns": [
-				{
-					"name": "meta.string.interpolation.v",
-					"match": "(\\$([\\w.]+|\\{.*?\\}))",
-					"captures": {
-						"1": {
-							"patterns": [
-								{
-									"name": "invalid.illegal.v",
-									"match": "\\$\\d[\\.\\w]+"
-								},
-								{
-									"name": "variable.other.interpolated.v",
-									"match": "\\$([\\.\\w]+|\\{.*?\\})"
-								}
-							]
+			"name": "meta.string.interpolation.v",
+			"match": "(\\$([\\w.]+|\\{.*?\\}))",
+			"captures": {
+				"1": {
+					"patterns": [
+						{
+							"name": "invalid.illegal.v",
+							"match": "\\$\\d[\\.\\w]+"
+						},
+						{
+							"name": "variable.other.interpolated.v",
+							"match": "\\$([\\.\\w]+|\\{.*?\\})"
 						}
-					}
+					]
 				}
-			]
+			}
 		},
 		"string-placeholder": {
-			"patterns": [
-				{
-					"match": "%(\\[\\d+\\])?([\\+#\\-0\\x20]{,2}((\\d+|\\*)?(\\.?(\\d+|\\*|(\\[\\d+\\])\\*?)?(\\[\\d+\\])?)?))?[vT%tbcdoqxXUbeEfFgGsp]",
-					"name": "constant.other.placeholder.v"
-				}
-			]
+			"match": "%(\\[\\d+\\])?([\\+#\\-0\\x20]{,2}((\\d+|\\*)?(\\.?(\\d+|\\*|(\\[\\d+\\])\\*?)?(\\[\\d+\\])?)?))?[vT%tbcdoqxXUbeEfFgGsp]",
+			"name": "constant.other.placeholder.v"
 		},
 		"illegal-name": {
 			"match": "\\d\\w+",
