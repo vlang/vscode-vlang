@@ -82,7 +82,7 @@
 			"include": "#strings"
 		},
 		{
-			"include": "types"
+			"include": "#types"
 		}
 	],
 	"repository": {
@@ -464,7 +464,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "types"
+									"include": "#types"
 								},
 								{
 									"include": "#punctuation"
@@ -524,7 +524,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "types"
+									"include": "#types"
 								},
 								{
 									"include": "#punctuation"
@@ -556,7 +556,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "types"
+									"include": "#types"
 								},
 								{
 									"include": "#punctuation"
@@ -745,7 +745,7 @@
 											"include": "#brackets"
 										},
 										{
-											"include": "types"
+											"include": "#types"
 										},
 										{
 											"match": "\\w+",
@@ -766,7 +766,7 @@
 							}
 						},
 						{
-							"include": "types"
+							"include": "#types"
 						},
 						{
 							"include": "$self"
@@ -889,7 +889,7 @@
 				}
 			]
 		},
-		"std-types": {
+		"types": {
 			"patterns": [
 				{
 					"name": "storage.type.numeric.v",
