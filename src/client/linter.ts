@@ -43,10 +43,11 @@ export function lint(document: TextDocument): boolean {
 	execV(cmd, (err, stdout, stderr) => {
 		if (err) {
 			collection.delete(fileuri);
-			const isWarning = stderr.substring(0, 7) === "warning";
-			if (isWarning) stderr = removeWarning(stderr);
-			const { file, line, column, message } = parseError(stderr);
-			fileuri = Uri.parse(resolve(cwd, file));
+			let output = stderr || stdout
+			const isWarning = output.substring(0, 7) === "warning";
+			if (isWarning) output = removeWarning(output);
+			const { file, line, column, message } = parseError(output);
+			fileuri = Uri.file(resolve(cwd, file));
 			const start = new Position(line - 1, column);
 			const end = new Position(line - 1, column + 1);
 			const range = new Range(start, end);
