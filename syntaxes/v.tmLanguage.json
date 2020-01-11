@@ -4,70 +4,19 @@
 	"fileTypes": [".v", ".vh", ".vsh"],
 	"patterns": [
 		{
-			"name": "meta.module.v",
-			"begin": "^\\s*(module)\\s+",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.module.v"
-				}
-			},
-			"end": "([\\w.]+)",
-			"endCaptures": {
-				"1": {
-					"name": "entity.name.module.v"
-				}
-			}
-		},
-		{
-			"name": "meta.import.v",
-			"begin": "^\\s*(import)\\s+",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.import.v"
-				}
-			},
-			"end": "([\\w.]+)",
-			"endCaptures": {
-				"1": {
-					"name": "entity.name.import.v"
-				}
-			}
-		},
-		{
-			"name": "meta.include.v",
-			"begin": "^\\s*(#include)",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.include.v"
-				}
-			},
-			"end": "\\s+(([\\<\"])\\s*(.*)([\\>\"]))",
-			"endCaptures": {
-				"1": {
-					"name": "string.quoted.double.v"
-				}
-			}
-		},
-		{
-			"name": "meta.flag.v",
-			"begin": "^\\s*(#flag)",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.flag.v"
-				}
-			},
-			"end": "\\s+(.*?)$",
-			"endCaptures": {
-				"1": {
-					"name": "string.quoted.single.v"
-				}
-			}
-		},
-		{
 			"include": "#comments"
 		},
 		{
+			"include": "#brackets"
+		},
+		{
 			"include": "#operators"
+		},
+		{
+			"include": "#builtin-fix"
+		},
+		{
+			"include": "#escaped-fix"
 		},
 		{
 			"include": "#as"
@@ -79,31 +28,34 @@
 			"include": "#attributes"
 		},
 		{
-			"include": "#brackets"
+			"include": "#module-decl"
 		},
 		{
-			"include": "#builtin-fix"
+			"include": "#import-decl"
 		},
 		{
-			"include": "#escaped-fix"
+			"include": "#include-decl"
 		},
 		{
-			"include": "#constants"
+			"include": "#flag-decl"
 		},
 		{
-			"include": "#function-limited-overload-declaration"
+			"include": "#function-limited-overload-decl"
 		},
 		{
-			"include": "#function-extend-declaration"
+			"include": "#function-extend-decl"
 		},
 		{
-			"include": "#function-declaration"
+			"include": "#function-decl"
 		},
 		{
 			"include": "#function-exist"
 		},
 		{
 			"include": "#generic"
+		},
+		{
+			"include": "#constants"
 		},
 		{
 			"include": "#type"
@@ -121,16 +73,16 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#storage"
+		},
+		{
 			"include": "#numbers"
 		},
 		{
 			"include": "#strings"
 		},
 		{
-			"include": "#storage"
-		},
-		{
-			"include": "#std-types"
+			"include": "types"
 		}
 	],
 	"repository": {
@@ -152,7 +104,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.variable.v",
-					"match": "([\\w.]+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
+					"match": "(\\w\\d+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
 					"captures": {
 						"1": {
 							"name": "variable.assignment.other.v"
@@ -205,6 +157,66 @@
 				}
 			]
 		},
+		"module-decl": {
+			"name": "meta.module.v",
+			"begin": "^\\s*(module)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.module.v"
+				}
+			},
+			"end": "([\\w.]+)",
+			"endCaptures": {
+				"1": {
+					"name": "entity.name.module.v"
+				}
+			}
+		},
+		"import-decl": {
+			"name": "meta.import.v",
+			"begin": "^\\s*(import)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.import.v"
+				}
+			},
+			"end": "([\\w.]+)",
+			"endCaptures": {
+				"1": {
+					"name": "entity.name.import.v"
+				}
+			}
+		},
+		"include-decl": {
+			"name": "meta.include.v",
+			"begin": "^\\s*(#include)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.include.v"
+				}
+			},
+			"end": "\\s+(([\\<\"])\\s*(.*)([\\>\"]))",
+			"endCaptures": {
+				"1": {
+					"name": "string.quoted.double.v"
+				}
+			}
+		},
+		"flag-decl": {
+			"name": "meta.flag.v",
+			"begin": "^\\s*(#flag)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.flag.v"
+				}
+			},
+			"end": "\\s+(.*?)$",
+			"endCaptures": {
+				"1": {
+					"name": "string.quoted.single.v"
+				}
+			}
+		},
 		"brackets": {
 			"patterns": [
 				{
@@ -246,8 +258,23 @@
 					]
 				},
 				{
-					"match": "\\[|\\]",
-					"name": "punctuation.definition.bracket.square.v"
+					"begin": "\\[",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.square.begin.v"
+						}
+					},
+					"end": "\\]",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.square.end.v"
+						}
+					},
+					"patterns": [
+						{
+							"include": "$self"
+						}
+					]
 				}
 			]
 		},
@@ -372,7 +399,7 @@
 				}
 			]
 		},
-		"function-declaration": {
+		"function-decl": {
 			"patterns": [
 				{
 					"name": "meta.definition.function.v",
@@ -410,7 +437,7 @@
 				}
 			]
 		},
-		"function-extend-declaration": {
+		"function-extend-decl": {
 			"patterns": [
 				{
 					"name": "meta.definition.function.v",
@@ -437,7 +464,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "#std-types"
+									"include": "types"
 								},
 								{
 									"include": "#punctuation"
@@ -470,7 +497,7 @@
 				}
 			]
 		},
-		"function-limited-overload-declaration": {
+		"function-limited-overload-decl": {
 			"patterns": [
 				{
 					"name": "meta.definition.function.v",
@@ -497,7 +524,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "#std-types"
+									"include": "types"
 								},
 								{
 									"include": "#punctuation"
@@ -529,7 +556,7 @@
 									"include": "#generics"
 								},
 								{
-									"include": "#std-types"
+									"include": "types"
 								},
 								{
 									"include": "#punctuation"
@@ -718,7 +745,7 @@
 											"include": "#brackets"
 										},
 										{
-											"include": "#std-types"
+											"include": "types"
 										},
 										{
 											"match": "\\w+",
@@ -739,7 +766,7 @@
 							}
 						},
 						{
-							"include": "#std-types"
+							"include": "types"
 						},
 						{
 							"include": "$self"
