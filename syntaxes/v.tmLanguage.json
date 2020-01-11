@@ -1025,12 +1025,8 @@
 			]
 		},
 		"illegal-name": {
-			"patterns": [
-				{
-					"match": "\\d\\w+",
-					"name": "invalid.illegal.v"
-				}
-			]
+			"match": "\\d\\w+",
+			"name": "invalid.illegal.v"
 		}
 	}
 }
