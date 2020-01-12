@@ -738,7 +738,7 @@
 				},
 				{
 					"name": "meta.definition.struct.v",
-					"match": "(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)(?:\\s+([\\w.]+))?",
+					"match": "^\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)(?:\\s+([\\w.]+))?",
 					"captures": {
 						"1": {
 							"name": "storage.modifier.$1.v"
