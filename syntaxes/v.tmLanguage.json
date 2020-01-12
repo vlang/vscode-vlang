@@ -56,7 +56,7 @@
 			"include": "#function-exist"
 		},
 		{
-			"include": "#generic"
+			"include": "#generics"
 		},
 		{
 			"include": "#constants"
@@ -418,7 +418,7 @@
 				"2": {
 					"patterns": [
 						{
-							"include": "#generic"
+							"include": "#generics"
 						}
 					]
 				}
@@ -473,7 +473,7 @@
 				"7": {
 					"patterns": [
 						{
-							"include": "#generic"
+							"include": "#generics"
 						}
 					]
 				}
@@ -580,7 +580,7 @@
 				"2": {
 					"patterns": [
 						{
-							"include": "#generic"
+							"include": "#generics"
 						}
 					]
 				}
