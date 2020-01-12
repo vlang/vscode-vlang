@@ -11,25 +11,13 @@
 			"include": "#comments"
 		},
 		{
-			"include": "#brackets"
-		},
-		{
-			"include": "#operators"
-		},
-		{
-			"include": "#builtin-fix"
-		},
-		{
-			"include": "#escaped-fix"
-		},
-		{
 			"include": "#as"
 		},
 		{
-			"include": "#assignment"
+			"include": "#attributes"
 		},
 		{
-			"include": "#attributes"
+			"include": "#assignment"
 		},
 		{
 			"include": "#module-decl"
@@ -42,6 +30,18 @@
 		},
 		{
 			"include": "#flag-decl"
+		},
+		{
+			"include": "#brackets"
+		},
+		{
+			"include": "#builtin-fix"
+		},
+		{
+			"include": "#escaped-fix"
+		},
+		{
+			"include": "#operators"
 		},
 		{
 			"include": "#function-limited-overload-decl"
@@ -273,7 +273,7 @@
 					"patterns": [
 						{
 							"name": "storage.modifier.v",
-							"match": "^\\s*(const)(?=\\s*\\()"
+							"match": "(const)(?=\\s*\\()"
 						},
 						{
 							"name": "keyword.$1.v",
@@ -368,7 +368,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.generic.v",
-					"match": "(\\<)([\\w]+)(\\>)",
+					"match": "(?<=[\\w\\s+])(\\<)(\\w+)(\\>)",
 					"captures": {
 						"1": {
 							"name": "punctuation.definition.bracket.angle.begin.v"
@@ -402,7 +402,7 @@
 					"name": "keyword.function.v"
 				}
 			},
-			"end": "(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
+			"end": "(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
 			"endCaptures": {
 				"1": {
 					"patterns": [
@@ -426,7 +426,7 @@
 		},
 		"function-extend-decl": {
 			"name": "meta.definition.function.v",
-			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)(\\<[\\w]*\\>)?",
+			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.v"
@@ -446,7 +446,7 @@
 							"include": "#storage"
 						},
 						{
-							"include": "#generics"
+							"include": "#generic"
 						},
 						{
 							"include": "#types"
@@ -481,7 +481,7 @@
 		},
 		"function-limited-overload-decl": {
 			"name": "meta.definition.function.v",
-			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)([\\w]+)",
+			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*([\\+\\-\\*\\/])?\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)(\\w+)",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.v"
@@ -501,7 +501,7 @@
 							"include": "#storage"
 						},
 						{
-							"include": "#generics"
+							"include": "#generic"
 						},
 						{
 							"include": "#types"
@@ -533,7 +533,7 @@
 							"include": "#storage"
 						},
 						{
-							"include": "#generics"
+							"include": "#generic"
 						},
 						{
 							"include": "#types"
@@ -561,7 +561,7 @@
 		},
 		"function-exist": {
 			"name": "meta.support.function.v",
-			"match": "([\\w]+)(\\<[\\w]*\\>)?(?=\\s*\\()",
+			"match": "(\\w+)((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?(?=\\s*\\()",
 			"captures": {
 				"0": {
 					"name": "meta.function.call.v"
@@ -588,7 +588,7 @@
 		},
 		"type": {
 			"name": "meta.definition.type.v",
-			"match": "^\\s*(?:(pub)?\\s+)?(type)\\s+([\\w]*)\\s+(?:[\\w]+\\.+)?([\\w]*)",
+			"match": "^\\s*(?:(pub)?\\s+)?(type)\\s+(\\w*)\\s+(?:\\w+\\.+)?(\\w*)",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.$1.v"
@@ -628,7 +628,7 @@
 		},
 		"enum": {
 			"name": "meta.definition.enum.v",
-			"match": "^\\s*(?:(pub)?\\s+)?(enum)\\s+(?:[\\w]+\\.)?([\\w]*)",
+			"match": "^\\s*(?:(pub)?\\s+)?(enum)\\s+(?:\\w+\\.)?(\\w*)",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.$1.v"
@@ -643,7 +643,7 @@
 		},
 		"interface": {
 			"name": "meta.definition.interface.v",
-			"match": "^\\s*(?:(pub)?\\s+)?(interface)\\s+([\\w]*)",
+			"match": "^\\s*(?:(pub)?\\s+)?(interface)\\s+(\\w*)",
 			"captures": {
 				"1": {
 					"name": "keyword.pub.v"
@@ -738,7 +738,7 @@
 				},
 				{
 					"name": "meta.definition.struct.v",
-					"match": "(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)(?:\\s+([\\w.]+))?",
+					"match": "^\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)(?:\\s+([\\w.]+))?",
 					"captures": {
 						"1": {
 							"name": "storage.modifier.$1.v"
