@@ -2,6 +2,10 @@ import * as vscode from "vscode";
 import * as commands from "./commands";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
+import { lint, collection } from "./linter";
+import { clearTempFolder } from "./utils";
+
+const vLanguageId = "v";
 
 const cmds = {
 	"v.run": commands.run,
@@ -25,11 +29,55 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	context.subscriptions.push(registerFormatter());
-	context.subscriptions.push(attachOnCloseTerminalListener());
+	context.subscriptions.push(
+		registerFormatter(),
+		attachOnCloseTerminalListener(),
+		vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
+		vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
+		vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
+	);
+
+	// If there are V files open, do the lint immediately
+	if (vscode.window.activeTextEditor) {
+		if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
+			lint(vscode.window.activeTextEditor.document);
+		}
+	}
+}
+
+/**
+ *  Handles the `onDidChangeVisibleTextEditors` event
+ */
+function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
+	editors.forEach(editor => {
+		if (editor.document.languageId === vLanguageId) {
+			lint(editor.document);
+		}
+	});
+}
+
+/**
+ *  Handles the `onDidSaveTextDocument` event
+ */
+function didSaveTextDocument(document: vscode.TextDocument) {
+	if (document.languageId === vLanguageId) {
+		lint(document);
+	}
+}
+
+/**
+ *  Handles the `onDidCloseTextDocument` event
+ */
+function didCloseTextDocument(document: vscode.TextDocument) {
+	if (document.languageId === vLanguageId) {
+		if (!vscode.window.activeTextEditor) collection.clear();
+		collection.delete(document.uri);
+	}
 }
 
 /**
  * This method is called when the extension is deactivated.
  */
-export function deactivate() {}
+export function deactivate() {
+	clearTempFolder();
+}

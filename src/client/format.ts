@@ -12,7 +12,7 @@ import { fullDocumentRange, getVConfig } from "./utils";
 function format(document: TextDocument): Promise<TextEdit[]> {
 	return new Promise((resolve, reject) => {
 		const vfmtArgs = getVConfig().get("format.args", "");
-		const args = `fmt ${vfmtArgs} ${document.fileName}`;
+		const args = ["fmt", vfmtArgs, document.fileName];
 
 		execV(args, (err, stdout, stderr) => {
 			if (err) {
