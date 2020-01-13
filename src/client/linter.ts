@@ -50,6 +50,7 @@ export function lint(document: TextDocument): boolean {
 	let status = true;
 
 	execV(["-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
+		collection.clear()
 		if (err || stderr.trim().length > 1) {
 			const output = stderr || stdout;
 			const isWarning = output.substring(0, 7) === "warning";
@@ -66,7 +67,6 @@ export function lint(document: TextDocument): boolean {
 				collection.set(fileuri, [diagnostic]);
 			} else {
 				/* WARNING */
-				collection.clear();
 				const warnings = parseWarning(output);
 				warnings.forEach(warning => {
 					const { file, line, column, message } = warning;
