@@ -8,7 +8,7 @@ export async function run() {
 	const document = window.activeTextEditor.document;
 	await document.save();
 
-	execVInTerminal(`run ${document.fileName}`);
+	execVInTerminal(["run", document.fileName]);
 }
 
 /**
@@ -18,7 +18,7 @@ export async function prod() {
 	const document = window.activeTextEditor.document;
 	await document.save();
 
-	execVInTerminal(`-prod ${document.fileName}`);
+	execVInTerminal(["-prod", document.fileName]);
 }
 
 /**
@@ -30,7 +30,7 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	execV("-v", (err, stdout) => {
+	execV(["-v"], (err, stdout) => {
 		if (err) {
 			window.showErrorMessage(
 				"Unable to get the version number. Is V installed correctly?"
