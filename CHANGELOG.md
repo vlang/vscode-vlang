@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2020-01-16
+
+### Added
+
+- Linter [35d9805](https://github.com/0x9ef/vscode-vlang/commit/35d9805cdadb49335de70484b5bf1815f356857f)
+
+- Implemented "Show Version Info" [28420de](https://github.com/0x9ef/vscode-vlang/commit/28420dee18c6c52050a29a7a8bde648bafed85f0)
+
+- Implemented "Build an optimized executable from current file" [37e5049](https://github.com/0x9ef/vscode-vlang/commit/37e50499e38552b1d025ab4c3ada3ad6a30c6113)
+
+- Snippet for `charptr` [503f796](https://github.com/0x9ef/vscode-vlang/commit/503f796e2f5ac372c023c119525b1fa8cd580a97)
+
+- Added `unsafe` keyword, `typedef` attribute [f873252](https://github.com/0x9ef/vscode-vlang/commit/f873252d43422d9d1317ce735f31c158a523afe2)
+
+### Changed
+
+- Fixed inconsistent `struct` highlighting [3170227](https://github.com/0x9ef/vscode-vlang/commit/31702271d55313ac97b17433111465ee74d3902d)
+
+- Replaced VSCode deprecated API with new API [6f829d9](https://github.com/0x9ef/vscode-vlang/commit/6f829d9469be9202aa331abb46479e362c9d43bd)
+
+### Removed
+
+- Removed icon theme [827171b](https://github.com/0x9ef/vscode-vlang/commit/827171bb0c4eca127a6e90a8b92f9de8ebdf68a9)
+
 ## [0.0.9] - 2019-12-30
 
 ### Added
