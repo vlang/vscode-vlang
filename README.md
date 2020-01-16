@@ -23,6 +23,7 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 - Code Snippets for quick coding.
 - Format code on file save as well as format manually (using `v fmt`).
+- Linter (Workspace files only).
 
 ### Testing
 
