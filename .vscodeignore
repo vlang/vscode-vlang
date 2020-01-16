@@ -8,3 +8,6 @@ images/
 .gitignore
 tsconfig.json
 .markdownlint.json
+.github
+test.go
+test.v
