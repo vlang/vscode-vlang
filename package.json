@@ -78,7 +78,7 @@
 		"configurationDefaults": {
 			"[v]": {
 				"editor.insertSpaces": false,
-				"editor.formatOnSave": true,
+				"editor.formatOnSave": false,
 				"editor.codeActionsOnSave": {
 					"source.organizeImports": true
 				}
