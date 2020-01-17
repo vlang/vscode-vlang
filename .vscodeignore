@@ -6,5 +6,6 @@ images/
 
 **/tslint.json
 .gitignore
+.v
+.go
 tsconfig.json
-.markdownlint.json
