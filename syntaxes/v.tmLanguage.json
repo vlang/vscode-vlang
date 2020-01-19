@@ -812,7 +812,7 @@
 			"patterns": [
 				{
 					"name": "storage.type.numeric.v",
-					"match": "\\b(i(8|16|nt|64|128)|u(16|32|64|u128)|f(32|64))\\b"
+					"match": "\\b(i(8|16|nt|64|128)|u(8|16|32|64|128)|f(32|64))\\b"
 				},
 				{
 					"name": "storage.type.$1.v",
