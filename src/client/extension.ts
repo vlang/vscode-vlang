@@ -4,8 +4,10 @@ import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
 import { lint, collection } from "./linter";
 import { clearTempFolder } from "./utils";
+import { activateTreeSitter } from "./tree-sitter/tree-sitter";
 
-const vLanguageId = "v";
+
+export const vLanguageId = "v";
 
 const cmds = {
 	"v.run": commands.run,
@@ -28,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
-
+	
 	context.subscriptions.push(
 		registerFormatter(),
 		attachOnCloseTerminalListener(),
@@ -42,7 +44,10 @@ export function activate(context: vscode.ExtensionContext) {
 		if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
 			lint(vscode.window.activeTextEditor.document);
 		}
-	}
+	}	
+	
+	// Activate tree-sitter
+	activateTreeSitter(context);
 }
 
 /**
