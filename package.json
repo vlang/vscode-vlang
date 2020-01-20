@@ -153,7 +153,6 @@
 	"main": "./out/extension.js",
 	"dependencies": {
 		"jsonc-parser": "^2.2.0",
-		"tar": "^5.0.5",
 		"vscode-languageclient": "~5.2.1",
 		"web-tree-sitter": "^0.16.0"
 	},
