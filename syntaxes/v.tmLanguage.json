@@ -130,7 +130,7 @@
 		},
 		"attributes": {
 			"name": "meta.definition.attribute.v",
-			"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline)(\\]))",
+			"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline|flag)(\\]))",
 			"captures": {
 				"1": {
 					"name": "meta.function.attribute.v"
