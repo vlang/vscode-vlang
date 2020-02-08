@@ -74,7 +74,7 @@
 					"description": "Path to V executable file"
 				},
 				"v.enableLinter": {
-					"scope": "language-overridable",
+					"scope": "resource",
 					"type": "boolean",
 					"default": true,
 					"description": "Whether to enable the linter"
