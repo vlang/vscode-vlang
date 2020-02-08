@@ -3,7 +3,7 @@ import * as commands from "./commands";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
 import { lint, collection } from "./linter";
-import { clearTempFolder } from "./utils";
+import { clearTempFolder, getVConfig } from "./utils";
 
 const vLanguageId = "v";
 
@@ -24,23 +24,23 @@ const cmds = {
 export function activate(context: vscode.ExtensionContext) {
 	for (const cmd in cmds) {
 		const handler = cmds[cmd];
-
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
 
-	context.subscriptions.push(
-		registerFormatter(),
-		attachOnCloseTerminalListener(),
-		vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
-		vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-		vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
-	);
+	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
 
-	// If there are V files open, do the lint immediately
-	if (vscode.window.activeTextEditor) {
-		if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
-			lint(vscode.window.activeTextEditor.document);
+	if (getVConfig().get("enableLinter")) {
+		context.subscriptions.push(
+			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
+			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
+			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
+		);
+		// If there are V files open, do the lint immediately
+		if (vscode.window.activeTextEditor) {
+			if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
+				lint(vscode.window.activeTextEditor.document);
+			}
 		}
 	}
 }

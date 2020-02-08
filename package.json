@@ -72,6 +72,12 @@
 					"type": "string",
 					"default": "",
 					"description": "Path to V executable file"
+				},
+				"v.enableLinter": {
+					"scope": "language-overridable",
+					"type": "boolean",
+					"default": true,
+					"description": "Whether to enable the linter"
 				}
 			}
 		},
