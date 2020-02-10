@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readdir, unlink } from "fs";
 import { tmpdir } from "os";
 import { sep, join } from "path";
 
-const TEMP_DIR = `${tmpdir()}${sep}vscode_vlang`;
+export const TEMP_DIR = `${tmpdir()}${sep}vscode_vlang`;
 const defaultCommand = "v";
 
 export function fullDocumentRange(document: TextDocument): Range {
