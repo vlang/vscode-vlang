@@ -15,8 +15,8 @@ function format(document: TextDocument): Promise<TextEdit[]> {
 	return new Promise((resolve, reject) => {
 		const vfmtArgs = getVConfig().get("format.args", "");
 		const TMP_FILE = path.resolve(TEMP_DIR, 'FORMAT_TEMP.v')
-		writeFileSync(TMP_FILE, document.getText())
 		const args = ["fmt", vfmtArgs, TMP_FILE];
+		writeFileSync(TMP_FILE, document.getText())
 
 		execV(args, (err, stdout, stderr) => {
 			if (err) {
