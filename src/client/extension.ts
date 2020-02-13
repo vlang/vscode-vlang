@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import * as commands from "./commands";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
-import { lint, collection } from "./linter";
-import { clearTempFolder, getVConfig } from "./utils";
+import { lint, diagnosticCollection, deleteVLinterFile } from "./linter";
+import { getVConfig } from "./utils";
 
 const vLanguageId = "v";
 
@@ -70,8 +70,13 @@ function didSaveTextDocument(document: vscode.TextDocument) {
  */
 function didCloseTextDocument(document: vscode.TextDocument) {
 	if (document.languageId === vLanguageId) {
-		if (!vscode.window.activeTextEditor) collection.clear();
-		collection.delete(document.uri);
+		// If no more v documents are open / active, clear the diagnostic
+		if (!vscode.window.activeTextEditor) {
+			diagnosticCollection.clear();
+			deleteVLinterFile()
+		} else {
+			diagnosticCollection.delete(document.uri);
+		}
 	}
 }
 
@@ -79,5 +84,5 @@ function didCloseTextDocument(document: vscode.TextDocument) {
  * This method is called when the extension is deactivated.
  */
 export function deactivate() {
-	clearTempFolder();
+	// clearTempFolder();
 }

@@ -9,126 +9,157 @@ import {
 } from "vscode";
 import { tmpdir } from "os";
 import { sep } from "path";
-import { arrayInclude, trimBoth, getWorkspaceFolder } from "./utils";
+import { trimBoth, getWorkspaceFolder } from "./utils";
 import { execV } from "./exec";
 import { resolve, relative, dirname } from "path";
-import { readdirSync } from "fs";
+import { writeFileSync, unlinkSync } from "fs";
 
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 const SEV_ERR = DiagnosticSeverity.Error;
 const SEV_WRN = DiagnosticSeverity.Warning;
+let cwd = "";
 
 export interface ErrorInfo {
 	file: string;
 	line: number;
 	column: number;
 	message: string;
-	stderr: string;
+	type: DiagnosticSeverity;
 }
 
-interface MoreInfo {
-	for: number;
-	content: string;
-}
-
-export const collection = languages.createDiagnosticCollection("V");
+export const diagnosticCollection = languages.createDiagnosticCollection("V");
 
 export function lint(document: TextDocument): boolean {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
 	if (!workspaceFolder) return true;
 
-	const cwd = workspaceFolder.uri.fsPath;
+	cwd = workspaceFolder.uri.fsPath;
 	const foldername = dirname(document.fileName);
-	const relativeFoldername = relative(cwd, foldername);
 	const relativeFilename = relative(cwd, document.fileName);
-	const fileCount = readdirSync(foldername).filter(f => f.endsWith(".v")).length;
+	const isOnCwd = foldername === cwd;
 
-	let target = foldername === cwd ? "." : relativeFoldername;
-	target = fileCount === 1 ? relativeFilename : target;
+	let target = isOnCwd ? relativeFilename : "vscode_vlang_linter_file.v";
+
+	if (!isOnCwd) {
+		if (isMainModule(document.getText())) {
+			target = relativeFilename;
+		} else {
+			writeFileSync(
+				resolve(cwd, "vscode_vlang_linter_file.v"),
+				createVFileContent(relative(cwd, foldername))
+			);
+		}
+	}
 
 	let status = true;
 
 	execV(["-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
-		collection.clear()
-		if (err || stderr.trim().length > 1) {
-			const output = stderr || stdout;
-			const isWarning = output.substring(0, 7) === "warning";
+		diagnosticCollection.clear();
+		const output = stderr || stdout;
 
-			if (!isWarning) {
-				/* ERROR */
-				const { file, line, column, message } = parseError(output);
-				const fileuri = Uri.file(resolve(cwd, file));
-				const start = new Position(line - 1, column);
-				const end = new Position(line - 1, column + 1);
-				const range = new Range(start, end);
-				const diagnostic = new Diagnostic(range, message, SEV_ERR);
-				diagnostic.source = "V";
-				collection.set(fileuri, [diagnostic]);
-			} else {
-				/* WARNING */
-				const warnings = parseWarning(output);
-				warnings.forEach(warning => {
-					const { file, line, column, message } = warning;
-					const fileuri = Uri.file(resolve(cwd, file));
-					const start = new Position(line - 1, column);
-					const end = new Position(line - 1, column + 1);
-					const range = new Range(start, end);
-					const diagnostic = new Diagnostic(range, message, SEV_WRN);
-					diagnostic.source = "V";
-					collection.set(fileuri, [...collection.get(fileuri), diagnostic]);
-				});
+		if (err || output !== "") {
+			const errorWarnings = parseAll(output);
+
+			for (const errorWarning of errorWarnings) {
+				const { file } = errorWarning;
+				const fileUri = Uri.file(resolve(cwd, file));
+				const diagnostic = createDiagnostic(errorWarning, errorWarning.type);
+				if (file === "vscode_vlang_linter_file.v") continue;
+				diagnosticCollection.set(fileUri, [
+					...diagnosticCollection.get(fileUri),
+					diagnostic
+				]);
 			}
 			return (status = false);
 		} else {
-			collection.delete(document.uri);
+			diagnosticCollection.delete(document.uri);
+			deleteVLinterFile();
 		}
 	});
 	return status;
 }
 
-function parseWarning(stderr: string): Array<ErrorInfo> {
+function parseAll(stderr: string): Array<ErrorInfo> {
 	stderr = trimBoth(stderr);
-	const lines = stderr.split("\n");
-	const warnings: Array<ErrorInfo> = [];
-	const moreInfos: Array<MoreInfo> = [];
+	const errorsAndWarnings: Map<string, ErrorInfo> = new Map();
 
-	for (let ln of lines) {
+	for (let ln of stderr.split("\n")) {
 		ln = trimBoth(ln);
 		const cols = ln.split(":");
+		const isValidWrn = cols.length >= 5;
+		const isValidErr = cols.length >= 4;
+		const isWarning = isValidWrn && ln.startsWith("warning");
+		const isError = isValidErr && cols[0].endsWith(".v");
 
-		if (cols.length < 5 && ln.startsWith("*")) {
-			const obj = { for: warnings.length - 1, content: ln };
-			moreInfos.push(obj);
-		} else {
-			const file = trimBoth(cols[1]);
-			const line = parseInt(cols[2]);
-			const column = parseInt(cols[3]);
-			const message = trimBoth(cols[4]);
-			warnings.push({ file, line, column, message, stderr });
+		// Skip unecessary error info
+		if (ln.startsWith("^") || !ln.search(/[0-9]+[|]/)) {
+			continue;
 		}
+
+		cols.forEach(() => {
+			if (isWarning) {
+				const file = trimBoth(cols[1]);
+				const line = +cols[2];
+				const column = +cols[3];
+				const message = trimBoth(cols[4]);
+				const info = { file, line, column, message, type: SEV_WRN };
+				const key = `${file}:${line}:${column}`;
+				if (!errorsAndWarnings.has(key)) {
+					errorsAndWarnings.set(key, info);
+				}
+			} else if (isError) {
+				const file = trimBoth(cols[0]);
+				const line = +cols[1];
+				const column = +cols[2];
+				let message = trimBoth(cols[3]);
+				if (cols[4] && cols[4] !== "") {
+					message += ":" + cols[4];
+				}
+				const info = { file, line, column, message, type: SEV_ERR };
+				const key = `${file}:${line}:${column}`;
+				if (!errorsAndWarnings.has(key)) {
+					errorsAndWarnings.set(key, info);
+				}
+			} else {
+				const key = Array.from(errorsAndWarnings)[errorsAndWarnings.size - 1][0];
+				const value = errorsAndWarnings.get(key);
+				if (value.message.endsWith("used")) {
+					value.message += ":";
+				}
+				value.message += `\n${ln}`;
+				errorsAndWarnings.set(key, value);
+			}
+		});
 	}
-
-	moreInfos.forEach(moreInfo => {
-		warnings[moreInfo.for].message += `\n ${moreInfo.content}`;
-	});
-
-	return warnings;
+	// console.log(JSON.stringify(Array.from(errorsAndWarnings.values())))
+	return Array.from(errorsAndWarnings.values());
 }
 
-function parseError(stderr: string): ErrorInfo {
-	stderr = stderr.replace(/^\s*$[\n\r]{1,}/gm, "");
-	const split = stderr.split("\n");
-	const index = arrayInclude(split, ".v:");
-	const moreMsgIndex = arrayInclude(split, " *");
-	const infos = (split[index] || "").split(":");
+function createDiagnostic(errorWarning: ErrorInfo, type: DiagnosticSeverity): Diagnostic {
+	const { line, column, message } = errorWarning;
+	const start = new Position(line - 1, column);
+	const end = new Position(line - 1, column + 1);
+	const range = new Range(start, end);
+	const diagnostic = new Diagnostic(range, message, type);
+	diagnostic.source = "V";
+	return diagnostic;
+}
 
-	const file = trimBoth(infos[0]);
-	const line = parseInt(infos[1]);
-	const column = parseInt(infos[2]);
-	let message = trimBoth(infos.slice(3).join(""));
+function createVFileContent(relativeFolderName: string): string {
+	if ((relativeFolderName.split(sep) || [""])[0] === "modules") {
+		relativeFolderName.replace(sep + "modules", "");
+	}
+	return "module vscode_vlang_linter\nimport " + relativeFolderName.replace(sep, ".");
+}
 
-	if (split[moreMsgIndex]) message += ":\n" + trimBoth(split[moreMsgIndex]);
+function isMainModule(text: string): boolean {
+	return text
+		.replace(/(\/\*)(\s)(.)*/, "")
+		.replace(/\s*\/\/.*/, "")
+		.includes("module main");
+}
 
-	return { file, line, column, message, stderr };
+export function deleteVLinterFile() {
+	unlinkSync(resolve(cwd, "vscode_vlang_linter_file.v"));
 }

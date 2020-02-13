@@ -20,6 +20,7 @@ export function execV(args: string[], callback: ExecCallback) {
 	const vexec = getVExecCommand();
 	const cwd = getCwd();
 
+	process.env.VFLAGS = ''
 	console.log(`Executing ${vexec} ${args.join(" ")}`, { cwd });
 	execFile(vexec, args, { cwd }, (err, stdout, stderr) => {
 		callback(err, stdout, stderr);
