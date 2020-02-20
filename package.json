@@ -77,7 +77,7 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable the linter"
+					"description": "Whether to enable the linter. Changes require restart."
 				}
 			}
 		},
