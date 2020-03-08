@@ -30,7 +30,7 @@ export function help() {}
  * Show version info.
  */
 export function ver() {
-	execV(["-v"], (err, stdout) => {
+	execV(["-version"], (err, stdout) => {
 		if (err) {
 			window.showErrorMessage(
 				"Unable to get the version number. Is V installed correctly?"
