@@ -7,8 +7,9 @@ import { execVInTerminal, execV } from "./exec";
 export async function run() {
 	const document = window.activeTextEditor.document;
 	await document.save();
+	const filePath = `"${document.fileName}"`
 
-	execVInTerminal(["run", document.fileName]);
+	execVInTerminal(["run", filePath]);
 }
 
 /**
@@ -17,8 +18,9 @@ export async function run() {
 export async function prod() {
 	const document = window.activeTextEditor.document;
 	await document.save();
+	const filePath = `"${document.fileName}"`
 
-	execVInTerminal(["-prod", document.fileName]);
+	execVInTerminal(["-prod", filePath]);
 }
 
 /**
