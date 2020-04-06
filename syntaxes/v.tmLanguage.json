@@ -796,7 +796,7 @@
 				},
 				{
 					"name": "keyword.control.v",
-					"match": "\\b(in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return)\\b"
+					"match": "\\b(it|in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return)\\b"
 				},
 				{
 					"name": "keyword.$1.v",
@@ -851,8 +851,20 @@
 					"match": "(?:(?:[-]?)(?:[0-9e]*)(?:[.]){1}(?:[0-9]+))"
 				},
 				{
+					"name": "constant.numeric.exponental.v",
+					"match": "[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)"
+				},
+				{
+					"name": "constant.numeric.binary.v",
+					"match": "\\b(?:0[b])(?:[0-1]+)"
+				},
+				{
+					"name": "constant.numeric.octal.v",
+					"match": "\\b(?:0[o])(?:[0-7]+)"
+				},
+				{
 					"name": "constant.numeric.hex.v",
-					"match": "\\b(?:0[xX])(?:[0-9a-fA-F]+)"
+					"match": "\\b(?:0[x])(?:[0-9a-fA-F]+)"
 				},
 				{
 					"name": "constant.numeric.integer.v",
