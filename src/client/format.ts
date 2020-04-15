@@ -21,7 +21,7 @@ function format(document: TextDocument): Promise<TextEdit[]> {
 			execV(args, (err, stdout, stderr) => {
 				unlink(tempFile, () => {
 					if (err) {
-						const errMessage = `Cannot format due to the following errors: ${stderr}`;
+						const errMessage = `Cannot format due to the following errors: ${stderr}`.replace(tempFile, document.fileName);
 						window.showErrorMessage(errMessage);
 						return reject(errMessage);
 					}
