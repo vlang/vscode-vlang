@@ -60,7 +60,7 @@ export function lint(document: TextDocument): boolean {
 				const { file, line, column, message } = parseError(output);
 				const fileuri = Uri.file(resolve(cwd, file));
 				const start = new Position(line - 1, column);
-				const end = new Position(line - 1, column + 1);
+				const end = new Position(line - 1, column);
 				const range = new Range(start, end);
 				const diagnostic = new Diagnostic(range, message, SEV_ERR);
 				diagnostic.source = "V";
