@@ -11,7 +11,7 @@
 			"include": "#comments"
 		},
 		{
-			"include": "#as"
+			"include": "#as-is"
 		},
 		{
 			"include": "#attributes"
@@ -90,11 +90,11 @@
 		}
 	],
 	"repository": {
-		"as": {
-			"begin": "\\s+(as)\\s+",
+		"as-is": {
+			"begin": "\\s+(as|is)\\s+",
 			"beginCaptures": {
 				"1": {
-					"name": "keyword.as.v"
+					"name": "keyword.$1.v"
 				}
 			},
 			"end": "([\\w.]*)",
