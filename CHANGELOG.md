@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2020-04-17
+
+### Added
+
+- Added region folding support [13084c1](https://github.com/0x9ef/vscode-vlang/commit/13084c158e981ec9983e86f7637c403e653d140f)
+
+- Added highlighting for `flag` attribute [ec2bffa](https://github.com/0x9ef/vscode-vlang/commit/ec2bffa670d7761267026f4cb5c1bf620e12e81e)
+
+- Added binary, octal, exponental highlighting [6b58431](https://github.com/0x9ef/vscode-vlang/commit/6b58431cd51cb4449924aece54998d5b0751c4a1)
+
+- Added highlighting for `is`, `var` keywords [172ecae](https://github.com/0x9ef/vscode-vlang/commit/172ecae2849a551c8b0c04d7d3eb04dcb94b135c)
+  
+### Changed
+
+- Fixed invalid pattern for standart numeric types [8fd5e7e](https://github.com/0x9ef/vscode-vlang/commit/8fd5e7ec6867d99c04b1662503f65e512f02aa67)
+
+- Fixed #include VALUE bug [b290d2d](https://github.com/0x9ef/vscode-vlang/commit/b290d2d074d2150079a4dbb78367412d5a38bdba)
+
+- Fixed saving error [6a85e45](https://github.com/0x9ef/vscode-vlang/commit/6a85e45e6509ac2217f68190a4693ff2134c0dd3)
+
+- Fixed column of error [dd4c11d](https://github.com/0x9ef/vscode-vlang/commit/dd4c11daa03ce268681be64eefcfd615e0814ced)
+
+- Fixed error message filepath [fc526f9](https://github.com/0x9ef/vscode-vlang/commit/fc526f96f4743d0bb9ff16b79d32e50b24c1f79c)
+
+- Fixed incorrect struct highlighting with variable name [3b682a9](https://github.com/0x9ef/vscode-vlang/commit/3b682a9e31ec72257e351510be77126474921834)
+
 ## [0.1.1] - 2020-01-16
 
 ### Added
