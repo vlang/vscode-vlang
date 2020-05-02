@@ -5,7 +5,7 @@ import {
 	WorkspaceConfiguration,
 	window,
 	Uri,
-	WorkspaceFolder
+	WorkspaceFolder,
 } from "vscode";
 import { existsSync, mkdirSync, readdir, unlink } from "fs";
 import { tmpdir } from "os";
@@ -50,11 +50,10 @@ export function getCurrentDocument(): TextDocument {
 }
 
 export function arrayInclude(arr: Array<string>, search: string): number {
-	return arr.findIndex(str => str.includes(search));
+	return arr.findIndex((str) => str.includes(search));
 }
 
 export function trimBoth(str: string): string {
-	if (!str) return "";
 	return str.trimStart().trimEnd();
 }
 
@@ -67,7 +66,7 @@ export function clearTempFolder() {
 		if (err) throw err;
 
 		for (const file of files) {
-			unlink(join(TEMP_DIR, file), err => {
+			unlink(join(TEMP_DIR, file), (err) => {
 				if (err) throw err;
 			});
 		}
