@@ -14,17 +14,25 @@ import { sep, join } from "path";
 const TEMP_DIR = `${tmpdir()}${sep}vscode_vlang`;
 const defaultCommand = "v";
 
+/** Get full range of the document. */
 export function fullDocumentRange(document: TextDocument): Range {
 	const lastLineId = document.lineCount - 1;
 	return new Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
 }
 
+/** Get V executable command.
+ * Will get from user setting configuration first.
+ * If user don't specify it, then get default command
+ */
 export function getVExecCommand(): string {
 	const config = getVConfig();
 	const vPath = config.get("pathToExecutableFile", "") || defaultCommand;
 	return vPath;
 }
 
+/** Get V configuration.
+ * Will look at
+ */
 export function getVConfig(): WorkspaceConfiguration {
 	const currentDoc = getCurrentDocument();
 	const uri = currentDoc ? currentDoc.uri : null;
@@ -38,7 +46,6 @@ export function getCwd(uri?: Uri): string {
 
 export function getWorkspaceFolder(uri?: Uri): WorkspaceFolder {
 	if (uri) return workspace.getWorkspaceFolder(uri);
-
 	const currentDoc = getCurrentDocument();
 	return currentDoc
 		? workspace.getWorkspaceFolder(currentDoc.uri)
