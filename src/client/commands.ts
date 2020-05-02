@@ -1,36 +1,28 @@
 import { window } from "vscode";
 import { execVInTerminal, execV } from "./exec";
 
-/**
- * Run current file.
- */
+/** Run current file. */
 export async function run() {
 	const document = window.activeTextEditor.document;
 	await document.save();
-	const filePath = `"${document.fileName}"`
+	const filePath = `"${document.fileName}"`;
 
 	execVInTerminal(["run", filePath]);
 }
 
-/**
- * Build an optimized executable from current file.
- */
+/** Build an optimized executable from current file. */
 export async function prod() {
 	const document = window.activeTextEditor.document;
 	await document.save();
-	const filePath = `"${document.fileName}"`
+	const filePath = `"${document.fileName}"`;
 
 	execVInTerminal(["-prod", filePath]);
 }
 
-/**
- * Show help info.
- */
+/** Show help info. */
 export function help() {}
 
-/**
- * Show version info.
- */
+/** Show version info. */
 export function ver() {
 	execV(["-version"], (err, stdout) => {
 		if (err) {
@@ -44,17 +36,11 @@ export function ver() {
 	});
 }
 
-/**
- * Test current file.
- */
+/** Test current file. */
 export function testFile() {}
 
-/**
- * Test current package.
- */
+/** Test current package. */
 export function testPackage() {}
 
-/**
- * Upload and share current code to V playground.
- */
+/** Upload and share current code to V playground. */
 export function playground() {}
