@@ -15,8 +15,6 @@ import { resolve, relative, dirname } from "path";
 import { readdirSync } from "fs";
 
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
-const SEV_ERR = DiagnosticSeverity.Error;
-const SEV_WRN = DiagnosticSeverity.Warning;
 
 export const collection = languages.createDiagnosticCollection("V");
 
@@ -49,7 +47,11 @@ export function lint(document: TextDocument): boolean {
 				const start = new Position(line - 1, column);
 				const end = new Position(line - 1, column);
 				const range = new Range(start, end);
-				const diagnostic = new Diagnostic(range, message, SEV_ERR);
+				const diagnostic = new Diagnostic(
+					range,
+					message,
+					DiagnosticSeverity.Error
+				);
 				diagnostic.source = "V";
 				collection.set(fileuri, [diagnostic]);
 			} else {
@@ -61,7 +63,11 @@ export function lint(document: TextDocument): boolean {
 					const start = new Position(line - 1, column);
 					const end = new Position(line - 1, column + 1);
 					const range = new Range(start, end);
-					const diagnostic = new Diagnostic(range, message, SEV_WRN);
+					const diagnostic = new Diagnostic(
+						range,
+						message,
+						DiagnosticSeverity.Warning
+					);
 					diagnostic.source = "V";
 					collection.set(fileuri, [...collection.get(fileuri), diagnostic]);
 				});
