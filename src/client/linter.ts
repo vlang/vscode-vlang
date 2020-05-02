@@ -18,19 +18,6 @@ const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 const SEV_ERR = DiagnosticSeverity.Error;
 const SEV_WRN = DiagnosticSeverity.Warning;
 
-export interface ErrorInfo {
-	file: string;
-	line: number;
-	column: number;
-	message: string;
-	stderr: string;
-}
-
-interface MoreInfo {
-	for: number;
-	content: string;
-}
-
 export const collection = languages.createDiagnosticCollection("V");
 
 export function lint(document: TextDocument): boolean {
