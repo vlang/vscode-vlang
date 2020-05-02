@@ -5,7 +5,7 @@ import {
 	DiagnosticSeverity,
 	Diagnostic,
 	languages,
-	Uri
+	Uri,
 } from "vscode";
 import { tmpdir } from "os";
 import { sep } from "path";
@@ -42,7 +42,7 @@ export function lint(document: TextDocument): boolean {
 	const foldername = dirname(document.fileName);
 	const relativeFoldername = relative(cwd, foldername);
 	const relativeFilename = relative(cwd, document.fileName);
-	const fileCount = readdirSync(foldername).filter(f => f.endsWith(".v")).length;
+	const fileCount = readdirSync(foldername).filter((f) => f.endsWith(".v")).length;
 
 	let target = foldername === cwd ? "." : relativeFoldername;
 	target = fileCount === 1 ? relativeFilename : target;
@@ -50,7 +50,7 @@ export function lint(document: TextDocument): boolean {
 	let status = true;
 
 	execV(["-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
-		collection.clear()
+		collection.clear();
 		if (err || stderr.trim().length > 1) {
 			const output = stderr || stdout;
 			const isWarning = output.substring(0, 7) === "warning";
@@ -68,7 +68,7 @@ export function lint(document: TextDocument): boolean {
 			} else {
 				/* WARNING */
 				const warnings = parseWarning(output);
-				warnings.forEach(warning => {
+				warnings.forEach((warning) => {
 					const { file, line, column, message } = warning;
 					const fileuri = Uri.file(resolve(cwd, file));
 					const start = new Position(line - 1, column);
@@ -101,15 +101,17 @@ function parseWarning(stderr: string): Array<ErrorInfo> {
 			const obj = { for: warnings.length - 1, content: ln };
 			moreInfos.push(obj);
 		} else {
-			const file = trimBoth(cols[1]);
-			const line = parseInt(cols[2]);
-			const column = parseInt(cols[3]);
-			const message = trimBoth(cols[4]);
-			warnings.push({ file, line, column, message, stderr });
+			warnings.push({
+				file: trimBoth(cols[1]),
+				line: parseInt(cols[2]),
+				column: parseInt(cols[3]),
+				message: trimBoth(cols[4]),
+				stderr,
+			});
 		}
 	}
 
-	moreInfos.forEach(moreInfo => {
+	moreInfos.forEach((moreInfo) => {
 		warnings[moreInfo.for].message += `\n ${moreInfo.content}`;
 	});
 
@@ -123,12 +125,14 @@ function parseError(stderr: string): ErrorInfo {
 	const moreMsgIndex = arrayInclude(split, " *");
 	const infos = (split[index] || "").split(":");
 
-	const file = trimBoth(infos[0]);
-	const line = parseInt(infos[1]);
-	const column = parseInt(infos[2]);
 	let message = trimBoth(infos.slice(3).join(""));
-
 	if (split[moreMsgIndex]) message += ":\n" + trimBoth(split[moreMsgIndex]);
 
-	return { file, line, column, message, stderr };
+	return {
+		file: trimBoth(infos[0]),
+		line: parseInt(infos[1]),
+		column: parseInt(infos[2]),
+		message,
+		stderr,
+	};
 }
