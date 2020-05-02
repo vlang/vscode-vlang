@@ -15,10 +15,12 @@ import { resolve, relative, dirname } from "path";
 import { readdirSync } from "fs";
 
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
+let lastDocumentVersion = 0;
 
 export const collection = languages.createDiagnosticCollection("V");
 
 export function lint(document: TextDocument): boolean {
+	if (document.version === lastDocumentVersion) return true;
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
 	if (!workspaceFolder) return true;
@@ -77,6 +79,8 @@ export function lint(document: TextDocument): boolean {
 			collection.delete(document.uri);
 		}
 	});
+
+	lastDocumentVersion = document.version;
 	return status;
 }
 
