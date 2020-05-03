@@ -14,7 +14,7 @@ const cmds = {
 	"v.prod": commands.prod,
 	"v.test.file": commands.testFile,
 	"v.playground": commands.playground,
-	"v.test.package": commands.testPackage
+	"v.test.package": commands.testPackage,
 };
 
 /**
@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
  *  Handles the `onDidChangeVisibleTextEditors` event
  */
 function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
-	editors.forEach(editor => {
+	editors.forEach((editor) => {
 		if (editor.document.languageId === vLanguageId) {
 			lint(editor.document);
 		}

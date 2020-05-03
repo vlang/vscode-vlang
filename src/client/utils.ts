@@ -56,10 +56,6 @@ export function getCurrentDocument(): TextDocument {
 	return window.activeTextEditor ? window.activeTextEditor.document : null;
 }
 
-export function arrayInclude(arr: Array<string>, search: string): number {
-	return arr.findIndex((str) => str.includes(search));
-}
-
 export function trimBoth(str: string): string {
 	return str.trimStart().trimEnd();
 }
