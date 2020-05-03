@@ -20,14 +20,14 @@ export function execV(args: string[], callback: ExecCallback) {
 	const vexec = getVExecCommand();
 	const cwd = getCwd();
 
-	console.log(`Executing ${vexec} ${args.join(" ")}`, { cwd });
+	// console.log(`Executing ${vexec} ${args.join(" ")} on ${cwd}`);
 	execFile(vexec, args, { cwd }, (err, stdout, stderr) => {
 		callback(err, stdout, stderr);
 	});
 }
 
 export function attachOnCloseTerminalListener(): Disposable {
-	return window.onDidCloseTerminal(term => {
+	return window.onDidCloseTerminal((term) => {
 		if (term.name == "V") vRunTerm = null;
 	});
 }
