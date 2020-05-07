@@ -15,13 +15,9 @@ import { resolve, relative, dirname } from "path";
 import { readdirSync } from "fs";
 
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
-let lastDocumentVersion = 0;
-
 export const collection = languages.createDiagnosticCollection("V");
 
 export function lint(document: TextDocument): boolean {
-	// Don't lint file if the file version not changed
-	if (document.version === lastDocumentVersion) return true;
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
 	if (!workspaceFolder) return true;
@@ -31,12 +27,14 @@ export function lint(document: TextDocument): boolean {
 	const relativeFoldername = relative(cwd, foldername);
 	const relativeFilename = relative(cwd, document.fileName);
 	const fileCount = readdirSync(foldername).filter((f) => f.endsWith(".v")).length;
+	const isMainModule = !!document.getText().match(/^\s*(module)+\s+main/);
+	const shared = isMainModule ? "" : "-shared";
 
 	let target = foldername === cwd ? "." : relativeFoldername;
 	target = fileCount === 1 ? relativeFilename : target;
 	let status = true;
 
-	execV(["-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
+	execV([shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
 		collection.clear();
 		if (err || stderr.trim().length > 1) {
 			const output = stderr || stdout;
@@ -72,7 +70,5 @@ export function lint(document: TextDocument): boolean {
 			collection.delete(document.uri);
 		}
 	});
-
-	lastDocumentVersion = document.version;
 	return status;
 }
