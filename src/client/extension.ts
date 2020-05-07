@@ -37,10 +37,11 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
 		);
 		// If there are V files open, do the lint immediately
-		if (vscode.window.activeTextEditor) {
-			if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
-				lint(vscode.window.activeTextEditor.document);
-			}
+		if (
+			vscode.window.activeTextEditor &&
+			vscode.window.activeTextEditor.document.languageId === vLanguageId
+		) {
+			lint(vscode.window.activeTextEditor.document);
 		}
 	}
 }
