@@ -14,7 +14,7 @@ const cmds = {
 	"v.prod": commands.prod,
 	"v.test.file": commands.testFile,
 	"v.playground": commands.playground,
-	"v.test.package": commands.testPackage
+	"v.test.package": commands.testPackage,
 };
 
 /**
@@ -37,10 +37,11 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
 		);
 		// If there are V files open, do the lint immediately
-		if (vscode.window.activeTextEditor) {
-			if (vscode.window.activeTextEditor.document.languageId === vLanguageId) {
-				lint(vscode.window.activeTextEditor.document);
-			}
+		if (
+			vscode.window.activeTextEditor &&
+			vscode.window.activeTextEditor.document.languageId === vLanguageId
+		) {
+			lint(vscode.window.activeTextEditor.document);
 		}
 	}
 }
@@ -49,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
  *  Handles the `onDidChangeVisibleTextEditors` event
  */
 function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
-	editors.forEach(editor => {
+	editors.forEach((editor) => {
 		if (editor.document.languageId === vLanguageId) {
 			lint(editor.document);
 		}
