@@ -28,10 +28,11 @@ export function lint(document: TextDocument): boolean {
 	const relativeFilename = relative(cwd, document.fileName);
 	const fileCount = readdirSync(foldername).filter((f) => f.endsWith(".v")).length;
 	const isMainModule = !!document.getText().match(/^\s*(module)+\s+main/);
-	const shared = isMainModule ? "" : "-shared";
+	const shared = !isMainModule ? "-shared" : "";
+	const haveMultipleMainFn = fileCount > 1 && isMainModule;
 
 	let target = foldername === cwd ? "." : relativeFoldername;
-	target = fileCount === 1 ? relativeFilename : target;
+	target = haveMultipleMainFn ? relativeFilename : target;
 	let status = true;
 
 	execV([shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
