@@ -24,7 +24,9 @@ export function lint(document: TextDocument): boolean {
 	const cwd = workspaceFolder.uri.fsPath;
 	const foldername = dirname(document.fileName);
 	const fileCount = readdirSync(foldername).filter((f) => f.endsWith(".v")).length;
-	const isMainModule = !!document.getText().match(/^\s*(module)+\s+main/);
+	const isMainModule =
+		!!document.getText().match(/^\s*(module)+\s+main/) &&
+		!!document.getText().match(/^\s*(fn)+\s+main/);
 	const shared = !isMainModule ? "-shared" : "";
 	const haveMultipleMainFn = fileCount > 1 && isMainModule;
 
