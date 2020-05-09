@@ -192,33 +192,33 @@
 		"scope": "v,vlang"
 	},
 	"snippet.public.const": {
-		"body": ["pub const ($1)"],
+		"body": ["pub const (", "\t$0", ")"],
 		"description": "Code snippet for public constant 'pub const'",
-		"prefix": "pubc",
+		"prefix": "pbc",
 		"scope": "v,vlang"
 	},
 	"snippet.public.enum": {
 		"body": ["pub enum ${1:name} {", "\t$0", "}"],
 		"description": "Code snippet for public enum 'pub enum'",
-		"prefix": "pube",
+		"prefix": "pbe",
 		"scope": "v,vlang"
 	},
 	"snippet.public.function": {
 		"body": ["pub fn ${1:name}() {", "\t$0", "}"],
 		"description": "Code snippet for public function 'pub fn'",
-		"prefix": "pub",
+		"prefix": "pbf",
 		"scope": "v,vlang"
 	},
 	"snippet.public.struct": {
 		"body": ["pub struct ${1:Name} {", "\t$0", "}"],
 		"description": "Code snippet for public struct 'pub struct'",
-		"prefix": "pubs",
+		"prefix": "pbs",
 		"scope": "v,vlang"
 	},
 	"snippet.public.type": {
 		"body": ["pub type ${1:name} ${2:type}"],
 		"description": "Code snippet for public type 'pub type'",
-		"prefix": "pubt",
+		"prefix": "pbt",
 		"scope": "v,vlang"
 	},
 	"snippet.return": {
