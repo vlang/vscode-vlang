@@ -173,9 +173,10 @@
 		"compile": "tsc -p ./",
 		"lint": "npx markdownlint *.md",
 		"test-compile": "tsc -p ./",
-		"vscode:prepublish": "webpack --mode production",
+		"vscode:prepublish": "./minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",
 		"webpack-dev": "webpack --mode development --watch",
+		"restore-json": "git restore ./snippets/snippets.json  ./syntaxes/v.tmLanguage.json  ./language-configuration.json ",
 		"webpack": "webpack --mode development"
 	}
 }
