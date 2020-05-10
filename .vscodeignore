@@ -9,3 +9,4 @@ images/
 .v
 .go
 tsconfig.json
+minify_json.js
