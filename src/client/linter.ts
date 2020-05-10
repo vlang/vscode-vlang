@@ -6,7 +6,6 @@ import {
 	languages,
 	Uri,
 	workspace,
-	window,
 } from "vscode";
 import { tmpdir } from "os";
 import { sep } from "path";
