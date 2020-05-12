@@ -38,7 +38,8 @@ export function lint(document: TextDocument): boolean {
 		vFiles.forEach(async (f) => {
 			f = resolve(foldername, f);
 			const fDocument = await workspace.openTextDocument(f);
-			filesAreMainModule = checkMainModule(fDocument.getText());
+			filesAreMainModule =
+				checkMainModule(fDocument.getText()) || checkMainFn(fDocument.getText());
 		});
 		haveMultipleMainFn = filesAreMainModule;
 	}
