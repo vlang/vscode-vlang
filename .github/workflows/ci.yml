@@ -3,15 +3,44 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  build:
+  build-ubuntu:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-node@v1
-      with:
-        node_version: '8.x'
-    - name: Install dependencies
-      run: npm install
-    - name: Compilation
-      run: npm run compile
+      - uses: actions/checkout@v2
+      - name: Set up V version latest
+        uses: nocturlab/setup-vlang-action@v1
+        with:
+          v-version: latest
+      - name: Compile VSymbols
+        run: v ./src/vsymbols -o ./bin/vsymbols
+      - uses: actions/setup-node@v1
+        with:
+          node_version: "8.x"
+      - name: Install dependencies
+        run: npm install
+      - name: Compile
+        run: npm run webpack
+      - name: Package
+        run: npm run compile-vsymbols && vsce package  && npm run restore-json
+
+  build-windows-gcc:
+    runs-on: windows-2019
+    env:
+      VFLAGS: -cc gcc
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up V version latest
+        uses: nocturlab/setup-vlang-action@v1
+        with:
+          v-version: latest
+      - name: Compile VSymbols
+        run: v ./src/vsymbols -o ./bin/vsymbols
+      - uses: actions/setup-node@v1
+        with:
+          node_version: "8.x"
+      - name: Install dependencies
+        run: npm install
+      - name: Compile
+        run: npm run webpack
+      - name: Package
+        run: npm run compile-vsymbols && vsce package  && npm run restore-json
