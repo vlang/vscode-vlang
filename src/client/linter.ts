@@ -1,11 +1,11 @@
 import {
 	TextDocument,
-	Position,
 	Range,
 	DiagnosticSeverity,
 	Diagnostic,
 	languages,
 	Uri,
+	workspace,
 } from "vscode";
 import { tmpdir } from "os";
 import { sep } from "path";
@@ -17,6 +17,12 @@ import { readdirSync } from "fs";
 const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 export const collection = languages.createDiagnosticCollection("V");
 
+function checkMainFnAndMainModule(text: string) {
+	const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
+	const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
+	return checkMainFn(text) || checkMainModule(text);
+}
+
 export function lint(document: TextDocument): boolean {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
@@ -24,14 +30,24 @@ export function lint(document: TextDocument): boolean {
 
 	const cwd = workspaceFolder.uri.fsPath;
 	const foldername = dirname(document.fileName);
-	const relativeFoldername = relative(cwd, foldername);
-	const relativeFilename = relative(cwd, document.fileName);
-	const fileCount = readdirSync(foldername).filter((f) => f.endsWith(".v")).length;
-	const isMainModule = !!document.getText().match(/^\s*(module)+\s+main/);
-	const shared = isMainModule ? "" : "-shared";
+	const vFiles = readdirSync(foldername).filter((f) => f.endsWith(".v"));
+	const fileCount = vFiles.length;
+	const isMainModule = checkMainFnAndMainModule(document.getText());
+	const shared = !isMainModule ? "-shared" : "";
+	let haveMultipleMainFn = fileCount > 1 && isMainModule;
 
-	let target = foldername === cwd ? "." : relativeFoldername;
-	target = fileCount === 1 ? relativeFilename : target;
+	if (haveMultipleMainFn) {
+		let filesAreMainModule = false;
+		vFiles.forEach(async (f) => {
+			f = resolve(foldername, f);
+			const fDocument = await workspace.openTextDocument(f);
+			filesAreMainModule = checkMainFnAndMainModule(fDocument.getText());
+		});
+		haveMultipleMainFn = filesAreMainModule;
+	}
+
+	let target = foldername === cwd ? "." : `.${sep}${relative(cwd, foldername)}`;
+	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
 	let status = true;
 
 	execV([shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
@@ -40,22 +56,20 @@ export function lint(document: TextDocument): boolean {
 			const output = stderr || stdout;
 			const lines: Array<string> = output.split("\n");
 
-			lines.forEach((line) => {
+			for (const line of lines) {
 				const cols = line.split(":");
 				const isInfo = cols.length >= 5;
 				const isError = isInfo && trimBoth(cols[3]) === "error";
 				const isWarning = isInfo && trimBoth(cols[3]) === "warning";
 
-				if (isInfo && (isError || isWarning)) {
+				if (isError || isWarning) {
 					const file = cols[0];
 					const lineNum = parseInt(cols[1]);
 					const colNum = parseInt(cols[2]);
 					const message = cols.splice(4, cols.length - 1).join("");
 
 					const fileURI = Uri.file(resolve(cwd, file));
-					const start = new Position(lineNum - 1, colNum);
-					const end = new Position(lineNum - 1, colNum);
-					const range = new Range(start, end);
+					const range = new Range(lineNum - 1, colNum, lineNum - 1, colNum);
 					const diagnostic = new Diagnostic(
 						range,
 						message,
@@ -64,7 +78,7 @@ export function lint(document: TextDocument): boolean {
 					diagnostic.source = "V";
 					collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
 				}
-			});
+			}
 			status = false;
 		} else {
 			collection.delete(document.uri);

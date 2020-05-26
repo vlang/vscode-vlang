@@ -6,6 +6,7 @@ import {
 	window,
 	Uri,
 	WorkspaceFolder,
+	extensions,
 } from "vscode";
 import { existsSync, mkdirSync, readdir, unlink } from "fs";
 import { tmpdir } from "os";
@@ -74,4 +75,8 @@ export function clearTempFolder() {
 			});
 		}
 	});
+}
+
+export function getExtensionPath() {
+	return extensions.getExtension("0x9ef.vscode-vlang").extensionPath
 }

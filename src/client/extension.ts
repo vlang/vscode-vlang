@@ -4,6 +4,7 @@ import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
 import { lint, collection } from "./linter";
 import { clearTempFolder, getVConfig } from "./utils";
+import VDocumentSymbolProvider from "./symbolProvider";
 
 const vLanguageId = "v";
 
@@ -34,13 +35,14 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(
 			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
 			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
+			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument),
+			vscode.languages.registerDocumentSymbolProvider(
+				{ language: vLanguageId },
+				new VDocumentSymbolProvider(context)
+			)
 		);
 		// If there are V files open, do the lint immediately
-		if (
-			vscode.window.activeTextEditor &&
-			vscode.window.activeTextEditor.document.languageId === vLanguageId
-		) {
+		if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === vLanguageId) {
 			lint(vscode.window.activeTextEditor.document);
 		}
 	}

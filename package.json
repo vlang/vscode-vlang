@@ -8,7 +8,7 @@
 	"license": "SEE LICENSE IN LICENSE",
 	"private": true,
 	"engines": {
-		"vscode": "^1.20.0"
+		"vscode": "^1.45.1"
 	},
 	"homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
 	"bugs": {
@@ -158,18 +158,28 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
+		"semver": "^7.3.2",
 		"vscode-languageclient": "~5.2.1"
 	},
 	"devDependencies": {
 		"@types/node": "^13.1.1",
-		"@types/vscode": "~1.20.0",
+		"@types/vscode": "^1.45.1",
+		"json-minify": "^1.0.0",
 		"markdownlint-cli": "0.20.0",
-		"typescript": "~3.5.2"
+		"ts-loader": "^7.0.3",
+		"typescript": "~3.5.2",
+		"webpack": "^4.43.0",
+		"webpack-cli": "^3.3.11"
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"lint": "npx markdownlint *.md",
-		"watch": "tsc -watch -p ./"
+		"test-compile": "tsc -p ./",
+		"vscode:prepublish": "./minify_json.js && webpack --mode production",
+		"compile-vsymbols": "v ./src/vsymbols ./bin/vsymbols",
+		"watch": "tsc -watch -p ./",
+		"webpack-dev": "webpack --mode development --watch",
+		"restore-json": "git restore ./snippets/snippets.json  ./syntaxes/v.tmLanguage.json  ./language-configuration.json ",
+		"webpack": "webpack --mode development"
 	}
 }

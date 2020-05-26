@@ -3,3 +3,6 @@ node_modules
 out
 *.exe
 *.vsix
+input.json
+bin/vsymbols
+test.v
