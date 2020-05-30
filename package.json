@@ -166,6 +166,7 @@
 		"markdownlint-cli": "0.20.0",
 		"ts-loader": "^7.0.3",
 		"typescript": "~3.5.2",
+		"vsce": "^1.75.0",
 		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.11"
 	},
