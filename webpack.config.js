@@ -6,7 +6,7 @@ const path = require("path");
 /**@type {import('webpack').Configuration}*/
 const config = {
 	target: "node",
-	entry: "./src/client/extension.ts",
+	entry: "./src/extension.ts",
 	output: {
 		path: path.resolve(__dirname, "out"),
 		filename: "extension.js",
