@@ -1,7 +1,7 @@
 {
 	"name": "vscode-vlang",
 	"displayName": "V",
-	"description": "V Language everywhere (syntax highlighting, themes, snippets) for Visual Studio Code.",
+	"description": "V Language everywhere (syntax highlighting, formatter, linter, snippets) for Visual Studio Code.",
 	"publisher": "0x9ef",
 	"icon": "icons/icon.png",
 	"version": "0.1.2",
@@ -166,6 +166,7 @@
 		"markdownlint-cli": "0.20.0",
 		"ts-loader": "^7.0.3",
 		"typescript": "~3.5.2",
+		"vsce": "^1.75.0",
 		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.11"
 	},
@@ -173,7 +174,7 @@
 		"compile": "tsc -p ./",
 		"lint": "npx markdownlint *.md",
 		"test-compile": "tsc -p ./",
-		"vscode:prepublish": "./minify_json.js && webpack --mode production",
+		"vscode:prepublish": "node ./scripts/minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",
 		"webpack-dev": "webpack --mode development --watch",
 		"restore-json": "git restore ./snippets/snippets.json  ./syntaxes/v.tmLanguage.json  ./language-configuration.json ",

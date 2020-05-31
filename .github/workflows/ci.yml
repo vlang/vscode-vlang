@@ -1,17 +1,23 @@
 name: CI
-
 on: [push, pull_request]
 
 jobs:
-  build:
+  ubuntu-latest:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-node@v1
-      with:
-        node_version: '8.x'
-    - name: Install dependencies
-      run: npm install
-    - name: Compilation
-      run: npm run compile
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node_version: "8.x"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Run Webpack
+        run: npm run webpack
+
+      - name: VSCE package
+        run: npx vsce package
