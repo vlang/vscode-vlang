@@ -14,6 +14,7 @@ const cmds = {
 	"v.prod": commands.prod,
 	"v.test.file": commands.testFile,
 	"v.playground": commands.playground,
+	"v.devbits_playground": commands.devbitsPlayground,
 	"v.test.package": commands.testPackage,
 };
 
