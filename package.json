@@ -122,6 +122,10 @@
 			{
 				"command": "v.playground",
 				"title": "V: Upload and share current code to V playground"
+			},
+			{
+				"command": "v.devbits_playground",
+				"title": "V: Open current code on DevBits V playground"
 			}
 		],
 		"menus": {

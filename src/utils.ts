@@ -8,8 +8,9 @@ import {
 	WorkspaceFolder,
 } from "vscode";
 import { existsSync, mkdirSync, readdir, unlink } from "fs";
-import { tmpdir } from "os";
+import { tmpdir, platform } from "os";
 import { sep, join } from "path";
+import { execFileSync } from "child_process";
 
 const TEMP_DIR = `${tmpdir()}${sep}vscode_vlang`;
 const defaultCommand = "v";
@@ -30,20 +31,24 @@ export function getVExecCommand(): string {
 	return vPath;
 }
 
-/** Get V configuration.
- * Will look at
- */
+/** Get V configuration. */
 export function getVConfig(): WorkspaceConfiguration {
 	const currentDoc = getCurrentDocument();
 	const uri = currentDoc ? currentDoc.uri : null;
 	return workspace.getConfiguration("v", uri);
 }
 
+/** Get current working directory.
+ * @param uri The URI of document
+ */
 export function getCwd(uri?: Uri): string {
 	const folder = getWorkspaceFolder(uri || null);
 	return folder.uri.fsPath;
 }
 
+/** Get workspace of current document.
+ * @param uri The URI of document
+ */
 export function getWorkspaceFolder(uri?: Uri): WorkspaceFolder {
 	if (uri) return workspace.getWorkspaceFolder(uri);
 	const currentDoc = getCurrentDocument();
@@ -74,4 +79,14 @@ export function clearTempFolder() {
 			});
 		}
 	});
+}
+
+export function openUrl(url: string) {
+	const os = platform();
+	const open = {
+		win32: "start",
+		linux: "xdg-open",
+		darwin: "open",
+	};
+	execFileSync(open[os], [url]);
 }
