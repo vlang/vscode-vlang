@@ -83,7 +83,10 @@ export function clearTempFolder() {
 
 export function openUrl(url: string) {
 	const os = platform();
-	if (os === "win32") return execFileSync("start", [url]);
-	if (os === "linux") return execFileSync("xdg-open", [url]);
-	if (os === "darwin") return execFileSync("open", [url]);
+	const open = {
+		win32: "start",
+		linux: "xdg-open",
+		darwin: "open",
+	};
+	execFileSync(open[os], [url]);
 }
