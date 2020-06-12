@@ -72,7 +72,9 @@ function didSaveTextDocument(document: vscode.TextDocument) {
  */
 function didCloseTextDocument(document: vscode.TextDocument) {
 	if (document.languageId === vLanguageId) {
-		if (!vscode.window.activeTextEditor) collection.clear();
+		if (!vscode.window.visibleTextEditors.length) {
+			collection.clear();
+		}
 		collection.delete(document.uri);
 	}
 }
