@@ -8,15 +8,13 @@ import {
 	workspace,
 } from "vscode";
 import { tmpdir } from "os";
-import { sep } from "path";
 import { trimBoth, getWorkspaceFolder, getVConfig } from "./utils";
 import { execV } from "./exec";
 import { resolve, relative, dirname, join } from "path";
 import { readdirSync } from "fs";
 
-// const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 const outDir = join(tmpdir(), "vscode_vlang");
-export const collection = languages.createDiagnosticCollection("V");
+const collection = languages.createDiagnosticCollection("V");
 const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
 const allowGlobalsConfig = getVConfig().get("allowGlobals");
@@ -91,4 +89,12 @@ export function lint(document: TextDocument): boolean {
 		}
 	);
 	return status;
+}
+
+export function clear() {
+	collection.clear();
+}
+
+export function _delete(uri: Uri) {
+	collection.delete(uri);
 }

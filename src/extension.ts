@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as commands from "./commands";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
-import { lint, collection } from "./linter";
+import * as linter from "./linter";
 import { clearTempFolder, getVConfig } from "./utils";
 
 const vLanguageId = "v";
@@ -42,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.activeTextEditor &&
 			vscode.window.activeTextEditor.document.languageId === vLanguageId
 		) {
-			lint(vscode.window.activeTextEditor.document);
+			linter.lint(vscode.window.activeTextEditor.document);
 		}
 	}
 }
@@ -53,7 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
 	editors.forEach((editor) => {
 		if (editor.document.languageId === vLanguageId) {
-			lint(editor.document);
+			linter.lint(editor.document);
 		}
 	});
 }
@@ -63,7 +63,7 @@ function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
  */
 function didSaveTextDocument(document: vscode.TextDocument) {
 	if (document.languageId === vLanguageId) {
-		lint(document);
+		linter.lint(document);
 	}
 }
 
@@ -71,11 +71,11 @@ function didSaveTextDocument(document: vscode.TextDocument) {
  *  Handles the `onDidCloseTextDocument` event
  */
 function didCloseTextDocument(document: vscode.TextDocument) {
+	if (!vscode.window.visibleTextEditors.length) {
+		linter.clear();
+	}
 	if (document.languageId === vLanguageId) {
-		if (!vscode.window.visibleTextEditors.length) {
-			collection.clear();
-		}
-		collection.delete(document.uri);
+		linter._delete(document.uri);
 	}
 }
 
