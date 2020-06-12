@@ -9,7 +9,7 @@ import {
 } from "vscode";
 import { tmpdir } from "os";
 import { sep } from "path";
-import { trimBoth, getWorkspaceFolder } from "./utils";
+import { trimBoth, getWorkspaceFolder, getVConfig } from "./utils";
 import { execV } from "./exec";
 import { resolve, relative, dirname } from "path";
 import { readdirSync } from "fs";
@@ -18,6 +18,7 @@ const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
 export const collection = languages.createDiagnosticCollection("V");
 const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
+const allowGlobalsConfig = getVConfig().get("allowGlobals");
 
 export function lint(document: TextDocument): boolean {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
@@ -47,8 +48,9 @@ export function lint(document: TextDocument): boolean {
 	let target = foldername === cwd ? "." : `.${sep}${relative(cwd, foldername)}`;
 	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
 	let status = true;
+	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
-	execV([shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
+	execV([globals, shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
 		collection.clear();
 		if (err || stderr.trim().length > 1) {
 			const output = stderr || stdout;
