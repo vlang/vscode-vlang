@@ -13,7 +13,7 @@ import { execV } from "./exec";
 import { resolve, relative, dirname, join } from "path";
 import { readdirSync } from "fs";
 
-const outDir = join(tmpdir(), "vscode_vlang", "lint.c");
+const outFile = join(tmpdir(), "vscode_vlang", "lint.c");
 const collection = languages.createDiagnosticCollection("V");
 const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
@@ -50,7 +50,7 @@ export function lint(document: TextDocument): boolean {
 	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
 	execV(
-		[globals, shared, "-o", outDir, target],
+		[globals, shared, "-o", outFile, target],
 		(err, stdout, stderr) => {
 			collection.clear();
 			if (err || stderr.trim().length > 1) {
