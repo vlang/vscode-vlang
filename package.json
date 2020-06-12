@@ -83,7 +83,7 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Whether to enable global variables. Changes require restart"
+					"description": "Whether to enable global variables. Changes require restart."
 				}
 			}
 		},
