@@ -9,10 +9,10 @@ import {
 } from "vscode";
 import { existsSync, mkdirSync, readdir, unlink } from "fs";
 import { tmpdir, platform } from "os";
-import { sep, join } from "path";
+import { join } from "path";
 import { execFileSync } from "child_process";
 
-const TEMP_DIR = `${tmpdir()}${sep}vscode_vlang`;
+const TEMP_DIR = join(tmpdir(), "vscode_vlang");
 const defaultCommand = "v";
 
 /** Get full range of the document. */

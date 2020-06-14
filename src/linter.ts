@@ -8,16 +8,16 @@ import {
 	workspace,
 } from "vscode";
 import { tmpdir } from "os";
-import { sep } from "path";
-import { trimBoth, getWorkspaceFolder } from "./utils";
+import { trimBoth, getWorkspaceFolder, getVConfig } from "./utils";
 import { execV } from "./exec";
-import { resolve, relative, dirname } from "path";
+import { resolve, relative, dirname, join } from "path";
 import { readdirSync } from "fs";
 
-const outDir = `${tmpdir()}${sep}vscode_vlang${sep}`;
-export const collection = languages.createDiagnosticCollection("V");
+const outFile = join(tmpdir(), "vscode_vlang", "lint.c");
+const collection = languages.createDiagnosticCollection("V");
 const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
+const allowGlobalsConfig = getVConfig().get("allowGlobals");
 
 export function lint(document: TextDocument): boolean {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
@@ -44,43 +44,57 @@ export function lint(document: TextDocument): boolean {
 		haveMultipleMainFn = filesAreMainModule;
 	}
 
-	let target = foldername === cwd ? "." : `.${sep}${relative(cwd, foldername)}`;
+	let target = foldername === cwd ? "." : join(".", relative(cwd, foldername));
 	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
 	let status = true;
+	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
-	execV([shared, "-o", `${outDir}lint.c`, target], (err, stdout, stderr) => {
-		collection.clear();
-		if (err || stderr.trim().length > 1) {
-			const output = stderr || stdout;
-			const lines: Array<string> = output.split("\n");
+	execV(
+		[globals, shared, "-o", outFile, target],
+		(err, stdout, stderr) => {
+			collection.clear();
+			if (err || stderr.trim().length > 1) {
+				const output = stderr || stdout;
+				const lines: Array<string> = output.split("\n");
 
-			for (const line of lines) {
-				const cols = line.split(":");
-				const isInfo = cols.length >= 5;
-				const isError = isInfo && trimBoth(cols[3]) === "error";
-				const isWarning = isInfo && trimBoth(cols[3]) === "warning";
+				for (const line of lines) {
+					const cols = line.split(":");
+					const isInfo = cols.length >= 5;
+					const isError = isInfo && trimBoth(cols[3]) === "error";
+					const isWarning = isInfo && trimBoth(cols[3]) === "warning";
 
-				if (isError || isWarning) {
-					const file = cols[0];
-					const lineNum = parseInt(cols[1]);
-					const colNum = parseInt(cols[2]);
-					const message = cols.splice(4, cols.length - 1).join("");
+					if (isError || isWarning) {
+						const file = cols[0];
+						const lineNum = parseInt(cols[1]);
+						const colNum = parseInt(cols[2]);
+						const message = cols.splice(4, cols.length - 1).join("");
 
-					const fileURI = Uri.file(resolve(cwd, file));
-					const range = new Range(lineNum - 1, colNum, lineNum - 1, colNum);
-					const diagnostic = new Diagnostic(
-						range,
-						message,
-						isWarning ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error
-					);
-					diagnostic.source = "V";
-					collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
+						const fileURI = Uri.file(resolve(cwd, file));
+						const range = new Range(lineNum - 1, colNum, lineNum - 1, colNum);
+						const diagnostic = new Diagnostic(
+							range,
+							message,
+							isWarning
+								? DiagnosticSeverity.Warning
+								: DiagnosticSeverity.Error
+						);
+						diagnostic.source = "V";
+						collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
+					}
 				}
+				status = false;
+			} else {
+				collection.delete(document.uri);
 			}
-			status = false;
-		} else {
-			collection.delete(document.uri);
 		}
-	});
+	);
 	return status;
+}
+
+export function clear() {
+	collection.clear();
+}
+
+export function _delete(uri: Uri) {
+	collection.delete(uri);
 }
