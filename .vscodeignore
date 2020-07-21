@@ -1,12 +1,13 @@
-.vscode/**
-.vscode-test/**
-node_modules/
-src/
-images/
+.vscode
+.vscode-test
+node_modules
+src
+images
 
 **/tslint.json
 .gitignore
 .v
 .go
 tsconfig.json
-scripts/
+scripts
+conf

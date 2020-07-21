@@ -1,4 +1,4 @@
-.vscode/ipch
+.vscode
 node_modules
 out
 *.exe
