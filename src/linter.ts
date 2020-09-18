@@ -8,15 +8,16 @@ import {
 	workspace,
 } from "vscode";
 import { tmpdir } from "os";
-import { trimBoth, getWorkspaceFolder, getVConfig } from "./utils";
+import { trimBoth, getWorkspaceFolder, getVConfig, makeTempFolder } from "./utils";
 import { execV } from "./exec";
 import { resolve, relative, dirname, join } from "path";
 import { readdirSync } from "fs";
 
 const outFile = join(tmpdir(), "vscode_vlang", "lint.c");
 const collection = languages.createDiagnosticCollection("V");
-const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
-const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
+const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/m);
+const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/m);
+const checkIsModule = (text: string) => !!text.match(/^\s*(module).*\w$/m);
 const allowGlobalsConfig = getVConfig().get("allowGlobals");
 
 export function lint(document: TextDocument): boolean {
@@ -30,6 +31,7 @@ export function lint(document: TextDocument): boolean {
 	const fileCount = vFiles.length;
 	const isMainModule =
 		checkMainModule(document.getText()) || checkMainFn(document.getText());
+	const isModule = checkIsModule(document.getText());
 	const shared = !isMainModule ? "-shared" : "";
 	let haveMultipleMainFn = fileCount > 1 && isMainModule;
 
@@ -46,8 +48,11 @@ export function lint(document: TextDocument): boolean {
 
 	let target = foldername === cwd ? "." : join(".", relative(cwd, foldername));
 	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
+	target = !isModule ? document.fileName : target;
 	let status = true;
 	const globals = allowGlobalsConfig ? "--enable-globals" : "";
+
+	makeTempFolder();
 
 	execV(
 		[globals, shared, "-o", outFile, target],
