@@ -826,7 +826,7 @@
 		},
 		"storage": {
 			"name": "storage.modifier.v",
-			"match": "\\b(const|mut|var|pub)\\b"
+			"match": "\\b(const|mut|pub)\\b"
 		},
 		"types": {
 			"patterns": [
