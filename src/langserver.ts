@@ -7,7 +7,9 @@ export let client: LanguageClient;
 export function activateLSP(context: ExtensionContext) {
 	let prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
 	console.log("Commencing V language server...");
-	if (!getWorkspaceConfig().get("vls.enable")) return;
+	if (!getWorkspaceConfig().get("vls.enable")) {
+		return;
+	}
 	// Path to VLS executable.
 	const serverPath: string = getWorkspaceConfig().get("vls.path");
 	// Server Options for STDIO
@@ -31,18 +33,13 @@ export function activateLSP(context: ExtensionContext) {
 		true
 	);
 
-	let interval = setInterval(() => {
-		prepareStatus.text = `Commencing V Language Server...`
-	}, 100);
+	prepareStatus.dispose();
 
-	client.onReady().then(() => {
-		clearInterval(interval);
-		prepareStatus.dispose();
+	client.onReady()
+	.then(() => {
 		window.setStatusBarMessage('The V language server is ready.', 3000);
 	})
 	.catch(() => {
-		clearInterval(interval);
-		prepareStatus.dispose();
 		window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 	});
 
