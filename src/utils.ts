@@ -26,13 +26,13 @@ export function fullDocumentRange(document: TextDocument): Range {
  * If user don't specify it, then get default command
  */
 export function getVExecCommand(): string {
-	const config = getVConfig();
+	const config = getWorkspaceConfig();
 	const vPath = config.get("pathToExecutableFile", "") || defaultCommand;
 	return vPath;
 }
 
 /** Get V configuration. */
-export function getVConfig(): WorkspaceConfiguration {
+export function getWorkspaceConfig(): WorkspaceConfiguration {
 	const currentDoc = getCurrentDocument();
 	const uri = currentDoc ? currentDoc.uri : null;
 	return workspace.getConfiguration("v", uri);

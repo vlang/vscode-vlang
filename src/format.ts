@@ -7,27 +7,20 @@ import {
 	Disposable,
 } from "vscode";
 import { execV } from "./exec";
-import { writeFile, unlink } from "fs";
-import { fullDocumentRange, getVConfig } from "./utils";
+import { fullDocumentRange, getWorkspaceConfig } from "./utils";
 
 function format(document: TextDocument): Promise<TextEdit[]> {
-	const vfmtArgs = getVConfig().get("format.args", "");
-	const rand = Math.random().toString(36).substring(7);
-	const tempFile = document.fileName.replace(".v", `${rand}tmp.v`);
-	const args = ["fmt", vfmtArgs, tempFile];
+	const vfmtArgs = getWorkspaceConfig().get("format.args", "");
+	const args = ["fmt", vfmtArgs, document.uri.fsPath];
 
 	return new Promise((resolve, reject) => {
-		writeFile(tempFile, document.getText(), () => {
-			execV(args, (err, stdout, stderr) => {
-				unlink(tempFile, () => {
-					if (err) {
-						const errMessage = `Cannot format due to the following errors: ${stderr}`.replace(tempFile, document.fileName);
-						window.showErrorMessage(errMessage);
-						return reject(errMessage);
-					}
-					return resolve([TextEdit.replace(fullDocumentRange(document), stdout)]);
-				});
-			});
+		execV(args, (err, stdout, stderr) => {
+			if (err) {
+				const errMessage = `Cannot format due to the following errors: ${stderr}`;
+				window.showErrorMessage(errMessage);
+				return reject(errMessage);
+			}
+			return resolve([TextEdit.replace(fullDocumentRange(document), stdout)]);
 		});
 	});
 }
