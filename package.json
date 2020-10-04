@@ -8,7 +8,7 @@
 	"license": "SEE LICENSE IN LICENSE",
 	"private": true,
 	"engines": {
-		"vscode": "^1.20.0"
+		"vscode": "^1.40.0"
 	},
 	"homepage": "https://github.com/0x9ef/vscode-vlang/blob/master/README.md",
 	"bugs": {
@@ -84,6 +84,18 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Whether to enable global variables. Changes require restart."
+				},
+				"v.vls.path": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "Path to the VLS (V Language Server) executable."
+				},
+				"v.vls.enable": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": false,
+					"description": "Enable language server."
 				}
 			}
 		},
@@ -172,7 +184,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^13.1.1",
-		"@types/vscode": "~1.20.0",
+		"@types/vscode": "^1.40.0",
 		"markdownlint-cli": "0.20.0",
 		"ts-loader": "^7.0.3",
 		"typescript": "~3.5.2",

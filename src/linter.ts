@@ -8,7 +8,7 @@ import {
 	workspace,
 } from "vscode";
 import { tmpdir } from "os";
-import { trimBoth, getWorkspaceFolder, getVConfig } from "./utils";
+import { trimBoth, getWorkspaceFolder, getWorkspaceConfig } from "./utils";
 import { execV } from "./exec";
 import { resolve, relative, dirname, join } from "path";
 import { readdirSync } from "fs";
@@ -17,7 +17,7 @@ const outFile = join(tmpdir(), "vscode_vlang", "lint.c");
 const collection = languages.createDiagnosticCollection("V");
 const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
-const allowGlobalsConfig = getVConfig().get("allowGlobals");
+const allowGlobalsConfig = getWorkspaceConfig().get("allowGlobals");
 
 export function lint(document: TextDocument): boolean {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
