@@ -19,10 +19,12 @@ const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
 const allowGlobalsConfig = getWorkspaceConfig().get("allowGlobals");
 
-export function lint(document: TextDocument): boolean {
+export function lint(document: TextDocument) {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
-	if (!workspaceFolder) return true;
+	if (!workspaceFolder) {
+		return;
+	}
 
 	const cwd = workspaceFolder.uri.fsPath;
 	const foldername = dirname(document.fileName);
@@ -46,7 +48,6 @@ export function lint(document: TextDocument): boolean {
 
 	let target = foldername === cwd ? "." : join(".", relative(cwd, foldername));
 	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
-	let status = true;
 	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
 	execV([globals, shared, "-o", outFile, target], (err, stdout, stderr) => {
@@ -78,12 +79,10 @@ export function lint(document: TextDocument): boolean {
 					collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
 				}
 			}
-			status = false;
 		} else {
 			collection.delete(document.uri);
 		}
 	});
-	return status;
 }
 
 export function clear() {
