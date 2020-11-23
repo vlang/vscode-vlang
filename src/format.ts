@@ -3,7 +3,6 @@ import {
 	languages,
 	TextDocument,
 	TextEdit,
-	window,
 	Disposable,
 } from "vscode";
 import { execV } from "./exec";
@@ -16,8 +15,8 @@ function format(document: TextDocument): Promise<TextEdit[]> {
 	return new Promise((resolve, reject) => {
 		execV(args, (err, stdout, stderr) => {
 			if (err) {
-				const errMessage = `Cannot format due to the following errors: ${stderr}`;
-				window.showErrorMessage(errMessage);
+				const errMessage = `V formatter: Cannot format ${document.fileName} due to the following errors: ${stderr}`;
+				console.error(errMessage);
 				return reject(errMessage);
 			}
 			return resolve([TextEdit.replace(fullDocumentRange(document), stdout)]);
@@ -29,7 +28,7 @@ export function registerFormatter(): Disposable {
 	const provider: DocumentFormattingEditProvider = {
 		provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
 			return format(document);
-		}
+		},
 	};
 	return languages.registerDocumentFormattingEditProvider("v", provider);
 }
