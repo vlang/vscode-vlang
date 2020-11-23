@@ -3,7 +3,7 @@ import * as commands from "./commands";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
 import * as linter from "./linter";
-import { clearTempFolder, getWorkspaceConfig } from "./utils";
+import { clearTempFolder, getWorkspaceConfig, makeTempFolder } from "./utils";
 import { activateLSP } from "./langserver";
 
 const vLanguageId = "v";
@@ -30,13 +30,15 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
+	// Make a temp folder for linter
+	makeTempFolder();
 	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
 
 	if (getWorkspaceConfig().get("enableLinter")) {
 		context.subscriptions.push(
 			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
 			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument),
+			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
 		);
 		// If there are V files open, do the lint immediately
 		if (
