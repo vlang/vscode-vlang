@@ -27,15 +27,19 @@ export function lint(document: TextDocument) {
 	}
 
 	const cwd = workspaceFolder.uri.fsPath;
+	// Get folder path of current file
 	const foldername = dirname(document.fileName);
+	// Get all of .v files on the folder
 	const vFiles = readdirSync(foldername).filter((f) => f.endsWith(".v"));
-	const fileCount = vFiles.length;
+	// Check if current file is a main module, will check if current file have a main function
 	const isMainModule =
 		checkMainModule(document.getText()) || checkMainFn(document.getText());
 	const shared = !isMainModule ? "-shared" : "";
-	let haveMultipleMainFn = fileCount > 1 && isMainModule;
+	let haveMultipleMainModule = vFiles.length > 1 && isMainModule;
 
-	if (haveMultipleMainFn) {
+	// If file have multiple main module
+	// Recheck of each of v files on the folder, To check is a main module and have a main function
+	if (haveMultipleMainModule) {
 		let filesAreMainModule = false;
 		vFiles.forEach(async (f) => {
 			f = resolve(foldername, f);
@@ -43,11 +47,11 @@ export function lint(document: TextDocument) {
 			filesAreMainModule =
 				checkMainModule(fDocument.getText()) || checkMainFn(fDocument.getText());
 		});
-		haveMultipleMainFn = filesAreMainModule;
+		haveMultipleMainModule = filesAreMainModule;
 	}
 
 	let target = foldername === cwd ? "." : join(".", relative(cwd, foldername));
-	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
+	target = haveMultipleMainModule ? relative(cwd, document.fileName) : target;
 	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
 	execV([globals, shared, "-o", outFile, target], (err, stdout, stderr) => {
