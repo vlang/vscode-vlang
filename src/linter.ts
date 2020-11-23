@@ -19,21 +19,27 @@ const checkMainModule = (text: string) => !!text.match(/^\s*(module)+\s+main/);
 const checkMainFn = (text: string) => !!text.match(/^\s*(fn)+\s+main/);
 const allowGlobalsConfig = getWorkspaceConfig().get("allowGlobals");
 
-export function lint(document: TextDocument): boolean {
+export function lint(document: TextDocument) {
 	const workspaceFolder = getWorkspaceFolder(document.uri);
 	// Don't lint files that are not in the workspace
-	if (!workspaceFolder) return true;
+	if (!workspaceFolder) {
+		return;
+	}
 
 	const cwd = workspaceFolder.uri.fsPath;
+	// Get folder path of current file
 	const foldername = dirname(document.fileName);
+	// Get all of .v files on the folder
 	const vFiles = readdirSync(foldername).filter((f) => f.endsWith(".v"));
-	const fileCount = vFiles.length;
+	// Check if current file is a main module, will check if current file have a main function
 	const isMainModule =
 		checkMainModule(document.getText()) || checkMainFn(document.getText());
 	const shared = !isMainModule ? "-shared" : "";
-	let haveMultipleMainFn = fileCount > 1 && isMainModule;
+	let haveMultipleMainModule = vFiles.length > 1 && isMainModule;
 
-	if (haveMultipleMainFn) {
+	// If file have multiple main module
+	// Recheck of each of v files on the folder, To check is a main module and have a main function
+	if (haveMultipleMainModule) {
 		let filesAreMainModule = false;
 		vFiles.forEach(async (f) => {
 			f = resolve(foldername, f);
@@ -41,54 +47,46 @@ export function lint(document: TextDocument): boolean {
 			filesAreMainModule =
 				checkMainModule(fDocument.getText()) || checkMainFn(fDocument.getText());
 		});
-		haveMultipleMainFn = filesAreMainModule;
+		haveMultipleMainModule = filesAreMainModule;
 	}
 
 	let target = foldername === cwd ? "." : join(".", relative(cwd, foldername));
-	target = haveMultipleMainFn ? relative(cwd, document.fileName) : target;
-	let status = true;
+	target = haveMultipleMainModule ? relative(cwd, document.fileName) : target;
 	const globals = allowGlobalsConfig ? "--enable-globals" : "";
 
-	execV(
-		[globals, shared, "-o", outFile, target],
-		(err, stdout, stderr) => {
-			collection.clear();
-			if (err || stderr.trim().length > 1) {
-				const output = stderr || stdout;
-				const lines: Array<string> = output.split("\n");
+	execV([globals, shared, "-o", outFile, target], (err, stdout, stderr) => {
+		collection.clear();
+		if (err || stderr.trim().length > 1) {
+			const output = stderr || stdout;
+			const lines: Array<string> = output.split("\n");
 
-				for (const line of lines) {
-					const cols = line.split(":");
-					const isInfo = cols.length >= 5;
-					const isError = isInfo && trimBoth(cols[3]) === "error";
-					const isWarning = isInfo && trimBoth(cols[3]) === "warning";
+			for (const line of lines) {
+				const cols = line.split(":");
+				const isInfo = cols.length >= 5;
+				const isError = isInfo && trimBoth(cols[3]) === "error";
+				const isWarning = isInfo && trimBoth(cols[3]) === "warning";
 
-					if (isError || isWarning) {
-						const file = cols[0];
-						const lineNum = parseInt(cols[1]);
-						const colNum = parseInt(cols[2]);
-						const message = cols.splice(4, cols.length - 1).join("");
+				if (isError || isWarning) {
+					const file = cols[0];
+					const lineNum = parseInt(cols[1]);
+					const colNum = parseInt(cols[2]);
+					const message = cols.splice(4, cols.length - 1).join("");
 
-						const fileURI = Uri.file(resolve(cwd, file));
-						const range = new Range(lineNum - 1, colNum, lineNum - 1, colNum);
-						const diagnostic = new Diagnostic(
-							range,
-							message,
-							isWarning
-								? DiagnosticSeverity.Warning
-								: DiagnosticSeverity.Error
-						);
-						diagnostic.source = "V";
-						collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
-					}
+					const fileURI = Uri.file(resolve(cwd, file));
+					const range = new Range(lineNum - 1, colNum, lineNum - 1, colNum);
+					const diagnostic = new Diagnostic(
+						range,
+						message,
+						isWarning ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error
+					);
+					diagnostic.source = "V";
+					collection.set(fileURI, [...collection.get(fileURI), diagnostic]);
 				}
-				status = false;
-			} else {
-				collection.delete(document.uri);
 			}
+		} else {
+			collection.delete(document.uri);
 		}
-	);
-	return status;
+	});
 }
 
 export function clear() {
