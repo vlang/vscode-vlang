@@ -297,7 +297,7 @@
 						},
 						{
 							"name": "keyword.$1.v",
-							"match": "\\b(fn|type|enum|struct|interface|map|assert|sizeof)\\b(?=\\s*\\()"
+							"match": "\\b(fn|type|enum|struct|union|interface|map|assert|sizeof)\\b(?=\\s*\\()"
 						}
 					]
 				},
