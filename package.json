@@ -169,7 +169,12 @@
 					"when": "editorLangId == v"
 				}
 			]
-		}
+		},
+		"breakpoints": [
+			{
+				"language": "v"
+			}
+		]
 	},
 	"activationEvents": [
 		"workspaceContains:**/*.v",
