@@ -688,7 +688,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.struct.v",
-					"begin": "^\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct)\\s+([\\w.]+)\\s*({)",
+					"begin": "^\\s*(?:(mut|pub(?:\\s+mut)?|__global)\\s+)?(struct|union)\\s+([\\w.]+)\\s*({)",
 					"beginCaptures": {
 						"1": {
 							"name": "storage.modifier.$1.v"
