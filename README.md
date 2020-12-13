@@ -1,8 +1,8 @@
 # V language support for Visual Studio Code
 
-[![Version](https://vsmarketplacebadge.apphb.com/version/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
-[![Installs](https://vsmarketplacebadge.apphb.com/installs/0x9ef.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=0x9ef.vscode-vlang)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/0x9ef/vscode-vlang/CI)
+[![Version](https://vsmarketplacebadge.apphb.com/version/vlang-vscode.extension.svg)](https://marketplace.visualstudio.com/items?itemName=vlang-vscode.extension)
+[![Installs](https://vsmarketplacebadge.apphb.com/installs/vlang-vscode.extension.svg)](https://marketplace.visualstudio.com/items?itemName=vlang-vscode.extension)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vlang/vscode-vlang/CI)
 
 Provides [V language](https://vlang.io) support for Visual Studio Code.
 
