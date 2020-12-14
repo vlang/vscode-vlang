@@ -30,11 +30,12 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	// Make a temp folder for linter
-	makeTempFolder();
 	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
 
-	if (getWorkspaceConfig().get("enableLinter")) {
+	if (getWorkspaceConfig().get("enableLinter") && !getWorkspaceConfig().get("vls.enable")) {
+		// Make a temp folder for linter
+		makeTempFolder();
+
 		context.subscriptions.push(
 			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
 			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
@@ -49,7 +50,9 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	activateLSP(context);
+	if (getWorkspaceConfig().get("vls.enable")) {
+		activateLSP(context);
+	}
 }
 
 /**
