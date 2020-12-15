@@ -39,7 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(
 			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
 			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
+			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument),
+			vscode.workspace.onDidChangeConfiguration(didChangeConfiguration)
 		);
 		// If there are V files open, do the lint immediately
 		if (
@@ -85,6 +86,14 @@ function didCloseTextDocument(document: vscode.TextDocument) {
 	if (document.languageId === vLanguageId) {
 		linter._delete(document.uri);
 	}
+}
+
+/**
+ *  Handles the `onDidChangeConfiguration` event
+ */
+function didChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+	if (!event.affectsConfiguration("v")) return;
+	vscode.window.showWarningMessage("There's a new change in configuration and a restart is required.\n\nGo to Command Palette > Developer: Reload Window to restart your current window.");
 }
 
 /**
