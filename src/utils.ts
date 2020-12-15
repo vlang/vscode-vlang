@@ -33,9 +33,8 @@ export function getVExecCommand(): string {
 
 /** Get V configuration. */
 export function getWorkspaceConfig(): WorkspaceConfiguration {
-	const currentDoc = getCurrentDocument();
-	const uri = currentDoc ? currentDoc.uri : null;
-	return workspace.getConfiguration("v", uri);
+	const currentWorkspaceFolder = getWorkspaceFolder();
+	return workspace.getConfiguration("v", currentWorkspaceFolder.uri);
 }
 
 /** Get current working directory.
