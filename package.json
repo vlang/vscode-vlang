@@ -77,13 +77,13 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable the linter. Changes require restart."
+					"description": "Whether to enable the linter."
 				},
 				"v.allowGlobals": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Whether to enable global variables. Changes require restart."
+					"description": "Whether to enable global variables."
 				},
 				"v.vls.path": {
 					"scope": "resource",
@@ -95,7 +95,7 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Enable language server."
+					"description": "Enables the language server."
 				}
 			}
 		},
