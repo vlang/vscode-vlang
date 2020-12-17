@@ -190,7 +190,7 @@
 					"end": "\\s+([\\<\"]\\s*(.*)[\\>\"])",
 					"endCaptures": {
 						"1": {
-							"name": "string.quoted.double.m"
+							"name": "string.quoted.double.v"
 						}
 					}
 				}
