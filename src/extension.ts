@@ -30,7 +30,11 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
+	context.subscriptions.push(
+		registerFormatter(),
+		attachOnCloseTerminalListener(),
+		vscode.workspace.onDidChangeConfiguration(didChangeConfiguration)
+	);
 
 	if (getWorkspaceConfig().get("enableLinter") && !getWorkspaceConfig().get("vls.enable")) {
 		// Make a temp folder for linter
@@ -39,8 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(
 			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
 			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument),
-			vscode.workspace.onDidChangeConfiguration(didChangeConfiguration)
+			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
 		);
 		// If there are V files open, do the lint immediately
 		if (
@@ -93,7 +96,12 @@ function didCloseTextDocument(document: vscode.TextDocument) {
  */
 function didChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
 	if (!event.affectsConfiguration("v")) return;
-	vscode.window.showWarningMessage("There's a new change in configuration and a restart is required.\n\nGo to Command Palette > Developer: Reload Window to restart your current window.");
+	vscode.window.showInformationMessage("There's a new change in configuration and a restart is required. Would you like to restart it now?", "Yes", "No")
+		.then(choice => {
+			if (choice == "Yes") {
+				vscode.commands.executeCommand("workbench.action.reloadWindow");
+			}
+		});
 }
 
 /**
