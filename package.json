@@ -77,25 +77,25 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable the linter. Changes require restart."
+					"description": "Enables the linter. Restart is required to take effect."
 				},
 				"v.allowGlobals": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Whether to enable global variables. Changes require restart."
+					"description": "Enables support for global variables. Restart is required to take effect."
 				},
 				"v.vls.path": {
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Path to the VLS (V Language Server) executable."
+					"description": "Path to the VLS (V Language Server) executable. Restart is required to take effect."
 				},
 				"v.vls.enable": {
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Enable language server."
+					"description": "Enables the language server. Restart is required to take effect."
 				}
 			}
 		},

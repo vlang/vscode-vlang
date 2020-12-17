@@ -30,7 +30,11 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
+	context.subscriptions.push(
+		registerFormatter(),
+		attachOnCloseTerminalListener(),
+		vscode.workspace.onDidChangeConfiguration(didChangeConfiguration)
+	);
 
 	if (getWorkspaceConfig().get("enableLinter") && !getWorkspaceConfig().get("vls.enable")) {
 		// Make a temp folder for linter
@@ -85,6 +89,19 @@ function didCloseTextDocument(document: vscode.TextDocument) {
 	if (document.languageId === vLanguageId) {
 		linter._delete(document.uri);
 	}
+}
+
+/**
+ *  Handles the `onDidChangeConfiguration` event
+ */
+function didChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+	if (!event.affectsConfiguration("v")) return;
+	vscode.window.showInformationMessage("There's a new change in configuration and a restart is required. Would you like to restart it now?", "Yes", "No")
+		.then(choice => {
+			if (choice == "Yes") {
+				vscode.commands.executeCommand("workbench.action.reloadWindow");
+			}
+		});
 }
 
 /**
