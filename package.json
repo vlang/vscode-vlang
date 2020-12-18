@@ -131,18 +131,6 @@
 				{
 					"command": "v.prod",
 					"when": "editorLangId == v"
-				},
-				{
-					"command": "v.test.file",
-					"when": "editorLangId == v"
-				},
-				{
-					"command": "v.test.package",
-					"when": "editorLangId == v"
-				},
-				{
-					"command": "v.playground",
-					"when": "editorLangId == v"
 				}
 			]
 		},
