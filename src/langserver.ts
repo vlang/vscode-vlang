@@ -3,7 +3,7 @@ import { getWorkspaceConfig } from "./utils";
 import { ExtensionContext, window, StatusBarAlignment, workspace } from "vscode";
 
 export let client: LanguageClient;
-export function activateLSP(context: ExtensionContext) {
+export function activateLsp(context: ExtensionContext) {
 	let prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
 	const vlsPath: string = getWorkspaceConfig().get("vls.path");
 

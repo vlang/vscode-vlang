@@ -1,4 +1,4 @@
-import { window /* env, version, Uri  */ } from "vscode";
+import { window } from "vscode";
 import { execVInTerminal, execV } from "./exec";
 import { openUrl } from "./utils";
 
@@ -37,20 +37,11 @@ export function ver() {
 	});
 }
 
-/** Test current file. */
-export function testFile() {}
-
-/** Test current package. */
-export function testPackage() {}
-
-/** Upload and share current code to V playground. */
-export function playground() {}
-
 /** Open current code on DevBits V playground. */
 export function devbitsPlayground() {
 	let url = "https://devbits.app/play?lang=v&code64=";
 	const code = window.activeTextEditor.document.getText();
-	const base64Code = new Buffer(code).toString("base64");
+	const base64Code = Buffer.from(code).toString("base64");
 	// TODO: Using this instead when the extension support 1.31+
 	// const vscode_version = parseInt(version.split(".").join(""));
 	// if (vscode_version > 1310) {
