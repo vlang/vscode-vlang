@@ -1,6 +1,7 @@
-import * as vscode from "vscode";
+import vscode from "vscode";
 import * as commands from "./commands";
-import { activateLsp } from "./langserver";
+import { getWorkspaceConfig } from './utils';
+import { activateLsp, checkVlsInstalled, vlsPath } from "./langserver";
 
 const cmds = {
 	"v.run": commands.run,
@@ -20,6 +21,17 @@ export function activate(context: vscode.ExtensionContext) {
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
+	const customVlsPath = getWorkspaceConfig().get<string>("vls.path");
 
-	activateLsp(context);
+	if (!customVlsPath) {
+		// if no vls path is given, try to used the installed one or install it.
+		checkVlsInstalled()
+			.then(installed => {
+				if (installed) {
+					activateLsp(vlsPath, context);
+				}
+			});
+	} else {
+		activateLsp(customVlsPath, context);
+	}
 }

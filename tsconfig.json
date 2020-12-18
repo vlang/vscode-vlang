@@ -4,7 +4,8 @@
 		"target": "es6",
 		"outDir": "out",
 		"lib": ["es2019", "dom"],
-		"sourceMap": true
+		"sourceMap": true,
+		"esModuleInterop": true
 	},
 	"exclude": ["node_modules", ".vscode-test"]
 }
