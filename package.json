@@ -73,12 +73,6 @@
 					"default": "",
 					"description": "Path to V executable file"
 				},
-				"v.enableLinter": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": true,
-					"description": "Whether to enable the linter. Changes require restart."
-				},
 				"v.allowGlobals": {
 					"scope": "resource",
 					"type": "boolean",

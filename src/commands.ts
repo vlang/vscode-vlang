@@ -1,4 +1,4 @@
-import { window /* env, version, Uri  */ } from "vscode";
+import { window } from "vscode";
 import { execVInTerminal, execV } from "./exec";
 import { openUrl } from "./utils";
 
