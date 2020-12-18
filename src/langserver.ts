@@ -5,15 +5,13 @@ import { ExtensionContext, window, StatusBarAlignment, workspace } from "vscode"
 export let client: LanguageClient;
 export function activateLsp(context: ExtensionContext) {
 	let prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
+	const vlsPath: string = getWorkspaceConfig().get("vls.path");
+
 	console.log("Commencing V language server...");
-	if (!getWorkspaceConfig().get("vls.enable")) {
-		return;
-	}
 	// Path to VLS executable.
-	const serverPath: string = getWorkspaceConfig().get("vls.path");
 	// Server Options for STDIO
 	const serverOptionsStd: ServerOptions = {
-		command: serverPath,
+		command: vlsPath,
 		args: [],
 		transport: TransportKind.stdio
 	};
