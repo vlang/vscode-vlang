@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
 import * as commands from "./commands";
-import { registerFormatter } from "./format";
-import { attachOnCloseTerminalListener } from "./exec";
-import { clearTempFolder, makeTempFolder } from "./utils";
 import { activateLsp } from "./langserver";
 
 const cmds = {
@@ -10,10 +7,7 @@ const cmds = {
 	"v.ver": commands.ver,
 	"v.help": commands.help,
 	"v.prod": commands.prod,
-	"v.test.file": commands.testFile,
-	"v.playground": commands.playground,
 	"v.devbits_playground": commands.devbitsPlayground,
-	"v.test.package": commands.testPackage,
 };
 
 /**
@@ -27,16 +21,5 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(disposable);
 	}
 
-	// Make a temp folder for linter
-	makeTempFolder();
-	context.subscriptions.push(registerFormatter(), attachOnCloseTerminalListener());
-
 	activateLsp(context);
-}
-
-/**
- * This method is called when the extension is deactivated.
- */
-export function deactivate() {
-	clearTempFolder();
 }

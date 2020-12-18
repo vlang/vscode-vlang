@@ -61,12 +61,6 @@
 		"configuration": {
 			"title": "V",
 			"properties": {
-				"v.format.args": {
-					"scope": "resource",
-					"type": "string",
-					"default": "",
-					"description": "Arguments to pass to 'vfmt'"
-				},
 				"v.pathToExecutableFile": {
 					"scope": "resource",
 					"type": "string",
@@ -122,18 +116,6 @@
 			{
 				"command": "v.path",
 				"title": "V: Show local paths info"
-			},
-			{
-				"command": "v.test.file",
-				"title": "V: Test current file"
-			},
-			{
-				"command": "v.test.package",
-				"title": "V: Test current package"
-			},
-			{
-				"command": "v.playground",
-				"title": "V: Upload and share current code to V playground"
 			},
 			{
 				"command": "v.devbits_playground",

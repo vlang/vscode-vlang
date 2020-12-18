@@ -1,5 +1,4 @@
 import {
-	Range,
 	TextDocument,
 	workspace,
 	WorkspaceConfiguration,
@@ -7,19 +6,10 @@ import {
 	Uri,
 	WorkspaceFolder,
 } from "vscode";
-import { existsSync, mkdirSync, readdir, unlink } from "fs";
-import { tmpdir, platform } from "os";
-import { join } from "path";
+import { platform } from "os";
 import { execFileSync } from "child_process";
 
-const TEMP_DIR = join(tmpdir(), "vscode_vlang");
 const defaultCommand = "v";
-
-/** Get full range of the document. */
-export function fullDocumentRange(document: TextDocument): Range {
-	const lastLineId = document.lineCount - 1;
-	return new Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
-}
 
 /** Get V executable command.
  * Will get from user setting configuration first.
@@ -59,26 +49,6 @@ export function getWorkspaceFolder(uri?: Uri): WorkspaceFolder {
 
 export function getCurrentDocument(): TextDocument {
 	return window.activeTextEditor ? window.activeTextEditor.document : null;
-}
-
-export function trimBoth(str: string): string {
-	return str.trimStart().trimEnd();
-}
-
-export function makeTempFolder() {
-	if (!existsSync(TEMP_DIR)) mkdirSync(TEMP_DIR);
-}
-
-export function clearTempFolder() {
-	readdir(TEMP_DIR, (err, files) => {
-		if (err) throw err;
-
-		for (const file of files) {
-			unlink(join(TEMP_DIR, file), (err) => {
-				if (err) throw err;
-			});
-		}
-	});
 }
 
 export function openUrl(url: string) {
