@@ -24,7 +24,7 @@ export function activateLsp(context: ExtensionContext) {
 	}
 
 	client = new LanguageClient(
-		"vLanguageServer",
+		"V Language Server",
 		serverOptionsStd,
 		clientOptions,
 		true
