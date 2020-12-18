@@ -1,10 +1,9 @@
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
-import { clearTempFolder, getWorkspaceConfig } from "./utils";
-import * as net from "net";
+import { getWorkspaceConfig } from "./utils";
 import { ExtensionContext, window, StatusBarAlignment, workspace } from "vscode";
 
 export let client: LanguageClient;
-export function activateLSP(context: ExtensionContext) {
+export function activateLsp(context: ExtensionContext) {
 	let prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
 	console.log("Commencing V language server...");
 	if (!getWorkspaceConfig().get("vls.enable")) {

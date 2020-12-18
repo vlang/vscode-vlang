@@ -4,7 +4,7 @@ import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
 import * as linter from "./linter";
 import { clearTempFolder, getWorkspaceConfig, makeTempFolder } from "./utils";
-import { activateLSP } from "./langserver";
+import { activateLsp } from "./langserver";
 
 const vLanguageId = "v";
 
@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	activateLSP(context);
+	activateLsp(context);
 }
 
 /**
