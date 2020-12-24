@@ -67,12 +67,6 @@
 					"default": "",
 					"description": "Path to V executable file"
 				},
-				"v.allowGlobals": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": false,
-					"description": "Enables support for global variables. Restart is required to take effect."
-				},
 				"v.vls.path": {
 					"scope": "resource",
 					"type": "string",
@@ -90,10 +84,6 @@
 		"configurationDefaults": {
 			"[v]": {
 				"editor.insertSpaces": false,
-				"editor.formatOnSave": false,
-				"editor.codeActionsOnSave": {
-					"source.organizeImports": true
-				}
 			}
 		},
 		"commands": [
