@@ -97,7 +97,7 @@ export function connectVls(path: string, context: ExtensionContext) {
 }
 
 export async function activateVls(context: ExtensionContext) {
-	const customVlsPath = getWorkspaceConfig().get<string>("vls.path");
+	const customVlsPath = getWorkspaceConfig().get<string>("vls.customPath");
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
 		const installed = await checkIsVlsInstalled();

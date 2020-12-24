@@ -67,17 +67,11 @@
 					"default": "",
 					"description": "Path to V executable file"
 				},
-				"v.allowGlobals": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": false,
-					"description": "Enables support for global variables. Restart is required to take effect."
-				},
-				"v.vls.path": {
+				"v.vls.customPath": {
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Path to the VLS (V Language Server) executable. Restart is required to take effect."
+					"description": "Custom path to the VLS (V Language Server) executable. Restart is required to take effect."
 				},
 				"v.vls.enable": {
 					"scope": "resource",
@@ -89,11 +83,7 @@
 		},
 		"configurationDefaults": {
 			"[v]": {
-				"editor.insertSpaces": false,
-				"editor.formatOnSave": false,
-				"editor.codeActionsOnSave": {
-					"source.organizeImports": true
-				}
+				"editor.insertSpaces": false
 			}
 		},
 		"commands": [
