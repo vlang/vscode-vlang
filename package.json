@@ -83,7 +83,7 @@
 		},
 		"configurationDefaults": {
 			"[v]": {
-				"editor.insertSpaces": false,
+				"editor.insertSpaces": false
 			}
 		},
 		"commands": [
