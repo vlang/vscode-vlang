@@ -1,6 +1,7 @@
-import * as vscode from "vscode";
+import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from "vscode";
 import * as commands from "./commands";
-import { activateLsp } from "./langserver";
+import { getWorkspaceConfig } from './utils';
+import { connectVls, checkIsVlsInstalled, activateVls, vlsPath, deactivateVls } from "./langserver";
 
 const cmds = {
 	"v.run": commands.run,
@@ -14,12 +15,26 @@ const cmds = {
  * This method is called when the extension is activated.
  * @param context The extension context
  */
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: ExtensionContext) {
 	for (const cmd in cmds) {
 		const handler = cmds[cmd];
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
+	const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
+	
+	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
+		if (e.affectsConfiguration('v.vls.enable')) {
+			const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
+			if (isVlsEnabled) {
+				activateVls(context);
+			} else {
+				deactivateVls();
+			}
+		}
+	})
 
-	activateLsp(context);
+	if (isVlsEnabled) {
+		activateVls(context)
+	}
 }
