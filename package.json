@@ -67,7 +67,7 @@
 					"default": "",
 					"description": "Path to V executable file"
 				},
-				"v.vls.path": {
+				"v.vls.customPath": {
 					"scope": "resource",
 					"type": "string",
 					"default": "",
