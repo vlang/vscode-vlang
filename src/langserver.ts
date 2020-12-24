@@ -2,7 +2,7 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import cp from 'child_process';
-import vscode, { StatusBarAlignment, ExtensionContext } from 'vscode';
+import { window, StatusBarAlignment, ExtensionContext, workspace } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
 
 import { outputChannel } from './status';
@@ -14,10 +14,10 @@ const vexe = getVExecCommand();
 export const vlsPath = path.join(vbin, 'vls');
 export let client: LanguageClient;
 
-export async function checkVlsInstalled(): Promise<boolean> {
+export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsExists = fs.existsSync(vlsPath);
 	if (!vlsExists) {
-		const selected = await vscode.window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No')
+		const selected = await window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No')
 		if (selected === 'Yes') {
 			return await installVls();
 		} else {
@@ -31,40 +31,25 @@ export async function installVls(): Promise<boolean> {
 	outputChannel.show();
 	outputChannel.clear();
 	outputChannel.appendLine(`Installing VLS to ${vlsPath}...`);
-	const vlsModule = path.join(vmodules, 'vls');
-	const vlsCmd = path.join(vlsModule, 'cmd', 'vls')
-	// TODO: cp.execFileSync(`${vexe} install vls`);
-	if (fs.existsSync(vlsModule)) {
-		// modules already downloaded, update it
-		outputChannel.appendLine(`cd ${vlsModule} && git pull`);
-		try {
-			cp.execSync(`cd ${vlsModule} && git pull`);
-		} catch {
-			outputChannel.appendLine('Failed updating VLS.');
-			return false;
-		}
-	} else {
-		outputChannel.appendLine(`git clone https://github.com/vlang/vls ${vlsModule}`);
-		try {
-			cp.execSync(`git clone https://github.com/vlang/vls ${vlsModule}`);
-		} catch {
-			outputChannel.appendLine('Failed cloning VLS.');
-			return false;
-		}
+	const vlsCmd = path.join(vmodules, 'vls', 'cmd', 'vls')
+	try {
+		cp.execSync(`v install vls`);
+	} catch {
+		outputChannel.appendLine('VPM failed installing VLS.');
+		return false;
 	}
 	// build vls module to ~/.vmodules/bin
 	if (!fs.existsSync(vbin)) {
 		outputChannel.appendLine(`Creating ~/.vmodules/bin`);
 		fs.mkdirSync(vbin)
 	}
-	outputChannel.appendLine(`${vexe} -o ${vlsPath} ${vlsCmd}`);
 	try {
 		cp.execSync(`${vexe} -o ${vlsPath} ${vlsCmd}`);
 	} catch {
 		outputChannel.appendLine('Failed building VLS.');
 		return false;
 	}
-	const isInstalled = await checkVlsInstalled();
+	const isInstalled = await checkIsVlsInstalled();
 	if (isInstalled) {
 		outputChannel.appendLine(`Finished installing VLS.`);
 	} else {
@@ -73,8 +58,8 @@ export async function installVls(): Promise<boolean> {
 	return isInstalled;
 }
 
-export function activateLsp(path: string, context: ExtensionContext) {
-	const prepareStatus = vscode.window.createStatusBarItem(StatusBarAlignment.Left);
+export function connectVls(path: string, context: ExtensionContext) {
+	const prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
 
 	// Path to VLS executable.
 	// Server Options for STDIO
@@ -87,7 +72,7 @@ export function activateLsp(path: string, context: ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: "v" }],
 		synchronize: {
-			fileEvents: vscode.workspace.createFileSystemWatcher('**/*.v')
+			fileEvents: workspace.createFileSystemWatcher('**/*.v')
 		}
 	}
 
@@ -102,11 +87,31 @@ export function activateLsp(path: string, context: ExtensionContext) {
 
 	client.onReady()
 		.then(() => {
-			vscode.window.setStatusBarMessage('The V language server is ready.', 3000);
+			window.setStatusBarMessage('The V language server is ready.', 3000);
 		})
 		.catch(() => {
-			vscode.window.setStatusBarMessage('The V language server failed to initialize.', 3000);
+			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
 
 	context.subscriptions.push(client.start());
+}
+
+export async function activateVls(context: ExtensionContext) {
+	const customVlsPath = getWorkspaceConfig().get<string>("vls.path");
+	if (!customVlsPath) {
+		// if no vls path is given, try to used the installed one or install it.
+		const installed = await checkIsVlsInstalled();
+		if (installed) {
+			connectVls(vlsPath, context);
+		}
+	} else {
+		connectVls(customVlsPath, context);
+	}
+}
+
+export async function deactivateVls() {
+	if (!client) {
+		return;
+	}
+	await client.stop();
 }
