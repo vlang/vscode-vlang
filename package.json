@@ -83,7 +83,7 @@
 					"scope": "resource",
 					"type": "boolean",
 					"default": false,
-					"description": "Enables the language server. Restart is required to take effect."
+					"description": "Enables the language server. (alpha)"
 				}
 			}
 		},
