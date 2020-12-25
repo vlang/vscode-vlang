@@ -2,24 +2,31 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import cp from 'child_process';
-import { window, StatusBarAlignment, ExtensionContext, workspace } from 'vscode';
+import util from 'util';
+import { window, StatusBarAlignment, ExtensionContext, workspace, ProgressLocation } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
 
-import { outputChannel } from './status';
 import { getVExecCommand, getWorkspaceConfig } from './utils';
+import { outputChannel } from './status';
+
+const execAsync = util.promisify(cp.exec);
+const mkdirAsync = util.promisify(fs.mkdir);
+const existsAsync = util.promisify(fs.exists);
 
 const vmodules = path.join(os.homedir(), '.vmodules');
 const vbin = path.join(vmodules, 'bin');
 const vexe = getVExecCommand();
-export const vlsPath = path.join(vbin, 'vls');
+const isWin = process.platform === "win32";
+export const vlsPath = path.join(vbin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
-	const vlsExists = fs.existsSync(vlsPath);
-	if (!vlsExists) {
+	const vlsInstalled = await isVlsInstalled();
+	if (!vlsInstalled) {
 		const selected = await window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No')
 		if (selected === 'Yes') {
-			return await installVls();
+			await installVls()
+			return await isVlsInstalled();
 		} else {
 			return false;
 		}
@@ -27,35 +34,33 @@ export async function checkIsVlsInstalled(): Promise<boolean> {
 	return true;
 }
 
-export async function installVls(): Promise<boolean> {
-	outputChannel.show();
-	outputChannel.clear();
-	outputChannel.appendLine(`Installing VLS to ${vlsPath}...`);
-	const vlsCmd = path.join(vmodules, 'vls', 'cmd', 'vls')
+export async function isVlsInstalled(): Promise<boolean> {
+	return await existsAsync(vlsPath);
+}
+
+export async function installVls() {
 	try {
-		cp.execSync(`v install vls`);
-	} catch {
-		outputChannel.appendLine('VPM failed installing VLS.');
-		return false;
+		await window.withProgress({
+			location: ProgressLocation.Notification,
+			title: 'Installing VLS',
+			cancellable: false,
+		}, async progress => {
+			const vlsCmd = path.join(vmodules, 'vls', 'cmd', 'vls');
+			progress.report({ message: 'Fetching module' });
+			await execAsync(`v install vls`, { maxBuffer: Infinity });
+			progress.report({ message: 'Creating ~/.vmodules/bin' });
+			// build vls module to ~/.vmodules/bin
+			const existsVBin = await existsAsync(vbin);
+			if (!existsVBin) {
+				await mkdirAsync(vbin)
+			}
+			progress.report({ message: 'Building module' });
+			await execAsync(`${vexe} -prod -o ${vlsPath} ${vlsCmd}`, { maxBuffer: Infinity });
+		});
+	} catch (e) {
+		outputChannel.appendLine(e);
+		await window.showErrorMessage('Failed installing VLS. See output for more information.');
 	}
-	// build vls module to ~/.vmodules/bin
-	if (!fs.existsSync(vbin)) {
-		outputChannel.appendLine(`Creating ~/.vmodules/bin`);
-		fs.mkdirSync(vbin)
-	}
-	try {
-		cp.execSync(`${vexe} -o ${vlsPath} ${vlsCmd}`);
-	} catch {
-		outputChannel.appendLine('Failed building VLS.');
-		return false;
-	}
-	const isInstalled = await checkIsVlsInstalled();
-	if (isInstalled) {
-		outputChannel.appendLine(`Finished installing VLS.`);
-	} else {
-		outputChannel.appendLine(`Failed to install VLS.`);
-	}
-	return isInstalled;
 }
 
 export function connectVls(path: string, context: ExtensionContext) {

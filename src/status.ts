@@ -1,3 +1,3 @@
-import vscode from 'vscode';
+import { window } from 'vscode';
 
-export const outputChannel = vscode.window.createOutputChannel('V');
+export const outputChannel = window.createOutputChannel('V');
