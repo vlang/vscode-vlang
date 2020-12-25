@@ -143,7 +143,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^13.13.38",
-		"@types/vscode": "^1.52.0",
+		"@types/vscode": "^1.40.0",
 		"markdownlint-cli": "0.20.0",
 		"ts-loader": "^7.0.5",
 		"typescript": "^4.1.3",
