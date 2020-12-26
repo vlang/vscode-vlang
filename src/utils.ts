@@ -59,3 +59,20 @@ export function openUrl(url: string) {
 	};
 	execFileSync(open[os], [url]);
 }
+
+export function getRmCmd() {
+	const os = platform()
+	if (os == "win32") {
+		return "& DEL"
+	}
+	return "&& rm"
+}
+
+export function getFile(filename: string) {
+	const os = platform()
+	const file = filename.split('.').slice(0, -1).join('.').trim()
+	if (os == "win32") {
+		return file + ".exe\""
+	}
+	return file + "\""
+}

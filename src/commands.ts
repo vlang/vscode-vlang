@@ -1,14 +1,14 @@
 import { window } from "vscode";
 import { execVInTerminal, execV } from "./exec";
-import { openUrl } from "./utils";
+import { openUrl, getFile, getRmCmd } from "./utils";
 
 /** Run current file. */
 export async function run() {
 	const document = window.activeTextEditor.document;
 	await document.save();
 	const filePath = `"${document.fileName}"`;
-
-	execVInTerminal(["run", filePath]);
+	const filename = getFile(filePath)
+	execVInTerminal(["run", filePath, getRmCmd(), filename]);
 }
 
 /** Build an optimized executable from current file. */
