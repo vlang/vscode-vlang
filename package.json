@@ -139,7 +139,7 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
-		"vscode-languageclient": "~5.2.1"
+		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
 		"@types/node": "^13.13.38",

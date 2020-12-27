@@ -3,8 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
-import { window, StatusBarAlignment, ExtensionContext, workspace, ProgressLocation } from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
+import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel } from './status';
@@ -64,11 +64,9 @@ export async function installVls() {
 }
 
 export function connectVls(path: string, context: ExtensionContext) {
-	const prepareStatus = window.createStatusBarItem(StatusBarAlignment.Left);
-
 	// Path to VLS executable.
 	// Server Options for STDIO
-	const serverOptionsStd: ServerOptions = {
+	const serverOptions: ServerOptions = {
 		command: path,
 		args: [],
 		transport: TransportKind.stdio
@@ -83,12 +81,10 @@ export function connectVls(path: string, context: ExtensionContext) {
 
 	client = new LanguageClient(
 		"V Language Server",
-		serverOptionsStd,
+		serverOptions,
 		clientOptions,
 		true
 	);
-
-	prepareStatus.dispose();
 
 	client.onReady()
 		.then(() => {
