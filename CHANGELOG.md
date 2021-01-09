@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2020-04-17
+## 0.1.2
+*17 April 2020*
 ### Added
 - Added region folding support [13084c1](https://github.com/vlang/vscode-vlang/commit/13084c158e981ec9983e86f7637c403e653d140f)
 - Added highlighting for `flag` attribute [ec2bffa](https://github.com/vlang/vscode-vlang/commit/ec2bffa670d7761267026f4cb5c1bf620e12e81e)
@@ -21,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed error message filepath [fc526f9](https://github.com/vlang/vscode-vlang/commit/fc526f96f4743d0bb9ff16b79d32e50b24c1f79c)
 - Fixed incorrect struct highlighting with variable name [3b682a9](https://github.com/vlang/vscode-vlang/commit/3b682a9e31ec72257e351510be77126474921834)
 
-## [0.1.1] - 2020-01-16
+## 0.1.1
+*16 January 2020*
 ### Added
 - Linter [35d9805](https://github.com/vlang/vscode-vlang/commit/35d9805cdadb49335de70484b5bf1815f356857f)
 - Implemented "Show Version Info" [28420de](https://github.com/vlang/vscode-vlang/commit/28420dee18c6c52050a29a7a8bde648bafed85f0)
@@ -36,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Removed icon theme [827171b](https://github.com/vlang/vscode-vlang/commit/827171bb0c4eca127a6e90a8b92f9de8ebdf68a9)
 
-## [0.0.9] - 2019-12-30
+## 0.0.9
+*30 December 2019*
 ### Added
 - Highlighting for `as` keyword [e7c72b2](https://github.com/vlang/vscode-vlang/commit/e7c72b2cb23444d5c1fa5e5aa2f61e64eaa8264f)
 - Highlighting for `charptr` keyword [b9f16bc](https://github.com/vlang/vscode-vlang/commit/b9f16bce1e8089d0b2b2dd50bf09ff8aec621122)
@@ -49,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up resource usage [4f587ed](https://github.com/vlang/vscode-vlang/commit/4f587ed1cbcd6e884da250528ba7f2e0728127cb)
 - Removed unused entries from `.travis.yml` [96e1a0b](https://github.com/vlang/vscode-vlang/commit/96e1a0b06946d2659d5e92242aeabbfc56faf909)
 
-## [0.0.8] - 2019-10-20
+## 0.0.8
+*20 October 2019*
 ### Added
 - Highlighting for attributes. [f85aec5](https://github.com/vlang/vscode-vlang/commit/f85aec57a46116204c9f3fbe370277907ff00a9c)
 - Highlighting for `${...}` syntax [f11581d](https://github.com/vlang/vscode-vlang/commit/f11581dcaaadb88da2130a4d9b444d4281f1c0d4)
@@ -61,7 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrupted icon. [beeb022](https://github.com/vlang/vscode-vlang/commit/beeb0223c03a1a40b976ef350d546282b3cfa8ff)
 - Infinity recursion in certain grammar patterns [a40e951](https://github.com/vlang/vscode-vlang/commit/1638585f838e30c2587eaf9ee8a08c28785b6f42)
 
-## [0.0.7] - 2019-08-12
+## 0.0.7
+*12 August 2019*
 ### Added
 - New demos [636c358](https://github.com/vlang/vscode-vlang/commit/636c358eb53104f0b3f42f214305f9ef10fb9599)
 - New badges [ab94ea7](https://github.com/vlang/vscode-vlang/commit/ab94ea75950a59a5832cb6a6f32e6e8d5197e63a)
@@ -76,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - testv.tmLanguage.json [4e3a353](https://github.com/vlang/vscode-vlang/commit/4e3a35358d7927efbd47b25911b50e9ad3ee1cd2)
 - Themes for prefering used defined themes [ef56b2c](https://github.com/vlang/vscode-vlang/commit/ef56b2c8020d7b6d4d5408635339fa29265ad216)
 
-## [0.0.6] - 2019-07-15
+## 0.0.6
+*15 July 2019*
 ### Added
 - Metadata properties [37dd64b](https://github.com/vlang/vscode-vlang/commit/37dd64bcaf1a7799260d29773f55bf23f5f28247)
 - Ignore for specify files [45fbdd9](https://github.com/vlang/vscode-vlang/commit/45fbdd952a7c8dc6e971f52388b9629c9fd6ba4e)
@@ -94,7 +100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Autoclosed multilines comments (block) [012e640](https://github.com/vlang/vscode-vlang/commit/012e640a84772162a7d822c3b87890c20244fa78)
 
-## [0.0.5] - 2019-06-30
+## 0.0.5
+*30 June 2019*
 ### Added
 - Pattern for static type `intptr`
 - Pattern for control keyword `$else`
@@ -113,14 +120,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid typo `ligth` to `light` ([09b5257](https://github.com/vlang/vscode-vlang/commit/09b5257c7e0d4e10735d3c23d9cfa2eb27735dab))
 - Invalid pattern for variable assignment.
 
-## [0.0.4] - 2019-06-22
+## 0.0.4
+*22 June 2019*
 ### Added
 - Pattern for static types `byteptr, voidptr, ustring`
 - Pattern for extend (extra) function syntax `fn (a mut Vector) Set() {}`
 - Pattern for limited operator overloading `fn (a Operand) + (b Operand)Operand {}`
 - String placeholder.
 - String escaped characters.
-- Highlighting for V compiler headers without open source code __`.vh`__
+- Highlighting for V compiler headers without open source code **`.vh`**
 
 ### Fixed
 - Invalid pattern for floating point numbers.
@@ -130,11 +138,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid patterns for `module, import, #include, #flag`
 - Invalid pattern for generic `<T>`
 - Invalid pattern for variable assignment.
-- Invalid pattern for label (conflict with default keyword) __`default:`__
+- Invalid pattern for label (conflict with default keyword) **`default:`**
 
 - Included pattern for variable increment, decrement.
 
-## [0.0.3] - 2019-06-16
+## 0.0.3
+*16 June 2019*
 ### Added
 - Pattern for generics.
 - Generic highlighting.
@@ -144,7 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid pattern for float numeric.
 - Invalid pattern for new/exist function.
 
-## [0.0.2] - 2019-06-12
+## 0.0.2
+*12 June 2019*
 ### Added
 - Pattern for new-function variables, punctuation characters.
 - Pattern for exist-function punctuation characters.
@@ -158,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Highligting for `module, import, struct, enum, interface` from `default` to `bold underline`.
 
-## [0.0.1] - 2019-06-10
+## 0.0.1 - 2019-06-10
+*10 June 2019*
 ### Added
 - Code snippets for standart keywords and expressions.
 - Developer dark theme for **V**.
