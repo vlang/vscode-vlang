@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 0.1.7
+*9 January 2021*
+### Features
+- ⏫ Updated language client package.
+- 📩 Newest Version on vscode marketplace!
+
+### Fixes
+- 🐛Fixes syntax highlight for struct.
+
+## 0.1.6
+*26 December 2020*
+### Features
+- ⏫ Updated typescript version to 4.1.
+- 🔄 Progress notification when installing vls.
+
+### Fixes
+- 🐛Fixes bug on windows where executable path was without `.exe` suffix.
+
+## 0.1.5
+*24 December 2020*
+### Features
+- ⬇️ Automatically install vls (keep in mind that vls is still alpha)!
+- 🔄 Disable and enable vls on the fly
+
+### Fixes
+- 🚮 Removed unused and old lint & fmt functionality which is now done by the vls!
+- 🐛Fixes `#include` keyword highlighting
+
+## 0.1.4
+*12 December 2020*
+### Features
+- 🔴 Breakpoints are now part of the party!
+
+### Fixes
+- 👨🏼 Updated publisher name.
+- 🌐 Updated URLs in package.json.
+- Union is now recognized as a keyword.
+
 ## 0.1.2
 *17 April 2020*
 ### Added
