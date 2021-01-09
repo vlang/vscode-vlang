@@ -2,7 +2,7 @@
 	"name": "vscode-vlang",
 	"displayName": "V",
 	"description": "V language support (syntax highlighting, formatter, linter, snippets) for Visual Studio Code.",
-	"publisher": "v-language",
+	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
 	"version": "0.1.6",
 	"license": "MIT",
