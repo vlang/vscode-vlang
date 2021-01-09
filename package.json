@@ -4,7 +4,7 @@
 	"description": "V language support (syntax highlighting, formatter, linter, snippets) for Visual Studio Code.",
 	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"license": "MIT",
 	"private": true,
 	"engines": {
