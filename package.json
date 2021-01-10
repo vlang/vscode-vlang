@@ -78,6 +78,16 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Enables the language server. (alpha)"
+				},
+				"v.vls.enableFeatures": {
+					"scope": "resource",
+					"type": "string",
+					"description": "Enables specific language server features. Multiple values must be separated with a comma (,)."
+				},
+				"v.vls.disableFeatures": {
+					"scope": "resource",
+					"type": "string",
+					"description": "Disables specific language server features. Multiple values must be separated with a comma (,)."
 				}
 			}
 		},

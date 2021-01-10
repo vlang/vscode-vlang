@@ -64,11 +64,23 @@ export async function installVls() {
 }
 
 export function connectVls(path: string, context: ExtensionContext) {
+	// Arguments to be passed to VLS
+	let vlsArgs = [];
+
+	const enableFeatures = getWorkspaceConfig().get<string>("vls.enableFeatures");
+	const disableFeatures = getWorkspaceConfig().get<string>("vls.disableFeatures");
+	if (enableFeatures.length > 0) {
+		vlsArgs.push(`--enable=${enableFeatures}`)
+	}
+	if (disableFeatures.length > 0) {
+		vlsArgs.push(`--disable=${disableFeatures}`)
+	}
+
 	// Path to VLS executable.
 	// Server Options for STDIO
 	const serverOptions: ServerOptions = {
 		command: path,
-		args: [],
+		args: vlsArgs,
 		transport: TransportKind.stdio
 	};
 	// LSP Client options
