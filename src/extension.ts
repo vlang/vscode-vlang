@@ -1,7 +1,7 @@
 import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from "vscode";
 import * as commands from "./commands";
 import { getWorkspaceConfig } from './utils';
-import { connectVls, checkIsVlsInstalled, activateVls, vlsPath, deactivateVls } from "./langserver";
+import { activateVls, deactivateVls } from "./langserver";
 
 const cmds = {
 	"v.run": commands.run,
@@ -9,6 +9,7 @@ const cmds = {
 	"v.help": commands.help,
 	"v.prod": commands.prod,
 	"v.devbits_playground": commands.devbitsPlayground,
+	"v.vls.update": commands.updateVls,
 };
 
 /**
