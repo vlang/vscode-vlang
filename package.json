@@ -120,6 +120,10 @@
 			{
 				"command": "v.devbits_playground",
 				"title": "V: Open current code on DevBits V playground"
+			},
+			{
+				"command": "v.vls.update",
+				"title": "V: Update VLS"
 			}
 		],
 		"menus": {

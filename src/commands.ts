@@ -1,5 +1,6 @@
 import { window } from "vscode";
 import { execVInTerminal, execV } from "./exec";
+import { installVls } from "./langserver";
 import { openUrl } from "./utils";
 
 /** Run current file. */
@@ -27,9 +28,7 @@ export function help() {}
 export function ver() {
 	execV(["-version"], (err, stdout) => {
 		if (err) {
-			window.showErrorMessage(
-				"Unable to get the version number. Is V installed correctly?"
-			);
+			window.showErrorMessage("Unable to get the version number. Is V installed correctly?");
 			return;
 		}
 
@@ -50,4 +49,8 @@ export function devbitsPlayground() {
 	// } else {
 	openUrl(url + base64Code);
 	// }
+}
+
+export function updateVls() {
+	installVls();
 }

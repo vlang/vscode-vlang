@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## 0.1.8
+*Unreleased*
+
+### Features
+- ⏫ It's now possible to update the V Language Server by using the command `v.vls.update`. Just press `Shift`+`Ctrl`+`P` and search for `update vls`.
+- Enabling and disabling single features of the language server!
 
 ## 0.1.7
 *9 January 2021*
@@ -13,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📩 Newest Version on vscode marketplace!
 
 ### Fixes
-- 🐛Fixes syntax highlight for struct.
+- 🐛 Fixes syntax highlight for struct.
 
 ## 0.1.6
 *26 December 2020*
@@ -22,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔄 Progress notification when installing vls.
 
 ### Fixes
-- 🐛Fixes bug on windows where executable path was without `.exe` suffix.
+- 🐛 Fixes bug on windows where executable path was without `.exe` suffix.
 
 ## 0.1.5
 *24 December 2020*
@@ -32,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixes
 - 🚮 Removed unused and old lint & fmt functionality which is now done by the vls!
-- 🐛Fixes `#include` keyword highlighting
+- 🐛 Fixes `#include` keyword highlighting
 
 ## 0.1.4
 *12 December 2020*
