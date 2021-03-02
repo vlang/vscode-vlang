@@ -111,8 +111,18 @@
 			"\treturn app.json(${2:'response'})",
 			"}"
 		],
-		"description": "Code snippet for a vweb HTTP GET endpoint function a JSON response",
+		"description": "Code snippet for a vweb HTTP GET endpoint function which returns a JSON response",
 		"prefix": "vweb_get_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_get_html": {
+		"body": [
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn $vweb.html()",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP GET endpoint function which returns an HTML response",
+		"prefix": "vweb_get_html",
 		"scope": "v,vlang"
 	},
 	"snippet.fn.vweb_post": {
@@ -133,8 +143,19 @@
 			"\treturn app.json(${2:'response'})",
 			"}"
 		],
-		"description": "Code snippet for a vweb HTTP POST endpoint function with a JSON response",
+		"description": "Code snippet for a vweb HTTP POST endpoint function which returns a JSON response",
 		"prefix": "vweb_post_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_post_html": {
+		"body": [
+			"[post]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn $vweb.html()",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP POST endpoint function which returns an HTML response",
+		"prefix": "vweb_post_html",
 		"scope": "v,vlang"
 	},
 	"snippet.fn.vweb_patch": {
@@ -155,8 +176,19 @@
 			"\treturn app.json(${2:'response'})",
 			"}"
 		],
-		"description": "Code snippet for a vweb HTTP PATCH endpoint function with a JSON response",
+		"description": "Code snippet for a vweb HTTP PATCH endpoint function which returns a JSON response",
 		"prefix": "vweb_patch_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_patch_html": {
+		"body": [
+			"[patch]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn $vweb.html()",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PATCH endpoint function which returns an HTML response",
+		"prefix": "vweb_patch_html",
 		"scope": "v,vlang"
 	},
 	"snippet.fn.vweb_put": {
@@ -177,8 +209,19 @@
 			"\treturn app.json(${2:'response'})",
 			"}"
 		],
-		"description": "Code snippet for a vweb HTTP PUT endpoint function with a JSON response",
+		"description": "Code snippet for a vweb HTTP PUT endpoint function which returns a JSON response",
 		"prefix": "vweb_put_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_put_html": {
+		"body": [
+			"[put]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn $vweb.html()",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PUT endpoint function which returns an HTML response",
+		"prefix": "vweb_put_html",
 		"scope": "v,vlang"
 	},
 	"snippet.fn.vweb_delete": {
@@ -199,8 +242,19 @@
 			"\treturn app.json(${2:'response'})",
 			"}"
 		],
-		"description": "Code snippet for a vweb HTTP DELETE endpoint function with a JSON response",
+		"description": "Code snippet for a vweb HTTP DELETE endpoint function which returns a JSON response",
 		"prefix": "vweb_delete_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_delete_html": {
+		"body": [
+			"[delete]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn $vweb.html()",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP DELETE endpoint function which returns an HTML response",
+		"prefix": "vweb_delete_html",
 		"scope": "v,vlang"
 	},
 	"snippet.for": {
