@@ -257,6 +257,26 @@
 		"prefix": "vweb_delete_html",
 		"scope": "v,vlang"
 	},
+	"snippet.vweb_skeleton": {
+		"body": [
+			"import vweb",
+			"",
+			"struct App {",
+			"\tvweb.Context",
+			"}",
+			"",
+			"fn main() {",
+			"\tvweb.run<App>(${1:8080})",
+			"}",
+			"",
+			"fn (mut app App) ${2:index}() vweb.Result {",
+			"\treturn app.json(${3:'response'})",
+			"}"
+		],
+		"description": "Code snippet to generate a very basic web server including all necessary elements",
+		"prefix": "vweb_skeleton",
+		"scope": "v,vlang"
+	},
 	"snippet.for": {
 		"body": ["for {", "\t$0", "}"],
 		"description": "Code snippet for pure infinity loop 'for'",
