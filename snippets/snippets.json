@@ -95,6 +95,114 @@
 		"prefix": "prl",
 		"scope": "v,vlang"
 	},
+	"snippet.fn.vweb_get": {
+		"body": [
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\t${2:// TODO}",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP GET endpoint function",
+		"prefix": "vweb_get",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_get_json": {
+		"body": [
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn app.json(${2:'response'})",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP GET endpoint function a JSON response",
+		"prefix": "vweb_get_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_post": {
+		"body": [
+			"[post]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\t${2:// TODO}",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP POST endpoint function",
+		"prefix": "vweb_post",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_post_json": {
+		"body": [
+			"[post]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn app.json(${2:'response'})",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP POST endpoint function with a JSON response",
+		"prefix": "vweb_post_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_patch": {
+		"body": [
+			"[patch]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\t${2:// TODO}",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PATCH endpoint function",
+		"prefix": "vweb_patch",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_patch_json": {
+		"body": [
+			"[patch]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn app.json(${2:'response'})",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PATCH endpoint function with a JSON response",
+		"prefix": "vweb_patch_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_put": {
+		"body": [
+			"[put]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\t${2:// TODO}",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PUT endpoint function",
+		"prefix": "vweb_put",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_put_json": {
+		"body": [
+			"[put]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn app.json(${2:'response'})",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP PUT endpoint function with a JSON response",
+		"prefix": "vweb_put_json",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_delete": {
+		"body": [
+			"[delete]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\t${2:// TODO}",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP DELETE endpoint function",
+		"prefix": "vweb_delete",
+		"scope": "v,vlang"
+	},
+	"snippet.fn.vweb_delete_json": {
+		"body": [
+			"[delete]",
+			"fn (mut app App) ${1:name}() vweb.Result {",
+			"\treturn app.json(${2:'response'})",
+			"}"
+		],
+		"description": "Code snippet for a vweb HTTP DELETE endpoint function with a JSON response",
+		"prefix": "vweb_delete_json",
+		"scope": "v,vlang"
+	},
 	"snippet.for": {
 		"body": ["for {", "\t$0", "}"],
 		"description": "Code snippet for pure infinity loop 'for'",
@@ -207,6 +315,16 @@
 		"body": ["struct ${1:Name} {", "\t$0", "}"],
 		"description": "Code snippet for 'struct'",
 		"prefix": "stru",
+		"scope": "v,vlang"
+	},
+	"snippet.struct.vweb_app": {
+		"body": [
+			"struct ${1:App} {",
+			"\tvweb.Context",
+			"}"
+		],
+		"description": "Code snippet for a vweb.Context struct",
+		"prefix": "vweb_app",
 		"scope": "v,vlang"
 	},
 	"snippet.type": {
