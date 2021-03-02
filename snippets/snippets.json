@@ -118,7 +118,7 @@
 	"snippet.fn.vweb_get_html": {
 		"body": [
 			"fn (mut app App) ${1:name}() vweb.Result {",
-			"\treturn $vweb.html()",
+			"\treturn \\$vweb.html()",
 			"}"
 		],
 		"description": "Code snippet for a vweb HTTP GET endpoint function which returns an HTML response",
@@ -151,7 +151,7 @@
 		"body": [
 			"[post]",
 			"fn (mut app App) ${1:name}() vweb.Result {",
-			"\treturn $vweb.html()",
+			"\treturn \\$vweb.html()",
 			"}"
 		],
 		"description": "Code snippet for a vweb HTTP POST endpoint function which returns an HTML response",
@@ -184,7 +184,7 @@
 		"body": [
 			"[patch]",
 			"fn (mut app App) ${1:name}() vweb.Result {",
-			"\treturn $vweb.html()",
+			"\treturn \\$vweb.html()",
 			"}"
 		],
 		"description": "Code snippet for a vweb HTTP PATCH endpoint function which returns an HTML response",
@@ -217,7 +217,7 @@
 		"body": [
 			"[put]",
 			"fn (mut app App) ${1:name}() vweb.Result {",
-			"\treturn $vweb.html()",
+			"\treturn \\$vweb.html()",
 			"}"
 		],
 		"description": "Code snippet for a vweb HTTP PUT endpoint function which returns an HTML response",
@@ -250,7 +250,7 @@
 		"body": [
 			"[delete]",
 			"fn (mut app App) ${1:name}() vweb.Result {",
-			"\treturn $vweb.html()",
+			"\treturn \\$vweb.html()",
 			"}"
 		],
 		"description": "Code snippet for a vweb HTTP DELETE endpoint function which returns an HTML response",
