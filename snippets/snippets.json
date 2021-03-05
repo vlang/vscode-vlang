@@ -210,7 +210,7 @@
 		"scope": "v,vlang"
 	},
 	"snippet.type": {
-		"body": ["type ${1:name} ${2:type}"],
+		"body": ["type ${1:name} = ${2:type}"],
 		"description": "Code snippet for 'type' definition",
 		"prefix": "ty",
 		"scope": "v,vlang"
@@ -301,7 +301,7 @@
 	},
 	"snippet.type.voidptr": {
 		"body": ["voidptr"],
-		"description": "Code snippet for Void*",
+		"description": "Code snippet for void*",
 		"prefix": "vptr",
 		"scope": "v,vlang"
 	},
