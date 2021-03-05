@@ -30,7 +30,7 @@
 			"include": "#include-decl"
 		},
 		{
-			"include": "#flag-decl"
+			"include": "#hash-decl"
 		},
 		{
 			"include": "#brackets"
@@ -196,12 +196,12 @@
 				}
 			]
 		},
-		"flag-decl": {
-			"name": "meta.flag.v",
-			"begin": "^\\s*(#flag)",
+		"hash-decl": {
+			"name": "meta.hash.v",
+			"begin": "^\\s*(#define|#flag|#pkgconfig)",
 			"beginCaptures": {
 				"1": {
-					"name": "keyword.flag.v"
+					"name": "keyword.$1.v"
 				}
 			},
 			"end": "\\s+(.*?)$",
