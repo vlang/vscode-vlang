@@ -131,7 +131,7 @@
 		},
 		"attributes": {
 			"name": "meta.definition.attribute.v",
-			"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline|flag|ref_only|windows_stdcall|direct_array_access)(\\]))",
+			"match": "^\\s*((\\[)(deprecated|unsafe_fn|console|heap|debug|manualfree|typedef|live|inline|flag|ref_only|windows_stdcall|direct_array_access)(\\]))",
 			"captures": {
 				"1": {
 					"name": "meta.function.attribute.v"
