@@ -1,6 +1,7 @@
 .vscode/ipch
 *.code-workspace
 node_modules
+package-lock.json
 out
 *.exe
 *.vsix
