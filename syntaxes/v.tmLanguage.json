@@ -829,7 +829,7 @@
 			"patterns": [
 				{
 					"name": "keyword.operator.arithmethic.v",
-					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-)"
+					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-|\\>\\>|\\<\\<)"
 				},
 				{
 					"name": "keyword.operator.assignment.v",
