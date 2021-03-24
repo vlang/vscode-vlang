@@ -9,4 +9,5 @@ images/
 .v
 .go
 tsconfig.json
+package-lock.json
 scripts/

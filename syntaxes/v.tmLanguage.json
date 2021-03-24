@@ -131,7 +131,7 @@
 		},
 		"attributes": {
 			"name": "meta.definition.attribute.v",
-			"match": "^\\s*((\\[)(deprecated|unsafe_fn|typedef|live|inline|flag|ref_only|windows_stdcall|direct_array_access)(\\]))",
+			"match": "^\\s*((\\[)(deprecated|unsafe_fn|console|heap|debug|manualfree|typedef|live|inline|flag|ref_only|windows_stdcall|direct_array_access)(\\]))",
 			"captures": {
 				"1": {
 					"name": "meta.function.attribute.v"
@@ -282,7 +282,7 @@
 						},
 						{
 							"name": "keyword.$1.v",
-							"match": "\\b(fn|type|enum|struct|union|interface|map|assert|sizeof)\\b(?=\\s*\\()"
+							"match": "\\b(fn|type|enum|struct|union|interface|map|assert|sizeof|typeof|__offsetof)\\b(?=\\s*\\()"
 						}
 					]
 				},
@@ -324,7 +324,7 @@
 		},
 		"escaped-fix": {
 			"name": "meta.escaped.keyword.v",
-			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|type|struct|interface|enum|in|is|or|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune))",
+			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|__offsetof|typeof|type|struct|interface|enum|in|is|or|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune))",
 			"captures": {
 				"0": {
 					"name": "keyword.other.escaped.v"
@@ -805,7 +805,7 @@
 				},
 				{
 					"name": "keyword.$1.v",
-					"match": "\\b(fn|type|enum|struct|interface|map|assert|sizeof)\\b"
+					"match": "\\b(fn|type|typeof|enum|struct|interface|map|assert|sizeof|__offsetof)\\b"
 				}
 			]
 		},
@@ -833,11 +833,11 @@
 				},
 				{
 					"name": "keyword.operator.assignment.v",
-					"match": "(\\:\\=|\\=|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=|\\&\\=|\\|\\=|\\^\\=|\\&\\&\\=|\\|\\|\\=|\\>\\>\\=|\\<\\<\\=)"
+					"match": "(\\:\\=|\\=|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=|\\&\\=|\\|\\=|\\^\\=|\\~\\=|\\&\\&\\=|\\|\\|\\=|\\>\\>\\=|\\<\\<\\=)"
 				},
 				{
 					"name": "keyword.operator.bitwise.v",
-					"match": "(\\&|\\||\\^|<(?!<)|>(?!>))"
+					"match": "(\\&|\\||\\^|\\~|<(?!<)|>(?!>))"
 				},
 				{
 					"name": "keyword.operator.logical.v",
