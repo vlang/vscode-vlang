@@ -105,30 +105,7 @@
 				}
 			}
 		},
-		"assignment": {
-			"name": "meta.definition.variable.v",
-			"match": "([\\w.]+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
-			"captures": {
-				"1": {
-					"patterns": [
-						{
-							"include": "#illegal-name"
-						},
-						{
-							"match": "\\w+",
-							"name": "variable.assignment.other.v"
-						}
-					]
-				},
-				"2": {
-					"patterns": [
-						{
-							"include": "#operators"
-						}
-					]
-				}
-			}
-		},
+		
 		"attributes": {
 			"name": "meta.definition.attribute.v",
 			"match": "^\\s*((\\[)(deprecated|unsafe_fn|console|heap|debug|manualfree|typedef|live|inline|flag|ref_only|windows_stdcall|direct_array_access)(\\]))",
@@ -829,7 +806,7 @@
 			"patterns": [
 				{
 					"name": "keyword.operator.arithmethic.v",
-					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-)"
+					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-|\\>\\>|\\<\\<)"
 				},
 				{
 					"name": "keyword.operator.assignment.v",
