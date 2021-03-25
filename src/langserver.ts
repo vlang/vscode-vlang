@@ -13,11 +13,11 @@ const execAsync = util.promisify(cp.exec);
 const mkdirAsync = util.promisify(fs.mkdir);
 const existsAsync = util.promisify(fs.exists);
 
-const vmodules = path.join(os.homedir(), '.vmodules');
-const vbin = path.join(vmodules, 'bin');
+const vlsDir = path.join(os.homedir(), '.vls');
+const vlsBin = path.join(vlsDir, 'bin');
 const vexe = getVExecCommand();
 const isWin = process.platform === "win32";
-export const vlsPath = path.join(vbin, isWin ? 'vls.exe' : 'vls');
+export const vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
@@ -44,18 +44,24 @@ export async function installVls() {
 			location: ProgressLocation.Notification,
 			title: 'Installing VLS',
 			cancellable: false,
-		}, async progress => {
-			const vlsCmd = path.join(vmodules, 'vls', 'cmd', 'vls');
+		}, async (progress) => {
 			progress.report({ message: 'Fetching module' });
-			await execAsync(`v install vls`, { maxBuffer: Infinity });
-			progress.report({ message: 'Creating ~/.vmodules/bin' });
+			const existsVlsDir = await existsAsync(vlsDir);
+			if (existsVlsDir) {
+				await execAsync('git clean -xf', { maxBuffer: Infinity, cwd: vlsDir });
+				await execAsync('git pull --rebase origin master', { maxBuffer: Infinity, cwd: vlsDir });
+			} else {
+				await execAsync(`git clone --single-branch https://github.com/vlang/vls ${vlsDir}`, { maxBuffer: Infinity });
+			}
+			progress.report({ message: 'Creating ~/.vls/bin' });
 			// build vls module to ~/.vmodules/bin
-			const existsVBin = await existsAsync(vbin);
+			const existsVBin = await existsAsync(vlsBin);
 			if (!existsVBin) {
-				await mkdirAsync(vbin)
+				await mkdirAsync(vlsBin)
 			}
 			progress.report({ message: 'Building module' });
-			await execAsync(`${vexe} -prod -o ${vlsPath} ${vlsCmd}`, { maxBuffer: Infinity });
+			// TODO: add -gc boehm when libgc library is not needed anymore
+			await execAsync(`${vexe} -prod -o ${vlsPath} cmd/vls`, { maxBuffer: Infinity, cwd: vlsDir });
 		});
 	} catch (e) {
 		outputChannel.appendLine(e);
