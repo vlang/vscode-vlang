@@ -3,7 +3,7 @@
 
 const path = require("path");
 
-/**@type {import('webpack').Configuration}*/
+/** @type {import('webpack').Configuration} */
 const config = {
 	target: "node",
 	entry: "./src/extension.ts",
