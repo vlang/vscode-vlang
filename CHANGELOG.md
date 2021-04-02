@@ -5,11 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 0.1.8
-*Unreleased*
-
+*25 March 2021*
 ### Features
-- ⏫ It's now possible to update the V Language Server by using the command `v.vls.update`. Just press `Shift`+`Ctrl`+`P` and search for `update vls`.
-- Enabling and disabling single features of the language server!
+- ⏫ You can update vls by a vscode command! Just press Ctrl+Shift+P and type `update vls`. That's it!
+- Support for enabling feature using flags (thanks @nedpals)
+- Highlight for #define and #pkgconfig (thanks @crackedmind #213)
+- Update snippets to the current syntax (thanks @StunxFS #218)
+- Improved syntax support (thanks @AliChraghi #221 #223)
+
+### Fixes
+- 🐛Fixes installing vls automatically (#224)
 
 ## 0.1.7
 *9 January 2021*
