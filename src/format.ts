@@ -6,14 +6,21 @@ import {
 	window,
 	Disposable,
 } from "vscode";
-import { execV } from "./exec";
+import { client } from "./client";
+import { execV, execVWithDocument } from "./exec";
+import { FormatterStatus, outputChannel, statusBar } from "./status";
 import { fullDocumentRange, getWorkspaceConfig } from "./utils";
+
+function timestampString() {
+	return new Date().toLocaleTimeString();
+}
 
 function doFormat(document: TextDocument, resolve: Function, reject: Function) {
 	if (document.isClosed) {
 		resolve([]);
 		return;
 	}
+	const start = Date.now();
 
 	const callback = (err, stdout, stderr) => {
 		if (document.isClosed) {
@@ -22,23 +29,48 @@ function doFormat(document: TextDocument, resolve: Function, reject: Function) {
 			return;
 		}
 
-		if (err) {
-			const errMessage = `Cannot format due to the following errors: ${stderr}`;
-			window.showErrorMessage(errMessage);
+		if (err && !stderr.length) {
+			stderr = `ERR - [${timestampString()}] ${err.toString()}`;
+			outputChannel.append(stderr);
 			document = null;
-			return reject(errMessage);
+			statusBar.update(FormatterStatus.Error);
+			return reject(stderr);
 		}
+
+		if (stderr.length > 0) {
+			if (stderr.startsWith(":")) {
+				stderr = `ERR - [${timestampString()}] ${document.fileName}${stderr}`;
+				// sometimes the filename shows up as something weird isntead of an empty string.
+			} else if (stderr.indexOf(":") > -1) {
+				stderr = `ERR - [${timestampString()}] ${
+					document.fileName
+				}:${stderr.substring(stderr.indexOf(":"))}`;
+			} else {
+				stderr = `ERR - [${timestampString()}] ${document.fileName}:${stderr}`;
+			}
+			outputChannel.append(stderr);
+			document = null;
+			statusBar.update(FormatterStatus.Error);
+			return reject(stderr);
+		}
+
 		const res = [TextEdit.replace(fullDocumentRange(document), stdout)];
+
+		outputChannel.appendLine(
+			`[${timestampString()}] v fmt completed in ${Date.now() - start}ms (${
+				document.uri.fsPath
+			})`
+		);
 		document = null;
+		statusBar.update(FormatterStatus.Success);
 		resolve(res);
 	};
 
 	const vfmtArgs = getWorkspaceConfig().get("format.args", "");
-
 	if (vfmtArgs.length) {
-		execV(["fmt", vfmtArgs, document.uri.fsPath], callback);
+		execVWithDocument(document, ["fmt", vfmtArgs], callback);
 	} else {
-		execV(["fmt", document.uri.fsPath], callback);
+		execVWithDocument(document, ["fmt"], callback);
 	}
 }
 

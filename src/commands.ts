@@ -1,6 +1,7 @@
 import { window, env, Uri } from "vscode";
 import { execVInTerminal, execV } from "./exec";
 import { installVls } from "./langserver";
+import { outputChannel } from "./status";
 
 /** Run current file. */
 export async function run() {
@@ -9,6 +10,10 @@ export async function run() {
 	const filePath = `"${document.fileName}"`;
 
 	execVInTerminal(["run", filePath]);
+}
+
+export function openOutput() {
+	outputChannel.show();
 }
 
 /** Build an optimized executable from current file. */

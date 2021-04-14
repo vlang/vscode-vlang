@@ -16,6 +16,7 @@ import {
 
 import { getVExecCommand, getWorkspaceConfig } from "./utils";
 import { outputChannel } from "./status";
+import { client, setClient } from "./client";
 
 const execAsync = util.promisify(cp.exec);
 const mkdirAsync = util.promisify(fs.mkdir);
@@ -26,8 +27,6 @@ const vlsBin = path.join(vlsDir, "bin");
 const vexe = getVExecCommand();
 const isWin = process.platform === "win32";
 export const vlsPath = path.join(vlsBin, isWin ? "vls.exe" : "vls");
-export let client: LanguageClient;
-
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
 	if (!vlsInstalled) {
@@ -128,7 +127,9 @@ export async function connectVls(path: string, context: ExtensionContext) {
 		},
 	};
 
-	client = new LanguageClient("V Language Server", serverOptions, clientOptions, true);
+	setClient(
+		new LanguageClient("V Language Server", serverOptions, clientOptions, true)
+	);
 	const onReady = client.onReady();
 
 	context.subscriptions.push(client.start());
@@ -141,7 +142,7 @@ export async function connectVls(path: string, context: ExtensionContext) {
 		window.showErrorMessage(`VLS error: ${err.toString()}`);
 		console.error(err);
 		context = null;
-		client = null;
+		setClient(null);
 	}
 }
 
@@ -167,6 +168,6 @@ export async function deactivateVls() {
 	} catch (exception) {
 		console.error(exception);
 
-		client = null;
+		setClient(null);
 	}
 }
