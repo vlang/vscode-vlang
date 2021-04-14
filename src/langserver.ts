@@ -98,16 +98,17 @@ export async function installVls() {
 	}
 }
 
-export function connectVls(path: string, context: ExtensionContext) {
+export async function connectVls(path: string, context: ExtensionContext) {
 	// Arguments to be passed to VLS
-	let vlsArgs = [];
+	let vlsArgs = ["--debug"];
 
 	const enableFeatures = getWorkspaceConfig().get<string>("vls.enableFeatures");
 	const disableFeatures = getWorkspaceConfig().get<string>("vls.disableFeatures");
-	if (enableFeatures.length > 0) {
+	if (enableFeatures && enableFeatures.length > 0) {
 		vlsArgs.push(`--enable=${enableFeatures}`);
 	}
-	if (disableFeatures.length > 0) {
+
+	if (disableFeatures && disableFeatures.length > 0) {
 		vlsArgs.push(`--disable=${disableFeatures}`);
 	}
 
@@ -118,6 +119,7 @@ export function connectVls(path: string, context: ExtensionContext) {
 		args: vlsArgs,
 		transport: TransportKind.stdio,
 	};
+
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: "file", language: "v" }],
@@ -127,20 +129,20 @@ export function connectVls(path: string, context: ExtensionContext) {
 	};
 
 	client = new LanguageClient("V Language Server", serverOptions, clientOptions, true);
-
-	client
-		.onReady()
-		.then(() => {
-			window.setStatusBarMessage("The V language server is ready.", 3000);
-		})
-		.catch(() => {
-			window.setStatusBarMessage(
-				"The V language server failed to initialize.",
-				3000
-			);
-		});
+	const onReady = client.onReady();
 
 	context.subscriptions.push(client.start());
+	try {
+		await onReady;
+		window.setStatusBarMessage("The V language server is ready.", 3000);
+
+		context = null;
+	} catch (err) {
+		window.showErrorMessage(`VLS error: ${err.toString()}`);
+		console.error(err);
+		context = null;
+		client = null;
+	}
 }
 
 export async function activateVls(context: ExtensionContext) {
@@ -149,10 +151,10 @@ export async function activateVls(context: ExtensionContext) {
 		// if no vls path is given, try to used the installed one or install it.
 		const installed = await checkIsVlsInstalled();
 		if (installed) {
-			connectVls(vlsPath, context);
+			await connectVls(vlsPath, context);
 		}
 	} else {
-		connectVls(customVlsPath, context);
+		await connectVls(customVlsPath, context);
 	}
 }
 
@@ -160,5 +162,11 @@ export async function deactivateVls() {
 	if (!client) {
 		return;
 	}
-	await client.stop();
+	try {
+		await client.stop();
+	} catch (exception) {
+		console.error(exception);
+
+		client = null;
+	}
 }

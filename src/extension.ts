@@ -3,7 +3,6 @@ import * as commands from "./commands";
 import { activateVls, deactivateVls } from "./langserver";
 import { registerFormatter } from "./format";
 import { attachOnCloseTerminalListener } from "./exec";
-import * as linter from "./linter";
 import { clearTempFolder, getWorkspaceConfig, makeTempFolder } from "./utils";
 
 const vLanguageId = "v";
@@ -51,59 +50,6 @@ export function activate(context: ExtensionContext) {
 		attachOnCloseTerminalListener(),
 		vscode.workspace.onDidChangeConfiguration(didChangeConfiguration)
 	);
-
-	if (
-		getWorkspaceConfig().get("enableLinter") &&
-		!getWorkspaceConfig().get("vls.enable")
-	) {
-		// Make a temp folder for linter
-		makeTempFolder();
-
-		context.subscriptions.push(
-			vscode.window.onDidChangeVisibleTextEditors(didChangeVisibleTextEditors),
-			vscode.workspace.onDidSaveTextDocument(didSaveTextDocument),
-			vscode.workspace.onDidCloseTextDocument(didCloseTextDocument)
-		);
-		// If there are V files open, do the lint immediately
-		if (
-			vscode.window.activeTextEditor &&
-			vscode.window.activeTextEditor.document.languageId === vLanguageId
-		) {
-			linter.lint(vscode.window.activeTextEditor.document);
-		}
-	}
-}
-
-/**
- *  Handles the `onDidChangeVisibleTextEditors` event
- */
-function didChangeVisibleTextEditors(editors: Array<vscode.TextEditor>) {
-	editors.forEach((editor) => {
-		if (editor.document.languageId === vLanguageId) {
-			linter.lint(editor.document);
-		}
-	});
-}
-
-/**
- *  Handles the `onDidSaveTextDocument` event
- */
-function didSaveTextDocument(document: vscode.TextDocument) {
-	if (document.languageId === vLanguageId) {
-		linter.lint(document);
-	}
-}
-
-/**
- *  Handles the `onDidCloseTextDocument` event
- */
-function didCloseTextDocument(document: vscode.TextDocument) {
-	if (!vscode.window.visibleTextEditors.length) {
-		linter.clear();
-	}
-	if (document.languageId === vLanguageId) {
-		linter._delete(document.uri);
-	}
 }
 
 /**

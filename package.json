@@ -1,7 +1,7 @@
 {
 	"name": "vscode-vlang",
 	"displayName": "V",
-	"description": "V language support (syntax highlighting, formatter, linter, snippets) for Visual Studio Code.",
+	"description": "V language support (syntax highlighting, formatter, snippets) for Visual Studio Code.",
 	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
 	"version": "0.1.9",
@@ -71,18 +71,6 @@
 					"type": "string",
 					"default": "",
 					"description": "Path to V executable file"
-				},
-				"v.enableLinter": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": true,
-					"description": "Enables the linter. Restart is required to take effect."
-				},
-				"v.allowGlobals": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": false,
-					"description": "Enables support for global variables. Restart is required to take effect."
 				},
 				"v.vls.customPath": {
 					"scope": "resource",

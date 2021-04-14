@@ -17,17 +17,13 @@ export function execVInTerminal(args: string[]) {
 }
 
 export function execV(args: string[], callback: ExecCallback) {
-	const vexec = getVExecCommand();
-	const cwd = getCwd();
+	execFile(getVExecCommand(), args, { cwd: getCwd() }, callback);
+}
 
-	// console.log(`Executing ${vexec} ${args.join(" ")} on ${cwd}`);
-	execFile(vexec, args, { cwd }, (err, stdout, stderr) => {
-		callback(err, stdout, stderr);
-	});
+function handleCloseTerminal(term: Terminal) {
+	if (term.name == "V") vRunTerm = null;
 }
 
 export function attachOnCloseTerminalListener(): Disposable {
-	return window.onDidCloseTerminal((term) => {
-		if (term.name == "V") vRunTerm = null;
-	});
+	return window.onDidCloseTerminal(handleCloseTerminal);
 }
