@@ -4,7 +4,7 @@
 	"description": "V language support (syntax highlighting, formatter, linter, snippets) for Visual Studio Code.",
 	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
-	"version": "0.1.8",
+	"version": "0.1.9",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.40.0"
@@ -60,11 +60,29 @@
 		"configuration": {
 			"title": "V",
 			"properties": {
+				"v.format.args": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "Arguments to pass to 'vfmt'"
+				},
 				"v.pathToExecutableFile": {
 					"scope": "resource",
 					"type": "string",
 					"default": "",
 					"description": "Path to V executable file"
+				},
+				"v.enableLinter": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": true,
+					"description": "Enables the linter. Restart is required to take effect."
+				},
+				"v.allowGlobals": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": false,
+					"description": "Enables support for global variables. Restart is required to take effect."
 				},
 				"v.vls.customPath": {
 					"scope": "resource",
@@ -134,17 +152,15 @@
 				{
 					"command": "v.prod",
 					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.devbits_playground",
+					"when": "editorLangId == v"
 				}
 			]
-		},
-		"breakpoints": [
-			{
-				"language": "v"
-			}
-		]
+		}
 	},
 	"activationEvents": [
-		"workspaceContains:**/*.v",
 		"onLanguage:v",
 		"onCommand:v.help",
 		"onCommand:v.ver",
@@ -155,9 +171,10 @@
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^13.13.38",
+		"@types/node": "^13.13.48",
 		"@types/vscode": "^1.40.0",
 		"chokidar": "^3.5.1",
+		"json-minify": "^1.0.0",
 		"markdownlint-cli": "^0.20.0",
 		"ts-loader": "^8.0.18",
 		"typescript": "^4.2.3",
