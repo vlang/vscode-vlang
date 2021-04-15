@@ -1,7 +1,4 @@
-import { LanguageClient } from "vscode-languageclient/node";
+import { LanguageClient } from "vscode-languageclient/lib/node/main";
 
-export let client: LanguageClient | null = null;
-
-export function setClient(_client: LanguageClient) {
-	client = _client;
-}
+export let clients = new Map<string, LanguageClient>();
+export const ENABLE_VLS_BY_DEFAULT = false;

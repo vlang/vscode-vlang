@@ -4,3 +4,6 @@ node_modules
 out
 *.exe
 *.vsix
+
+vls.log
+yarn.lock

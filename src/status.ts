@@ -1,4 +1,4 @@
-import { StatusBarAlignment, StatusBarItem, window } from "vscode";
+import { StatusBarAlignment, StatusBarItem, ThemeColor, window } from "vscode";
 
 export const outputChannel = window.createOutputChannel("V");
 
@@ -22,6 +22,10 @@ export class StatusBar {
 		this.statusBarItem.show();
 	}
 
+	errorColor = new ThemeColor("statusBarItem.errorBackground");
+	lastResult = FormatterStatus.Ready;
+	didAutoShow = false;
+	enableAutoShow = false;
 	/**
 	 * Update the statusBarItem message and show the statusBarItem
 	 *
@@ -29,17 +33,31 @@ export class StatusBar {
 	 */
 	public update(result: FormatterStatus): void {
 		this.statusBarItem.text = `$(${result.toString()}) v fmt`;
-		// Waiting for VS Code 1.53: https://github.com/microsoft/vscode/pull/116181
-		// if (result === FormattingResult.Error) {
-		//   this.statusBarItem.backgroundColor = new ThemeColor(
-		//     "statusBarItem.errorBackground"
-		//   );
-		// } else {
-		//   this.statusBarItem.backgroundColor = new ThemeColor(
-		//     "statusBarItem.fourgroundBackground"
-		//   );
-		// }
+		if (result === FormatterStatus.Error) {
+			this.statusBarItem.backgroundColor = this.errorColor;
+		} else {
+			this.statusBarItem.backgroundColor = null;
+		}
 		this.statusBarItem.show();
+
+		if (this.enableAutoShow) {
+			if (
+				this.lastResult === FormatterStatus.Error &&
+				result === FormatterStatus.Success
+			) {
+				outputChannel.hide();
+				this.didAutoShow = false;
+			} else if (result === FormatterStatus.Error && !this.didAutoShow) {
+				outputChannel.show(true);
+				this.didAutoShow = true;
+			}
+		}
+
+		if (result === FormatterStatus.Success) {
+			this.didAutoShow = false;
+		}
+
+		this.lastResult = result;
 	}
 
 	public hide() {

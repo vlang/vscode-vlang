@@ -5,13 +5,13 @@ import {
 	TextEdit,
 	window,
 	Disposable,
+	workspace,
 } from "vscode";
-import { client } from "./client";
 import { execV, execVWithDocument } from "./exec";
 import { FormatterStatus, outputChannel, statusBar } from "./status";
 import { fullDocumentRange, getWorkspaceConfig } from "./utils";
 
-function timestampString() {
+export function timestampString() {
 	return new Date().toLocaleTimeString();
 }
 
@@ -30,7 +30,7 @@ function doFormat(document: TextDocument, resolve: Function, reject: Function) {
 		}
 
 		if (err && !stderr.length) {
-			stderr = `ERR - [${timestampString()}] ${err.toString()}`;
+			stderr = `[${timestampString()}] ${err.message}`;
 			outputChannel.append(stderr);
 			document = null;
 			statusBar.update(FormatterStatus.Error);
@@ -39,16 +39,16 @@ function doFormat(document: TextDocument, resolve: Function, reject: Function) {
 
 		if (stderr.length > 0) {
 			if (stderr.startsWith(":")) {
-				stderr = `ERR - [${timestampString()}] ${document.fileName}${stderr}`;
+				stderr = `[${timestampString()}] ${document.fileName}${stderr}`;
 				// sometimes the filename shows up as something weird isntead of an empty string.
 			} else if (stderr.indexOf(":") > -1) {
-				stderr = `ERR - [${timestampString()}] ${
-					document.fileName
-				}:${stderr.substring(stderr.indexOf(":"))}`;
+				stderr = `[${timestampString()}] ${document.fileName}:${stderr.substring(
+					stderr.indexOf(":")
+				)}`;
 			} else {
-				stderr = `ERR - [${timestampString()}] ${document.fileName}:${stderr}`;
+				stderr = `[${timestampString()}] ${document.fileName}:${stderr}`;
 			}
-			outputChannel.append(stderr);
+			outputChannel.appendLine(stderr);
 			document = null;
 			statusBar.update(FormatterStatus.Error);
 			return reject(stderr);
@@ -66,7 +66,7 @@ function doFormat(document: TextDocument, resolve: Function, reject: Function) {
 		resolve(res);
 	};
 
-	const vfmtArgs = getWorkspaceConfig().get("format.args", "");
+	const vfmtArgs = workspace.getConfiguration("v", document).get("format.args", "");
 	if (vfmtArgs.length) {
 		execVWithDocument(document, ["fmt", vfmtArgs], callback);
 	} else {

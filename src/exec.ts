@@ -26,22 +26,29 @@ export function execVWithDocument(
 	callback: ExecCallback
 ) {
 	let result = { stdout: "", stderr: "" };
-	const proc = spawn(getVExecCommand(), args, { windowsHide: true, cwd: getCwd() });
-	proc.stderr.on("data", (chunk) => (result.stderr += chunk));
-	proc.stdout.on("data", (chunk) => (result.stdout += chunk));
-	proc.stdin.write(document.getText());
-	proc.stdin.end();
-	let didFinish = false;
-
-	proc.once("error", (err) => {
-		if (didFinish) return;
-		callback(err, result.stdout, result.stderr);
-		didFinish = true;
+	const proc = spawn(getVExecCommand(document), args, {
+		windowsHide: true,
+		cwd: getCwd(),
+		shell: true,
+		stdio: "pipe",
 	});
+	proc.stdin.end(document.getText(), "utf8");
+	proc.stderr.on("data", (chunk) => (result.stderr += chunk || ""));
+	proc.stdout.on("data", (chunk) => (result.stdout += chunk || ""));
+	proc.stderr.on("end", (chunk) => (result.stderr += chunk || ""));
+	proc.stdout.on("end", (chunk) => (result.stdout += chunk || ""));
+
+	let didFinish = false;
 
 	proc.once("close", (_, __) => {
 		if (didFinish) return;
 		callback(null, result.stdout, result.stderr);
+		didFinish = true;
+	});
+
+	proc.once("err", (err, __) => {
+		if (didFinish) return;
+		callback(err, result.stdout, result.stderr);
 		didFinish = true;
 	});
 }
