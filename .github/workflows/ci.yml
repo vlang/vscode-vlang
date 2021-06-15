@@ -17,4 +17,4 @@ jobs:
       - name: Run Webpack
         run: npm run webpack
       - name: VSCE package
-        run: npx vsce package
+        run: npm run package
