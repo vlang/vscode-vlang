@@ -44,8 +44,8 @@
 				],
 				"extensions": [
 					".v",
-					".vh",
-					".vsh"
+					".vsh",
+					".vv"
 				],
 				"configuration": "./language-configuration.json"
 			}
@@ -98,31 +98,38 @@
 		"commands": [
 			{
 				"command": "v.run",
-				"title": "V: Run current file"
+				"title": "Run current file",
+				"category": "V"
 			},
 			{
 				"command": "v.prod",
-				"title": "V: Build an optimized executable from current file"
+				"title": "Build an optimized executable from current file",
+				"category": "V"
 			},
 			{
 				"command": "v.help",
-				"title": "V: Show help info"
+				"title": "Show help info",
+				"category": "V"
 			},
 			{
 				"command": "v.ver",
-				"title": "V: Show V version"
+				"title": "Show V version",
+				"category": "V"
 			},
 			{
 				"command": "v.path",
-				"title": "V: Show local paths info"
+				"title": "Show local paths info",
+				"category": "V"
 			},
 			{
 				"command": "v.devbits_playground",
-				"title": "V: Open current code on DevBits V playground"
+				"title": "Open current code on DevBits V playground",
+				"category": "V"
 			},
 			{
 				"command": "v.vls.update",
-				"title": "V: Update VLS"
+				"title": "Update VLS",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -133,6 +140,10 @@
 				},
 				{
 					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.devbits_playground",
 					"when": "editorLangId == v"
 				}
 			]
