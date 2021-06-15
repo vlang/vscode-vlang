@@ -4,7 +4,7 @@ import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
 import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
-import { CloseAction, ErrorAction, LanguageClient, LanguageClientOptions, Message, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel } from './status';

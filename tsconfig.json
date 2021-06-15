@@ -5,7 +5,12 @@
 		"outDir": "out",
 		"lib": ["es2019", "dom"],
 		"sourceMap": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true
 	},
 	"exclude": ["node_modules", ".vscode-test"]
 }

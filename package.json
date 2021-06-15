@@ -182,9 +182,8 @@
 		"vscode:prepublish": "node ./scripts/minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",
 		"webpack-dev": "webpack --mode development --watch",
-		"restore-json": "git restore ./snippets/snippets.json ./syntaxes/v.tmLanguage.json ./language-configuration.json ",
 		"webpack": "webpack --mode development",
 		"package": "vsce package",
-		"postpackage": "npm run restore-json"
+		"postpackage": "git restore ./snippets/snippets.json ./syntaxes/v.tmLanguage.json ./language-configuration.json"
 	}
 }
