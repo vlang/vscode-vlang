@@ -853,7 +853,7 @@
 			"patterns": [
 				{
 					"name": "constant.numeric.float.v",
-					"match": "(?:(?:[-]?)(?:[0-9e]*)(?:[.]){1}(?:[0-9]+))"
+					"match": "(?:(?:[_]?)(?:[0-9e]*)(?:[.]){1}(?:[0-9]+))"
 				},
 				{
 					"name": "constant.numeric.exponental.v",
@@ -861,19 +861,19 @@
 				},
 				{
 					"name": "constant.numeric.binary.v",
-					"match": "\\b(?:0[b])(?:[0-1]+)"
+					"match": "(?:0b)(?:(?:[0-1]+)(?:_?))+"
 				},
 				{
 					"name": "constant.numeric.octal.v",
-					"match": "\\b(?:0[o])(?:[0-7]+)"
+					"match": "(?:0o)(?:(?:[0-7]+)(?:_?))+"
 				},
 				{
 					"name": "constant.numeric.hex.v",
-					"match": "\\b(?:0[x])(?:[0-9a-fA-F]+)"
+					"match": "(?:0x)(?:(?:[0-9a-fA-F]+)(?:_?))+"
 				},
 				{
 					"name": "constant.numeric.integer.v",
-					"match": "\\b(?:[-]?)(?:[0-9]+)"
+					"match": "(?:(?:[0-9]+)(?:[_]?))+"
 				}
 			]
 		},
