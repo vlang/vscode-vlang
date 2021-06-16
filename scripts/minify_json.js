@@ -16,8 +16,7 @@ jsonFiles.forEach((jsonFile) => {
 	const absolutePath = resolve(__dirname, jsonFile);
 	exec("npx json-minify " + absolutePath, (error, stdout) => {
 		if (!!error) throw error;
-		const outputFile = absolutePath;
-		// console.log(outputFile);
+		const outputFile = resolve(__dirname, jsonFile.replace('.json', '.min.json'));
 		writeFileSync(outputFile, stdout);
 	});
 });
