@@ -1,7 +1,6 @@
-import { window } from "vscode";
+import { window, env, Uri } from "vscode";
 import { execVInTerminal, execV } from "./exec";
 import { installVls } from "./langserver";
-import { openUrl } from "./utils";
 
 /** Run current file. */
 export async function run() {
@@ -41,14 +40,7 @@ export function devbitsPlayground() {
 	let url = "https://devbits.app/play?lang=v&code64=";
 	const code = window.activeTextEditor.document.getText();
 	const base64Code = Buffer.from(code).toString("base64");
-	// TODO: Using this instead when the extension support 1.31+
-	// const vscode_version = parseInt(version.split(".").join(""));
-	// if (vscode_version > 1310) {
-	// @ts-ignore
-	// env.openExternal(Uri.parse(url + base64Code));
-	// } else {
-	openUrl(url + base64Code);
-	// }
+	env.openExternal(Uri.parse(url + base64Code));
 }
 
 export function updateVls() {
