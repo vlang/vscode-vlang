@@ -179,13 +179,13 @@
 	},
 	"scripts": {
 		"compile": "tsc -p ./",
-		"lint": "markdownlint README.md",
+		"lint": "markdownlint *.md -i CHANGELOG.md",
 		"vscode:prepublish": "node ./scripts/minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",
 		"webpack-dev": "webpack --mode development --watch",
 		"webpack": "webpack --mode development",
 		"package": "vsce package",
 		"postpackage": "node ./scripts/minify_json.js --restore",
-		"testsyntax": "vscode-tmgrammar-test -s source.v -g syntaxes/v.tmLanguage.json -t syntaxes/tests/*.v"
+		"testgrammar": "vscode-tmgrammar-test -s source.v -g syntaxes/v.tmLanguage.json -t syntaxes/tests/*.v"
 	}
 }
