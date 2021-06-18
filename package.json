@@ -33,7 +33,7 @@
 		"snippets": [
 			{
 				"language": "v",
-				"path": "snippets/snippets.min.json"
+				"path": "snippets/snippets.json"
 			}
 		],
 		"languages": [
@@ -47,14 +47,14 @@
 					".vsh",
 					".vv"
 				],
-				"configuration": "./language-configuration.min.json"
+				"configuration": "./language-configuration.json"
 			}
 		],
 		"grammars": [
 			{
 				"language": "v",
 				"scopeName": "source.v",
-				"path": "./syntaxes/v.tmLanguage.min.json"
+				"path": "./syntaxes/v.tmLanguage.json"
 			}
 		],
 		"configuration": {
@@ -184,6 +184,6 @@
 		"webpack-dev": "webpack --mode development --watch",
 		"webpack": "webpack --mode development",
 		"package": "vsce package",
-		"postpackage": "git clean -f ./snippets/snippets.min.json ./syntaxes/v.tmLanguage.min.json ./language-configuration.min.json"
+		"postpackage": "node ./scripts/minify_json.js --restore"
 	}
 }
