@@ -1,0 +1,16 @@
+name: Docs CI
+
+on: [push, pull_request]
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node_version: "10.x"
+      - name: Install dependencies
+        run: npm install
+      - name: Check readme linting
+        run: npm run lint
