@@ -853,7 +853,7 @@
 			"patterns": [
 				{
 					"name": "constant.numeric.float.v",
-					"match": "(?:(?:[_]?)(?:[0-9e]*)(?:[.]){1}(?:[0-9]+))"
+					"match": "([0-9]+(_?))+(\\.)([0-9]+)"
 				},
 				{
 					"name": "constant.numeric.exponental.v",
