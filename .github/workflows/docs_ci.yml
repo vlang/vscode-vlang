@@ -13,4 +13,4 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Check readme linting
-        run: npm run lint
+        run: npm run lintmd

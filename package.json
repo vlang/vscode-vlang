@@ -107,11 +107,6 @@
 				"category": "V"
 			},
 			{
-				"command": "v.help",
-				"title": "Show help info",
-				"category": "V"
-			},
-			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"
@@ -157,7 +152,6 @@
 	"activationEvents": [
 		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.help",
 		"onCommand:v.ver",
 		"onCommand:v.path"
 	],
@@ -168,10 +162,13 @@
 	"devDependencies": {
 		"@types/node": "^15.12.2",
 		"@types/vscode": "^1.40.0",
+		"@typescript-eslint/eslint-plugin": "^4.27.0",
+		"@typescript-eslint/parser": "^4.27.0",
 		"chokidar": "^3.5.1",
+		"eslint": "^7.28.0",
 		"markdownlint-cli": "^0.27.1",
 		"ts-loader": "^9.2.3",
-		"typescript": "^4.3.2",
+		"typescript": "^4.3.4",
 		"vsce": "^1.87.0",
 		"vscode-tmgrammar-test": "^0.0.11",
 		"webpack": "^5.39.0",
@@ -179,7 +176,8 @@
 	},
 	"scripts": {
 		"compile": "tsc -p ./",
-		"lint": "markdownlint *.md -i CHANGELOG.md",
+		"lint": "eslint .",
+		"lintmd": "markdownlint *.md -i CHANGELOG.md",
 		"vscode:prepublish": "node ./scripts/minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",
 		"webpack-dev": "webpack --mode development --watch",

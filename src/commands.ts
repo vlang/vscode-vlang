@@ -3,7 +3,7 @@ import { execVInTerminal, execV } from "./exec";
 import { installVls } from "./langserver";
 
 /** Run current file. */
-export async function run() {
+export async function run(): Promise<void> {
 	const document = window.activeTextEditor.document;
 	await document.save();
 	const filePath = `"${document.fileName}"`;
@@ -12,7 +12,7 @@ export async function run() {
 }
 
 /** Build an optimized executable from current file. */
-export async function prod() {
+export async function prod(): Promise<void> {
 	const document = window.activeTextEditor.document;
 	await document.save();
 	const filePath = `"${document.fileName}"`;
@@ -20,29 +20,25 @@ export async function prod() {
 	execVInTerminal(["-prod", filePath]);
 }
 
-/** Show help info. */
-export function help() {}
-
 /** Show version info. */
-export function ver() {
+export function ver(): void {
 	execV(["-version"], (err, stdout) => {
 		if (err) {
-			window.showErrorMessage("Unable to get the version number. Is V installed correctly?");
+			void window.showErrorMessage("Unable to get the version number. Is V installed correctly?");
 			return;
 		}
-
-		window.showInformationMessage(stdout);
+		void window.showInformationMessage(stdout);
 	});
 }
 
 /** Open current code on DevBits V playground. */
-export function devbitsPlayground() {
-	let url = "https://devbits.app/play?lang=v&code64=";
+export function devbitsPlayground(): void {
+	const url = "https://devbits.app/play?lang=v&code64=";
 	const code = window.activeTextEditor.document.getText();
 	const base64Code = Buffer.from(code).toString("base64");
-	env.openExternal(Uri.parse(url + base64Code));
+	void env.openExternal(Uri.parse(url + base64Code));
 }
 
-export function updateVls() {
-	installVls();
+export function updateVls(): void {
+	void installVls();
 }

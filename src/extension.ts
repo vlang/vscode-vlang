@@ -6,7 +6,6 @@ import { activateVls, deactivateVls } from "./langserver";
 const cmds = {
 	"v.run": commands.run,
 	"v.ver": commands.ver,
-	"v.help": commands.help,
 	"v.prod": commands.prod,
 	"v.devbits_playground": commands.devbitsPlayground,
 	"v.vls.update": commands.updateVls,
@@ -16,26 +15,26 @@ const cmds = {
  * This method is called when the extension is activated.
  * @param context The extension context
  */
-export function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext): void {
 	for (const cmd in cmds) {
-		const handler = cmds[cmd];
+		const handler = cmds[cmd] as () => void;
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
 	const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
-	
+
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
 			if (isVlsEnabled) {
-				activateVls(context);
+				void activateVls(context);
 			} else {
-				deactivateVls();
+				void deactivateVls();
 			}
 		}
 	})
 
 	if (isVlsEnabled) {
-		activateVls(context)
+		void activateVls(context)
 	}
 }
