@@ -107,11 +107,6 @@
 				"category": "V"
 			},
 			{
-				"command": "v.help",
-				"title": "Show help info",
-				"category": "V"
-			},
-			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"
@@ -157,7 +152,6 @@
 	"activationEvents": [
 		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.help",
 		"onCommand:v.ver",
 		"onCommand:v.path"
 	],
@@ -182,7 +176,7 @@
 	},
 	"scripts": {
 		"compile": "tsc -p ./",
-		"lint": "npm run eslint .",
+		"lint": "eslint .",
 		"lintmd": "markdownlint *.md -i CHANGELOG.md",
 		"vscode:prepublish": "node ./scripts/minify_json.js && webpack --mode production",
 		"watch": "tsc -watch -p ./",

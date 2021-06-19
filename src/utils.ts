@@ -50,7 +50,7 @@ export function getCurrentDocument(): TextDocument {
 	return window.activeTextEditor ? window.activeTextEditor.document : null;
 }
 
-export function openUrl(url: string) {
+export function openUrl(url: string): void {
 	const os = platform();
 	const open = {
 		win32: "start",

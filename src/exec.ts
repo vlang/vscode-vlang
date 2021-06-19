@@ -6,7 +6,7 @@ type ExecCallback = (error: ExecException | null, stdout: string, stderr: string
 
 let vRunTerm: Terminal = null;
 
-export function execVInTerminal(args: string[]) {
+export function execVInTerminal(args: string[]): void {
 	const vexec = getVExecCommand();
 	const cmd = vexec + " " + args.join(" ");
 
@@ -16,7 +16,7 @@ export function execVInTerminal(args: string[]) {
 	vRunTerm.sendText(cmd);
 }
 
-export function execV(args: string[], callback: ExecCallback) {
+export function execV(args: string[], callback: ExecCallback): void {
 	const vexec = getVExecCommand();
 	const cwd = getCwd();
 
