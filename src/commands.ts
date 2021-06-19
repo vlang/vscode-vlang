@@ -24,10 +24,10 @@ export async function prod(): Promise<void> {
 export function ver(): void {
 	execV(["-version"], (err, stdout) => {
 		if (err) {
-			window.showErrorMessage("Unable to get the version number. Is V installed correctly?");
+			void window.showErrorMessage("Unable to get the version number. Is V installed correctly?");
 			return;
 		}
-		window.showInformationMessage(stdout);
+		void window.showInformationMessage(stdout);
 	});
 }
 
@@ -36,9 +36,9 @@ export function devbitsPlayground(): void {
 	const url = "https://devbits.app/play?lang=v&code64=";
 	const code = window.activeTextEditor.document.getText();
 	const base64Code = Buffer.from(code).toString("base64");
-	env.openExternal(Uri.parse(url + base64Code));
+	void env.openExternal(Uri.parse(url + base64Code));
 }
 
 export function updateVls(): void {
-	installVls();
+	void installVls();
 }

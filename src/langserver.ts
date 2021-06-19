@@ -71,7 +71,7 @@ export async function installVls(): Promise<void> {
 
 export function connectVls(path: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
-	const vlsArgs = [];
+	const vlsArgs: string[] = [];
 
 	const enableFeatures = getWorkspaceConfig().get<string>("vls.enableFeatures");
 	const disableFeatures = getWorkspaceConfig().get<string>("vls.disableFeatures");

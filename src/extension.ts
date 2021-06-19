@@ -17,7 +17,7 @@ const cmds = {
  */
 export function activate(context: ExtensionContext): void {
 	for (const cmd in cmds) {
-		const handler = cmds[cmd];
+		const handler = cmds[cmd] as () => void;
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
@@ -27,14 +27,14 @@ export function activate(context: ExtensionContext): void {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
 			if (isVlsEnabled) {
-				activateVls(context);
+				void activateVls(context);
 			} else {
-				deactivateVls();
+				void deactivateVls();
 			}
 		}
 	})
 
 	if (isVlsEnabled) {
-		activateVls(context)
+		void activateVls(context)
 	}
 }
