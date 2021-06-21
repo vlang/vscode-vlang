@@ -1,14 +1,14 @@
-import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from "vscode";
-import * as commands from "./commands";
+import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from 'vscode';
+import * as commands from './commands';
 import { getWorkspaceConfig } from './utils';
-import { activateVls, deactivateVls } from "./langserver";
+import { activateVls, deactivateVls } from './langserver';
 
 const cmds = {
-	"v.run": commands.run,
-	"v.ver": commands.ver,
-	"v.prod": commands.prod,
-	"v.devbits_playground": commands.devbitsPlayground,
-	"v.vls.update": commands.updateVls,
+	'v.run': commands.run,
+	'v.ver': commands.ver,
+	'v.prod': commands.prod,
+	'v.devbits_playground': commands.devbitsPlayground,
+	'v.vls.update': commands.updateVls,
 };
 
 /**
@@ -21,7 +21,6 @@ export function activate(context: ExtensionContext): void {
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
-	const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
 
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
@@ -32,9 +31,10 @@ export function activate(context: ExtensionContext): void {
 				void deactivateVls();
 			}
 		}
-	})
+	});
 
-	if (isVlsEnabled) {
-		void activateVls(context)
+	const shouldEnableVls = getWorkspaceConfig().get<boolean>('vls.enable');
+	if (shouldEnableVls) {
+		void activateVls(context);
 	}
 }

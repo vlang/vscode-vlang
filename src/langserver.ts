@@ -4,7 +4,7 @@ import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
 import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel } from './status';
@@ -16,16 +16,16 @@ const existsAsync = util.promisify(fs.exists);
 const vlsDir = path.join(os.homedir(), '.vls');
 const vlsBin = path.join(vlsDir, 'bin');
 const vexe = getVExecCommand();
-const isWin = process.platform === "win32";
+const isWin = process.platform === 'win32';
 export const vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
 	if (!vlsInstalled) {
-		const selected = await window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No')
+		const selected = await window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No');
 		if (selected === 'Yes') {
-			await installVls()
+			await installVls();
 			return await isVlsInstalled();
 		} else {
 			return false;
@@ -57,7 +57,7 @@ export async function installVls(): Promise<void> {
 			// build vls module to ~/.vmodules/bin
 			const existsVBin = await existsAsync(vlsBin);
 			if (!existsVBin) {
-				await mkdirAsync(vlsBin)
+				await mkdirAsync(vlsBin);
 			}
 			progress.report({ message: 'Building module' });
 			// TODO: add -gc boehm when libgc library is not needed anymore
@@ -69,36 +69,36 @@ export async function installVls(): Promise<void> {
 	}
 }
 
-export function connectVls(path: string, context: ExtensionContext): void {
+export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = [];
 
-	const enableFeatures = getWorkspaceConfig().get<string>("vls.enableFeatures");
-	const disableFeatures = getWorkspaceConfig().get<string>("vls.disableFeatures");
+	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
+	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
 	if (enableFeatures.length > 0) {
-		vlsArgs.push(`--enable=${enableFeatures}`)
+		vlsArgs.push(`--enable=${enableFeatures}`);
 	}
 	if (disableFeatures.length > 0) {
-		vlsArgs.push(`--disable=${disableFeatures}`)
+		vlsArgs.push(`--disable=${disableFeatures}`);
 	}
 
 	// Path to VLS executable.
 	// Server Options for STDIO
 	const serverOptions: ServerOptions = {
-		command: path,
+		command: pathToVls,
 		args: vlsArgs,
 		transport: TransportKind.stdio
 	};
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: 'file', language: "v" }],
+		documentSelector: [{ scheme: 'file', language: 'v' }],
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/*.v')
 		},
-	}
+	};
 
 	client = new LanguageClient(
-		"V Language Server",
+		'V Language Server',
 		serverOptions,
 		clientOptions,
 		true
@@ -116,7 +116,7 @@ export function connectVls(path: string, context: ExtensionContext): void {
 }
 
 export async function activateVls(context: ExtensionContext): Promise<void> {
-	const customVlsPath = getWorkspaceConfig().get<string>("vls.customPath");
+	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
 		const installed = await checkIsVlsInstalled();

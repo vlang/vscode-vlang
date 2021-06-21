@@ -5,11 +5,11 @@ import {
 	window,
 	Uri,
 	WorkspaceFolder,
-} from "vscode";
-import { platform } from "os";
-import { execFileSync } from "child_process";
+} from 'vscode';
+import { platform } from 'os';
+import { execFileSync } from 'child_process';
 
-const defaultCommand = "v";
+const defaultCommand = 'v';
 
 /** Get V executable command.
  * Will get from user setting configuration first.
@@ -17,14 +17,14 @@ const defaultCommand = "v";
  */
 export function getVExecCommand(): string {
 	const config = getWorkspaceConfig();
-	const vPath = config.get("pathToExecutableFile", "") || defaultCommand;
+	const vPath = config.get('pathToExecutableFile', '') || defaultCommand;
 	return vPath;
 }
 
 /** Get V configuration. */
 export function getWorkspaceConfig(): WorkspaceConfiguration {
 	const currentWorkspaceFolder = getWorkspaceFolder();
-	return workspace.getConfiguration("v", currentWorkspaceFolder.uri);
+	return workspace.getConfiguration('v', currentWorkspaceFolder.uri);
 }
 
 /** Get current working directory.
@@ -53,9 +53,9 @@ export function getCurrentDocument(): TextDocument {
 export function openUrl(url: string): void {
 	const os = platform();
 	const open = {
-		win32: "start",
-		linux: "xdg-open",
-		darwin: "open",
+		win32: 'start',
+		linux: 'xdg-open',
+		darwin: 'open',
 	};
 	execFileSync(open[os], [url]);
 }

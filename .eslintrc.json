@@ -12,5 +12,25 @@
 		"eslint:recommended",
 		"plugin:@typescript-eslint/recommended",
 		"plugin:@typescript-eslint/recommended-requiring-type-checking"
-	]
+	],
+	"rules": {
+		"prefer-const": "error",
+		"no-array-constructor": "error",
+		"no-new-object": "error",
+		"no-shadow": "error",
+		"no-undef-init": "error",
+		"no-var": "error",
+		"object-shorthand": "error",
+		"prefer-template": "error",
+		// Stylisitc rules
+		"array-bracket-spacing": "error",
+		"brace-style": "error",
+		"block-spacing": "error",
+		"camelcase": "error",
+		"comma-spacing": "error",
+		"eol-last": "error",
+		"func-call-spacing": "error",
+		"quotes": ["error", "single"],
+		"semi": "error"
+	}
 }
