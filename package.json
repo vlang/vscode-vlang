@@ -157,6 +157,7 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
+		"esbuild": "^0.12.9",
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
