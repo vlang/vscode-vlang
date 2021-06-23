@@ -112,11 +112,6 @@
 				"category": "V"
 			},
 			{
-				"command": "v.path",
-				"title": "Show local paths info",
-				"category": "V"
-			},
-			{
 				"command": "v.devbits_playground",
 				"title": "Open current code on DevBits V playground",
 				"category": "V"
@@ -152,8 +147,7 @@
 	"activationEvents": [
 		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.ver",
-		"onCommand:v.path"
+		"onCommand:v.ver"
 	],
 	"main": "./out/extension.js",
 	"dependencies": {

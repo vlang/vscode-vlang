@@ -50,10 +50,7 @@ _Note_: It is recommended to turn `Auto Save` on
 
 - `V: Run current file`
 - `V: Build an optimized executable from current file`
-- `V: Show help info`
 - `V: Show V version`
-- `V: Test current file`
-- `V: Test current package`
 - `V: Upload and share current code to V playground`
 
 You can access all of the above commands from
