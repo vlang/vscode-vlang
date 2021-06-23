@@ -5,6 +5,7 @@
 const { exec } = require("child_process");
 const { writeFileSync, copyFileSync, renameSync } = require("fs");
 const { resolve } = require("path");
+const { writeFileSync, copyFileSync, renameSync, existsSync } = require('fs');
 
 const jsonFiles = [
 	"../syntaxes/v.tmLanguage.json",
@@ -19,9 +20,11 @@ jsonFiles.forEach((jsonFile) => {
 	if (shouldRestore) {
 		renameSync(tmpFile, absolutePath);
 	} else {
-		copyFileSync(absolutePath, tmpFile);
 		exec("npx json-minify " + absolutePath, (error, stdout) => {
 			if (!!error) throw error;
+		if (!existsSync(tmpFile)) {
+			copyFileSync(absolutePath, tmpFile);
+		}
 			writeFileSync(absolutePath, stdout);
 		});
 	}
