@@ -175,6 +175,7 @@
 	},
 	"scripts": {
 		"compile": "node ./scripts/build.js",
+		"compile-dev": "node ./scripts/build.js --watch",
 		"lint": "eslint .",
 		"lintmd": "markdownlint *.md -i CHANGELOG.md",
 		"vscode:prepublish": "node ./scripts/minify_json.js && NODE_ENV=production node ./scripts/build.js",
