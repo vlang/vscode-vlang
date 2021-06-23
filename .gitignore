@@ -1,6 +1,7 @@
 .vscode/ipch
 *.code-workspace
-node_modules
-out
+node_modules/
+out/
 *.exe
 *.vsix
+*.tmp.json

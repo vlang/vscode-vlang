@@ -11,15 +11,15 @@ esbuild.build({
 	platform: 'node',
 	entryPoints: ['./src/extension.ts'],
 	outdir: './out',
-	external: ["vscode"],
+	external: ['vscode'],
 	format: 'cjs',
 	sourcemap: 'external',
 	bundle: true,
 	minify: isProd,
 	watch: {
 		onRebuild(error, result) {
-			if (error) console.error('watch build failed')
-			else console.log('watch build succeeded')
+			if (error) console.error('watch build failed');
+			else console.log('watch build succeeded');
 		},
 	},
 }).then(res => {
