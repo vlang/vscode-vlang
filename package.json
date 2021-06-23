@@ -162,13 +162,11 @@
 	"devDependencies": {
 		"@types/node": "^15.12.2",
 		"@types/vscode": "^1.40.0",
-		"@typescript-eslint/eslint-plugin": "^4.27.0",
-		"@typescript-eslint/parser": "^4.27.0",
-		"chokidar": "^3.5.1",
+		"@typescript-eslint/eslint-plugin": "^4.28.0",
+		"@typescript-eslint/parser": "^4.28.0",
 		"esbuild": "^0.12.9",
-		"eslint": "^7.28.0",
+		"eslint": "^7.29.0",
 		"markdownlint-cli": "^0.27.1",
-		"ts-loader": "^9.2.3",
 		"typescript": "^4.3.4",
 		"vsce": "^1.87.0",
 		"vscode-tmgrammar-test": "^0.0.11"
