@@ -65,6 +65,7 @@ export async function installVls(): Promise<void> {
 		});
 	} catch (e) {
 		outputChannel.appendLine(e);
+		outputChannel.show();
 		await window.showErrorMessage('Failed installing VLS. See output for more information.');
 	}
 }
