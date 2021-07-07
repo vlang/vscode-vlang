@@ -120,6 +120,11 @@
 				"command": "v.vls.update",
 				"title": "Update VLS",
 				"category": "V"
+			},
+			{
+				"command": "v.vls.restart",
+				"title": "Restart VLS",
+				"category": "V"
 			}
 		],
 		"menus": {
