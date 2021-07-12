@@ -159,7 +159,7 @@
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^15.12.2",
+		"@types/node": "^16.3.1",
 		"@types/vscode": "^1.40.0",
 		"@typescript-eslint/eslint-plugin": "^4.28.0",
 		"@typescript-eslint/parser": "^4.28.0",
