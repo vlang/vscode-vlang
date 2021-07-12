@@ -22,6 +22,14 @@ export function activate(context: ExtensionContext): void {
 		context.subscriptions.push(disposable);
 	}
 
+	const restartVls = vscode.commands.registerCommand('v.vls.restart', async() => {
+		void vscode.window.showInformationMessage('Restarting VLS...');
+		await deactivateVls();
+		await activateVls(context);
+	});
+
+	context.subscriptions.push(restartVls);
+
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');

@@ -37,6 +37,8 @@ _Note_: It is recommended to turn `Auto Save` on
 - `V: Build an optimized executable from current file`
 - `V: Show V version`
 - `V: Upload and share current code to V playground`
+- `V: Update VLS`
+- `V: Restart VLS`
 
 You can access all of the above commands from the command palette (`Cmd+Shift+P`).
 
