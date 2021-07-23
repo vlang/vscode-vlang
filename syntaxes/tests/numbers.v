@@ -9,5 +9,3 @@ _ := 0o17_3
 //   ^^^^^^ constant.numeric.octal.v
 _ := 0b0_11
 //   ^^^^^^ constant.numeric.binary.v
-
-  0 == 0
