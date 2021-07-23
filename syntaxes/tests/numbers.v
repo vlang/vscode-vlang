@@ -1,4 +1,4 @@
-// SYNTAX TEST "source.v" "_ number separators"
+// SYNTAX TEST "source.v" "numbers"
 _ := 1_000_000
 //   ^^^^^^^^^ constant.numeric.integer.v
 _ := 3_122.55

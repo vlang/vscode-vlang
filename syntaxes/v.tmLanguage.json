@@ -27,9 +27,6 @@
 			"include": "#import-decl"
 		},
 		{
-			"include": "#include-decl"
-		},
-		{
 			"include": "#hash-decl"
 		},
 		{
@@ -107,20 +104,9 @@
 		},
 		"assignment": {
 			"name": "meta.definition.variable.v",
-			"match": "([\\w.]+)\\s*((?:\\:|\\+|\\-|\\*|\\/|\\%|\\&|\\||\\^)?=)\\s*(?=.+)",
+			"match": "\\s+((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s+",
 			"captures": {
 				"1": {
-					"patterns": [
-						{
-							"include": "#illegal-name"
-						},
-						{
-							"match": "\\w+",
-							"name": "variable.assignment.other.v"
-						}
-					]
-				},
-				"2": {
 					"patterns": [
 						{
 							"include": "#operators"
@@ -177,39 +163,10 @@
 				}
 			}
 		},
-		"include-decl": {
-			"patterns": [
-				{
-					"name": "meta.include.v",
-					"begin": "^\\s*(#include)",
-					"beginCaptures": {
-						"1": {
-							"name": "keyword.include.v"
-						}
-					},
-					"end": "\\s+([\\<\"]\\s*(.*)[\\>\"])",
-					"endCaptures": {
-						"1": {
-							"name": "string.quoted.double.v"
-						}
-					}
-				}
-			]
-		},
 		"hash-decl": {
-			"name": "meta.hash.v",
-			"begin": "^\\s*(#define|#flag|#pkgconfig)",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.$1.v"
-				}
-			},
-			"end": "\\s+(.*?)$",
-			"endCaptures": {
-				"1": {
-					"name": "string.quoted.single.v"
-				}
-			}
+			"name": "markup.bold.v",
+			"begin": "^\\s*(#)",
+			"end": "$"
 		},
 		"brackets": {
 			"patterns": [
@@ -790,6 +747,10 @@
 				{
 					"name": "punctuation.definition.other.questionmark.v",
 					"match": "\\?"
+				},
+				{
+					"name": "punctuation.hash.v",
+					"match": "#"
 				}
 			]
 		},
@@ -832,6 +793,10 @@
 					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-|\\>\\>|\\<\\<)"
 				},
 				{
+					"name": "keyword.operator.relation.v",
+					"match": "(\\=\\=|\\!\\=|\\>|\\<|\\>\\=|\\<\\=)"
+				},
+				{
 					"name": "keyword.operator.assignment.v",
 					"match": "(\\:\\=|\\=|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=|\\&\\=|\\|\\=|\\^\\=|\\~\\=|\\&\\&\\=|\\|\\|\\=|\\>\\>\\=|\\<\\<\\=)"
 				},
@@ -842,10 +807,6 @@
 				{
 					"name": "keyword.operator.logical.v",
 					"match": "(\\&\\&|\\|\\||\\!)"
-				},
-				{
-					"name": "keyword.operator.relation.v",
-					"match": "(\\=\\=|\\!\\=|\\>|\\<|\\>\\=|\\<\\=)"
 				}
 			]
 		},
@@ -881,18 +842,8 @@
 			"patterns": [
 				{
 					"begin": "`",
-					"beginCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.raw.begin.v"
-						}
-					},
 					"end": "`",
-					"endCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.raw.end.v"
-						}
-					},
-					"name": "string.quoted.raw.v",
+					"name": "string.quoted.rune.v",
 					"patterns": [
 						{
 							"include": "#string-escaped-char"
@@ -906,19 +857,50 @@
 					]
 				},
 				{
-					"begin": "'",
+					"begin": "(r)'",
 					"beginCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.single.begin.v"
+						"1": {
+							"name": "storage.type.string.v"
 						}
 					},
 					"end": "'",
-					"endCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.single.end.v"
+					"name": "string.quoted.raw.v",
+					"patterns": [
+						{
+							"include": "#string-interpolation"
+						},
+						{
+							"include": "#string-placeholder"
+						}
+					]
+				},
+				{
+					"begin": "(r)\"",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.type.string.v"
 						}
 					},
-					"name": "string.quoted.single.v",
+					"end": "\"",
+					"name": "string.quoted.raw.v",
+					"patterns": [
+						{
+							"include": "#string-interpolation"
+						},
+						{
+							"include": "#string-placeholder"
+						}
+					]
+				},
+				{
+					"begin": "(c?)'",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.type.string.v"
+						}
+					},
+					"end": "'",
+					"name": "string.quoted.v",
 					"patterns": [
 						{
 							"include": "#string-escaped-char"
@@ -932,19 +914,14 @@
 					]
 				},
 				{
-					"begin": "\"",
+					"begin": "(c?)\"",
 					"beginCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.double.begin.v"
+						"1": {
+							"name": "storage.type.string.v"
 						}
 					},
 					"end": "\"",
-					"endCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.double.end.v"
-						}
-					},
-					"name": "string.quoted.double.v",
+					"name": "string.quoted.v",
 					"patterns": [
 						{
 							"include": "#string-escaped-char"
