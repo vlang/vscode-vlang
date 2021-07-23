@@ -156,7 +156,6 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
-		"esbuild-linux-64": "^0.12.15",
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
