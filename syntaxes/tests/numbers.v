@@ -1,4 +1,4 @@
-// SYNTAX TEST "source.v" "_ number separators"
+// SYNTAX TEST "source.v" "numbers"
 _ := 1_000_000
 //   ^^^^^^^^^ constant.numeric.integer.v
 _ := 3_122.55
@@ -9,3 +9,5 @@ _ := 0o17_3
 //   ^^^^^^ constant.numeric.octal.v
 _ := 0b0_11
 //   ^^^^^^ constant.numeric.binary.v
+
+  0 == 0
