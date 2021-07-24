@@ -267,7 +267,7 @@
 							"name": "meta.expr.numeric.cast.v"
 						},
 						{
-							"match": "(bool|byte|byteptr|charptr|voidptr|string|ustring|rune|size_t)(?=\\s*\\()",
+							"match": "(bool|byte|byteptr|charptr|voidptr|string|rune|size_t)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.$1.v"
