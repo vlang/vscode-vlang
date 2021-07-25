@@ -810,6 +810,10 @@
 				{
 					"name": "keyword.operator.logical.v",
 					"match": "(\\&\\&|\\|\\||\\!)"
+				},
+				{
+					"name": "keyword.operator.optional.v",
+					"match": "\\?"
 				}
 			]
 		},
