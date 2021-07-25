@@ -267,7 +267,7 @@
 							"name": "meta.expr.numeric.cast.v"
 						},
 						{
-							"match": "(bool|byte|byteptr|charptr|voidptr|string|ustring|rune)(?=\\s*\\()",
+							"match": "(bool|byte|byteptr|charptr|voidptr|string|rune|size_t)(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.$1.v"
@@ -789,7 +789,7 @@
 		"operators": {
 			"patterns": [
 				{
-					"name": "keyword.operator.arithmethic.v",
+					"name": "keyword.operator.arithmetic.v",
 					"match": "(\\+|\\-|\\*|\\/|\\%|\\+\\+|\\-\\-|\\>\\>|\\<\\<)"
 				},
 				{
@@ -817,7 +817,7 @@
 					"match": "([0-9]+(_?))+(\\.)([0-9]+)"
 				},
 				{
-					"name": "constant.numeric.exponental.v",
+					"name": "constant.numeric.exponential.v",
 					"match": "[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)"
 				},
 				{
