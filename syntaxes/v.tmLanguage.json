@@ -5,7 +5,8 @@
 		".v",
 		".vh",
 		".vsh",
-		".vv"
+		".vv",
+		"v.mod"
 	],
 	"patterns": [
 		{

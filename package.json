@@ -45,7 +45,8 @@
 				"extensions": [
 					".v",
 					".vsh",
-					".vv"
+					".vv",
+					"v.mod"
 				],
 				"configuration": "./language-configuration.json"
 			}
