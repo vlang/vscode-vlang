@@ -821,12 +821,12 @@
 		"numbers": {
 			"patterns": [
 				{
-					"name": "constant.numeric.float.v",
-					"match": "([0-9]+(_?))+(\\.)([0-9]+)"
+					"name": "constant.numeric.exponential.v",
+					"match": "([0-9]+(_?))+(\\.)([0-9]+[eE][-+]?[0-9]+)"
 				},
 				{
-					"name": "constant.numeric.exponential.v",
-					"match": "[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)"
+					"name": "constant.numeric.float.v",
+					"match": "([0-9]+(_?))+(\\.)([0-9]+)"
 				},
 				{
 					"name": "constant.numeric.binary.v",
