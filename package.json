@@ -159,15 +159,15 @@
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^16.3.3",
+		"@types/node": "^16.4.3",
 		"@types/vscode": "^1.40.0",
-		"@typescript-eslint/eslint-plugin": "^4.28.4",
-		"@typescript-eslint/parser": "^4.28.4",
-		"esbuild": "^0.12.15",
+		"@typescript-eslint/eslint-plugin": "^4.28.5",
+		"@typescript-eslint/parser": "^4.28.5",
+		"esbuild": "^0.12.16",
 		"eslint": "^7.31.0",
-		"markdownlint-cli": "^0.27.1",
+		"markdownlint-cli": "^0.28.1",
 		"typescript": "^4.3.5",
-		"vsce": "^1.95.0",
+		"vsce": "^1.96.1",
 		"vscode-tmgrammar-test": "^0.0.11"
 	},
 	"scripts": {
