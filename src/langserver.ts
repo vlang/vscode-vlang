@@ -74,6 +74,8 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = [];
 
+	const isDebug = getWorkspaceConfig().get<boolean>('vls.debug');
+	const customVrootPath = getWorkspaceConfig().get<string>('vls.customVrootPath');
 	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
 	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
 	if (enableFeatures.length > 0) {
@@ -81,6 +83,12 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	}
 	if (disableFeatures.length > 0) {
 		vlsArgs.push(`--disable=${disableFeatures}`);
+	}
+	if (customVrootPath.length != 0) {
+		vlsArgs.push(`--vroot=${customVrootPath}`);
+	}
+	if (isDebug) {
+		vlsArgs.push('--debug');
 	}
 
 	// Path to VLS executable.
