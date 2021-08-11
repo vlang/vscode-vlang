@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 0.1.9
 *11 August 2021*
 ### Features
-- 🔄 You can now update or restart the language server without restarting VSCode! (Press `Ctrl+Shift+P` and select `V: Update VLS` or `V: Restart VLS`) (thanks @caterisonline #239)
+- 🔄 You can now update or restart the language server without restarting VSCode! (Press `Ctrl+Shift+P` and select `V: Update VLS` or `V: Restart VLS`) (thanks @carterisonline #239)
 - ⏫ Add more settings for VLS including support for custom VROOT path and debug mode setting (thanks @nedpals #271)
 - ⏫ v.mod files are now syntax highlighted! (thanks @serkonda7).
 - ⏫ Accessors, `size_t` and option symbol (`?`) are now properly syntax highlighted! (thanks @pouyakary #245 #248 #249)
