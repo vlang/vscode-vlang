@@ -3,6 +3,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## 0.1.9
+*11 August 2021*
+### Features
+- 🔄 You can now update or restart the language server without restarting VSCode! (Press `Ctrl+Shift+P` and select `V: Update VLS` or `V: Restart VLS`) (thanks @caterisonline #239)
+- ⏫ Add more settings for VLS including support for custom VROOT path and debug mode setting (thanks @nedpals #271)
+- ⏫ v.mod files are now syntax highlighted! (thanks @serkonda7).
+- ⏫ Accessors, `size_t` and option symbol (`?`) are now properly syntax highlighted! (thanks @pouyakary #245 #248 #249)
+- ℹ️ Added more helpful information when encountering VLS installation errors.
+- 🚮 Removed deprecated commands including for testing and showing help information.
+
+### Fixes
+- 🐛Fixed "Open current code on DevBits V playground" command showing on non-V files.
+- 🐛Fixed syntax highlighting underline-separated numbers (e.g `1_000`).
+- Simplification of the URL opening mechanism when opening DevBits Playground.
+- 🐛Fixed syntax highlighting for string literals and hash directives (e.g `#include`) (#244)
+- 🐛Fixed syntax highlighting for float exponents.
+
+### Internal / Infrastructure Changes
+- Build system was migrated from Webpack to ESBuild resulting ~5x faster builds.
+- Added ESLint integration.
+- Added unit tests for syntax highlighting.
+- Added CI for running grammar tests.
 
 ## 0.1.8
 *25 March 2021*
