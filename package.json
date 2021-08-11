@@ -61,11 +61,16 @@
 		"configuration": {
 			"title": "V",
 			"properties": {
-				"v.pathToExecutableFile": {
+				"v.vls.debug": {
+					"scope": "resource",
+					"type": "boolean",
+					"description": "Enables / disables the language server's debug mode.\nSetting it to true will create a log file to your workspace folder for bug reports."
+				},
+				"v.vls.customVrootPath": {
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Path to V executable file"
+					"description": "Custom path to the V installation directory (VROOT)."
 				},
 				"v.vls.customPath": {
 					"scope": "resource",
