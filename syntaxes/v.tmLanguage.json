@@ -851,6 +851,10 @@
 				{
 					"name": "punctuation.accessor.v",
 					"match": "(?:\\.)"
+				},
+				{
+					"name": "punctuation.separator.comma.v",
+					"match": "(?:,)"
 				}
 			]
 		},
