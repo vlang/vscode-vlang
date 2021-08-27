@@ -1,3 +1,3 @@
 // SYNTAX TEST "source.v"
-hello.int
+hello.int()
 //    ^^^ source.v
