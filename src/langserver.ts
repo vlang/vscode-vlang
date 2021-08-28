@@ -3,8 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
+import * as net from 'net';
 import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel } from './status';
@@ -70,14 +71,36 @@ export async function installVls(): Promise<void> {
 	}
 }
 
+function connectVlsViaTcp(vlsExePath: string, args: string[], port: number, isRemote: boolean): Promise<StreamInfo> {
+	if (!isRemote) {
+		cp.spawn(vlsExePath.trim(), args);
+	}
+
+	const socket = net.connect({ port });
+	const result: StreamInfo = {
+		writer: socket,
+		reader: socket
+	};
+
+	return Promise.resolve(result);
+}
+
+function connectVlsViaStdio(vlsExePath: string, args: string[]) {
+	return Promise.resolve(cp.spawn(vlsExePath.trim(), args));
+}
+
 export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = [];
 
+	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
 	const isDebug = getWorkspaceConfig().get<boolean>('vls.debug');
 	const customVrootPath = getWorkspaceConfig().get<string>('vls.customVrootPath');
 	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
 	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
+	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
+	const tcpUseRemote = getWorkspaceConfig().get<boolean>('v.vls.tcpMode.useRemoteServer');
+
 	if (enableFeatures.length > 0) {
 		vlsArgs.push(`--enable=${enableFeatures}`);
 	}
@@ -91,13 +114,15 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 		vlsArgs.push('--debug');
 	}
 
-	// Path to VLS executable.
-	// Server Options for STDIO
-	const serverOptions: ServerOptions = {
-		command: pathToVls,
-		args: vlsArgs,
-		transport: TransportKind.stdio
-	};
+	if (connMode == 'tcp') {
+		vlsArgs.push('--socket');
+		vlsArgs.push(`--port=${tcpPort}`);
+	}
+
+	const serverOptions: ServerOptions = connMode == 'tcp'
+										  ? () => connectVlsViaTcp(pathToVls, vlsArgs, tcpPort, tcpUseRemote)
+										  : () => connectVlsViaStdio(pathToVls, vlsArgs);
+
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: 'v' }],
