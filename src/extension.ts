@@ -36,6 +36,12 @@ export function activate(context: ExtensionContext): void {
 			} else {
 				void deactivateVls();
 			}
+		} else if (e.affectsConfiguration('v.vls') && isVlsEnabled()) {
+			vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')
+				.then(selected => {
+					if (selected == 'No') return;
+					vscode.commands.executeCommand('v.vls.restart');
+				});
 		}
 	});
 
