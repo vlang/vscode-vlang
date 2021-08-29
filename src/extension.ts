@@ -21,10 +21,12 @@ export function activate(context: ExtensionContext): void {
 		context.subscriptions.push(disposable);
 	}
 
-	const restartVls = vscode.commands.registerCommand('v.vls.restart', async() => {
-		void vscode.window.showInformationMessage('Restarting VLS...');
-		await deactivateVls();
-		await activateVls(context);
+	const restartVls = vscode.commands.registerCommand('v.vls.restart', () => {
+		const restartMsg = vscode.window.setStatusBarMessage('Restarting VLS...', 3000);
+		deactivateVls()
+			.then(() => restartMsg.dispose())
+			.then(() => activateVls(context))
+			.catch((err) => vscode.window.showErrorMessage(err));
 	});
 
 	context.subscriptions.push(restartVls);
