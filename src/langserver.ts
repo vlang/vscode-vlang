@@ -71,22 +71,13 @@ export async function installVls(): Promise<void> {
 	}
 }
 
-function connectVlsViaTcp(vlsExePath: string, args: string[], port: number, isRemote: boolean): Promise<StreamInfo> {
-	if (!isRemote) {
-		cp.spawn(vlsExePath.trim(), args);
-	}
-
+function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 	const socket = net.connect({ port });
 	const result: StreamInfo = {
 		writer: socket,
 		reader: socket
 	};
-
 	return Promise.resolve(result);
-}
-
-function connectVlsViaStdio(vlsExePath: string, args: string[]) {
-	return Promise.resolve(cp.spawn(vlsExePath.trim(), args));
 }
 
 export function connectVls(pathToVls: string, context: ExtensionContext): void {
@@ -99,7 +90,8 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
 	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
-	const tcpUseRemote = getWorkspaceConfig().get<boolean>('v.vls.tcpMode.useRemoteServer');
+	const tcpUseRemote = getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer');
+	let shouldSpawnProcess = true;
 
 	if (enableFeatures.length > 0) {
 		vlsArgs.push(`--enable=${enableFeatures}`);
@@ -117,11 +109,20 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	if (connMode == 'tcp') {
 		vlsArgs.push('--socket');
 		vlsArgs.push(`--port=${tcpPort}`);
+		if (tcpUseRemote) {
+			shouldSpawnProcess = false;
+		}
+	}
+
+	let vlsProcess: cp.ChildProcess;
+	if (shouldSpawnProcess) {
+		console.log('Spawning VLS process...');
+		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
 	}
 
 	const serverOptions: ServerOptions = connMode == 'tcp'
-										  ? () => connectVlsViaTcp(pathToVls, vlsArgs, tcpPort, tcpUseRemote)
-										  : () => connectVlsViaStdio(pathToVls, vlsArgs);
+											? () => connectVlsViaTcp(tcpPort)
+											: () => Promise.resolve(vlsProcess);
 
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
