@@ -24,7 +24,9 @@ export function activate(context: ExtensionContext): void {
 	const restartVls = vscode.commands.registerCommand('v.vls.restart', () => {
 		const restartMsg = vscode.window.setStatusBarMessage('Restarting VLS...', 3000);
 		deactivateVls()
-			.then(() => restartMsg.dispose())
+			.then(() => { 
+				restartMsg.dispose(); 
+			})
 			.then(() => activateVls(context))
 			.catch((err) => vscode.window.showErrorMessage(err));
 	});
@@ -39,10 +41,10 @@ export function activate(context: ExtensionContext): void {
 				void deactivateVls();
 			}
 		} else if (e.affectsConfiguration('v.vls') && isVlsEnabled()) {
-			vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')
+			void vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')
 				.then(selected => {
 					if (selected == 'No') return;
-					vscode.commands.executeCommand('v.vls.restart');
+					void vscode.commands.executeCommand('v.vls.restart');
 				});
 		}
 	});
