@@ -76,7 +76,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Custom path to the VLS (V Language Server) executable. Restart is required to take effect."
+					"description": "Custom path to the VLS (V Language Server) executable."
 				},
 				"v.vls.enable": {
 					"scope": "resource",
