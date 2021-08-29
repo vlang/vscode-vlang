@@ -1,7 +1,6 @@
 import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from 'vscode';
 import * as commands from './commands';
-import { getWorkspaceConfig } from './utils';
-import { activateVls, deactivateVls } from './langserver';
+import { activateVls, deactivateVls, isVlsEnabled } from './langserver';
 
 const cmds = {
 	'v.run': commands.run,
@@ -32,8 +31,7 @@ export function activate(context: ExtensionContext): void {
 
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
-			const isVlsEnabled = getWorkspaceConfig().get<boolean>('vls.enable');
-			if (isVlsEnabled) {
+			if (isVlsEnabled()) {
 				void activateVls(context);
 			} else {
 				void deactivateVls();
@@ -41,7 +39,7 @@ export function activate(context: ExtensionContext): void {
 		}
 	});
 
-	const shouldEnableVls = getWorkspaceConfig().get<boolean>('vls.enable');
+	const shouldEnableVls = isVlsEnabled();
 	if (shouldEnableVls) {
 		void activateVls(context);
 	}

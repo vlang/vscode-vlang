@@ -39,6 +39,10 @@ export async function isVlsInstalled(): Promise<boolean> {
 	return await existsAsync(vlsPath);
 }
 
+export function isVlsEnabled(): boolean {
+	return getWorkspaceConfig().get<boolean>('vls.enable') ?? false;
+}
+
 export async function installVls(): Promise<void> {
 	try {
 		await window.withProgress({
@@ -151,6 +155,7 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 }
 
 export async function activateVls(context: ExtensionContext): Promise<void> {
+	if (!isVlsEnabled()) return;
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
@@ -164,7 +169,7 @@ export async function activateVls(context: ExtensionContext): Promise<void> {
 }
 
 export async function deactivateVls(): Promise<void> {
-	if (!client) {
+	if (!client || !isVlsEnabled()) {
 		return;
 	}
 	await client.stop();
