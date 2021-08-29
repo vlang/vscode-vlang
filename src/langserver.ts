@@ -3,8 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
+import * as net from 'net';
 import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel } from './status';
@@ -19,6 +20,8 @@ const vexe = getVExecCommand();
 const isWin = process.platform === 'win32';
 export const vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
+let vlsProcess: cp.ChildProcess;
+let shouldSpawnProcess = true;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
@@ -36,6 +39,10 @@ export async function checkIsVlsInstalled(): Promise<boolean> {
 
 export async function isVlsInstalled(): Promise<boolean> {
 	return await existsAsync(vlsPath);
+}
+
+export function isVlsEnabled(): boolean {
+	return getWorkspaceConfig().get<boolean>('vls.enable') ?? false;
 }
 
 export async function installVls(): Promise<void> {
@@ -70,14 +77,27 @@ export async function installVls(): Promise<void> {
 	}
 }
 
+function connectVlsViaTcp(port: number): Promise<StreamInfo> {
+	const socket = net.connect({ port });
+	const result: StreamInfo = {
+		writer: socket,
+		reader: socket
+	};
+	return Promise.resolve(result);
+}
+
 export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = [];
 
+	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
 	const isDebug = getWorkspaceConfig().get<boolean>('vls.debug');
 	const customVrootPath = getWorkspaceConfig().get<string>('vls.customVrootPath');
 	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
 	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
+	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
+	const tcpUseRemote = getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer');
+
 	if (enableFeatures.length > 0) {
 		vlsArgs.push(`--enable=${enableFeatures}`);
 	}
@@ -91,13 +111,23 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 		vlsArgs.push('--debug');
 	}
 
-	// Path to VLS executable.
-	// Server Options for STDIO
-	const serverOptions: ServerOptions = {
-		command: pathToVls,
-		args: vlsArgs,
-		transport: TransportKind.stdio
-	};
+	if (connMode == 'tcp') {
+		vlsArgs.push('--socket');
+		vlsArgs.push(`--port=${tcpPort}`);
+		if (tcpUseRemote) {
+			shouldSpawnProcess = false;
+		}
+	}
+
+	if (shouldSpawnProcess) {
+		console.log('Spawning VLS process...');
+		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
+	}
+
+	const serverOptions: ServerOptions = connMode == 'tcp'
+											? () => connectVlsViaTcp(tcpPort)
+											: () => Promise.resolve(vlsProcess);
+
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: 'v' }],
@@ -125,6 +155,7 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 }
 
 export async function activateVls(context: ExtensionContext): Promise<void> {
+	if (!isVlsEnabled()) return;
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
@@ -138,8 +169,10 @@ export async function activateVls(context: ExtensionContext): Promise<void> {
 }
 
 export async function deactivateVls(): Promise<void> {
-	if (!client) {
-		return;
+	if (client && isVlsEnabled()) {
+		await client.stop();
+		if (shouldSpawnProcess && !vlsProcess.killed) {
+			vlsProcess.kill();
+		}
 	}
-	await client.stop();
 }

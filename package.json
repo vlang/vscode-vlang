@@ -76,7 +76,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Custom path to the VLS (V Language Server) executable. Restart is required to take effect."
+					"description": "Custom path to the VLS (V Language Server) executable."
 				},
 				"v.vls.enable": {
 					"scope": "resource",
@@ -93,6 +93,29 @@
 					"scope": "resource",
 					"type": "string",
 					"description": "Disables specific language server features. Multiple values must be separated with a comma (,)."
+				},
+				"v.vls.connectionMode": {
+					"scope": "resource",
+					"type": "string",
+					"default": "stdio",
+					"enum": ["stdio", "tcp"],
+					"description": "Specify the mode to be used when connecting to VLS.",
+					"enumDescriptions": [
+						"Connects to the language server via standard input/output. (Default)",
+						"Connects to the language server via TCP"
+					]
+				},
+				"v.vls.tcpMode.port": {
+					"scope": "resource",
+					"type": "number",
+					"default": 5007,
+					"description": "Port to be used when connecting to the language server. (Only in TCP mode)"
+				},
+				"v.vls.tcpMode.useRemoteServer": {
+					"scope": "resource",
+					"default": false,
+					"type": "boolean",
+					"description": "Connect to a remote server instead of launching a new local process. (Only in TCP mode)"
 				}
 			}
 		},
