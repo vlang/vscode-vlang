@@ -20,6 +20,8 @@ const vexe = getVExecCommand();
 const isWin = process.platform === 'win32';
 export const vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
+let vlsProcess: cp.ChildProcess;
+let shouldSpawnProcess = true;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
@@ -95,7 +97,6 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
 	const tcpUseRemote = getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer');
-	let shouldSpawnProcess = true;
 
 	if (enableFeatures.length > 0) {
 		vlsArgs.push(`--enable=${enableFeatures}`);
@@ -118,7 +119,6 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 		}
 	}
 
-	let vlsProcess: cp.ChildProcess;
 	if (shouldSpawnProcess) {
 		console.log('Spawning VLS process...');
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
@@ -169,8 +169,10 @@ export async function activateVls(context: ExtensionContext): Promise<void> {
 }
 
 export async function deactivateVls(): Promise<void> {
-	if (!client || !isVlsEnabled()) {
-		return;
+	if (client && isVlsEnabled()) {
+		await client.stop();
+		if (shouldSpawnProcess && !vlsProcess.killed) {
+			vlsProcess.kill();
+		}
 	}
-	await client.stop();
 }
