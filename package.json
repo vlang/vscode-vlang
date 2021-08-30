@@ -191,7 +191,7 @@
 		"@types/node": "^16.7.1",
 		"@types/vscode": "^1.40.0",
 		"@typescript-eslint/eslint-plugin": "^4.29",
-		"@typescript-eslint/parser": "^4.29",
+		"@typescript-eslint/parser": "^4.30",
 		"esbuild": "^0.12.22",
 		"eslint": "^7.32.0",
 		"markdownlint-cli": "^0.28.1",
