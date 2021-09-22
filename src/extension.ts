@@ -1,6 +1,6 @@
 import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from 'vscode';
 import * as commands from './commands';
-import { activateVls, deactivateVls, isVlsEnabled } from './langserver';
+import { activateVls, deactivateVls, isVlsEnabled, terminateVlsProcess } from './langserver';
 
 const cmds = {
 	'v.run': commands.run,
@@ -8,6 +8,7 @@ const cmds = {
 	'v.prod': commands.prod,
 	'v.devbits_playground': commands.devbitsPlayground,
 	'v.vls.update': commands.updateVls,
+	'v.vls.restart': commands.restartVls,
 };
 
 /**
@@ -21,24 +22,13 @@ export function activate(context: ExtensionContext): void {
 		context.subscriptions.push(disposable);
 	}
 
-	const restartVls = vscode.commands.registerCommand('v.vls.restart', () => {
-		const restartMsg = vscode.window.setStatusBarMessage('Restarting VLS...', 3000);
-		deactivateVls()
-			.then(() => { 
-				restartMsg.dispose(); 
-			})
-			.then(() => activateVls(context))
-			.catch((err) => vscode.window.showErrorMessage(err));
-	});
-
-	context.subscriptions.push(restartVls);
-
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			if (isVlsEnabled()) {
-				void activateVls(context);
+				void activateVls();
 			} else {
 				void deactivateVls();
+				void terminateVlsProcess();
 			}
 		} else if (e.affectsConfiguration('v.vls') && isVlsEnabled()) {
 			void vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')
@@ -51,6 +41,6 @@ export function activate(context: ExtensionContext): void {
 
 	const shouldEnableVls = isVlsEnabled();
 	if (shouldEnableVls) {
-		void activateVls(context);
+		void activateVls();
 	}
 }
