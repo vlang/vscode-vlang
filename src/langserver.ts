@@ -18,7 +18,7 @@ const vlsDir = path.join(os.homedir(), '.vls');
 const vlsBin = path.join(vlsDir, 'bin');
 const vexe = getVExecCommand();
 const isWin = process.platform === 'win32';
-export const vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
+export let vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 let vlsProcess: cp.ChildProcess;
 let shouldSpawnProcess = true;
@@ -170,6 +170,9 @@ export async function activateVls(context: ExtensionContext): Promise<void> {
 			connectVls(vlsPath, context);
 		}
 	} else {
+		// It is very important to set this or start/stopping
+		// the VLS process won't work.
+		vlsPath = customVlsPath;
 		connectVls(customVlsPath, context);
 	}
 }
