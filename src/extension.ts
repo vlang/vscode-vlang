@@ -36,7 +36,7 @@ export function activate(context: ExtensionContext): void {
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			if (isVlsEnabled()) {
-				void activateVls(context);
+				void activateVls();
 			} else {
 				void deactivateVls();
 			}
@@ -51,6 +51,6 @@ export function activate(context: ExtensionContext): void {
 
 	const shouldEnableVls = isVlsEnabled();
 	if (shouldEnableVls) {
-		void activateVls(context);
+		void activateVls();
 	}
 }

@@ -4,7 +4,7 @@ import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
 import * as net from 'net';
-import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
+import { window, workspace, ProgressLocation } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
@@ -86,7 +86,7 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 	return Promise.resolve(result);
 }
 
-export function connectVls(pathToVls: string, context: ExtensionContext): void {
+export function connectVls(pathToVls: string): void {
 	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
 
@@ -163,23 +163,26 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
 
-	context.subscriptions.push(client.start());
+	// NOTE: the language client was remove in the context subscription's
+	// because of it's error-handling behavior which causes the progress/message
+	// box to hang and produce unnecessary errors in the output/devtools log.
+	client.start();
 }
 
-export async function activateVls(context: ExtensionContext): Promise<void> {
+export async function activateVls(): Promise<void> {
 	if (!isVlsEnabled()) return;
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
 		const installed = await checkIsVlsInstalled();
 		if (installed) {
-			connectVls(vlsPath, context);
+			connectVls(vlsPath);
 		}
 	} else {
 		// It is very important to set this or start/stopping
 		// the VLS process won't work.
 		vlsPath = customVlsPath;
-		connectVls(customVlsPath, context);
+		connectVls(customVlsPath);
 	}
 }
 
