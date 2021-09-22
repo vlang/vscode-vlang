@@ -5,3 +5,4 @@ out/
 *.exe
 *.vsix
 *.tmp.json
+.DS_Store
