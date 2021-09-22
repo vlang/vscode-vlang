@@ -116,6 +116,11 @@
 					"default": false,
 					"type": "boolean",
 					"description": "Connect to a remote server instead of launching a new local process. (Only in TCP mode)"
+				},
+				"v.vls.customArgs": {
+					"scope": "resource",
+					"type": "string",
+					"description": "Custom arguments to be passed to the VLS executable."
 				}
 			}
 		},
