@@ -125,6 +125,12 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	}
 
 	if (shouldSpawnProcess) {
+		// Kill first the existing VLS process
+		// before launching a new one.
+		if (typeof vlsProcess != 'undefined' && vlsProcess && !vlsProcess.killed) {
+			vlsProcess.kill();
+		}
+
 		console.log('Spawning VLS process...');
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
 	}
@@ -179,9 +185,6 @@ export async function activateVls(context: ExtensionContext): Promise<void> {
 
 export async function deactivateVls(): Promise<void> {
 	if (client && isVlsEnabled()) {
-		await client.stop();
-		if (shouldSpawnProcess && !vlsProcess.killed) {
-			vlsProcess.kill();
-		}
+		return client.stop();
 	}
 }
