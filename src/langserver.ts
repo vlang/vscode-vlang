@@ -87,34 +87,39 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 }
 
 export function connectVls(pathToVls: string, context: ExtensionContext): void {
-	// Arguments to be passed to VLS
-	const vlsArgs: string[] = [];
-
 	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
-	const isDebug = getWorkspaceConfig().get<boolean>('vls.debug');
-	const customVrootPath = getWorkspaceConfig().get<string>('vls.customVrootPath');
-	const enableFeatures = getWorkspaceConfig().get<string>('vls.enableFeatures');
-	const disableFeatures = getWorkspaceConfig().get<string>('vls.disableFeatures');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
-	const tcpUseRemote = getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer');
 
-	if (enableFeatures.length > 0) {
-		vlsArgs.push(`--enable=${enableFeatures}`);
+	// Arguments to be passed to VLS
+	const vlsArgs: string[] = getWorkspaceConfig().get<string>('vls.customArgs').split(' ').filter(Boolean);
+	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a == flag || a.startsWith(flag)) != -1;
+	const pushArg = (flags: string[], value?: any) => {
+		if ((typeof value == "string" && value.length == 0) || value == null) {
+			return;
+		}
+
+		const validFlags = flags.filter(Boolean);
+		if (validFlags.length != 0 && validFlags.every(flag => !hasArg(flag))) {
+			if (typeof value == "undefined" || (typeof value == "boolean" && value)) {
+				vlsArgs.push(validFlags[0]);
+			} else {
+				vlsArgs.push(`${validFlags[0]}=${value}`);
+			}
+		}
 	}
-	if (disableFeatures.length > 0) {
-		vlsArgs.push(`--disable=${disableFeatures}`);
-	}
-	if (customVrootPath.length != 0) {
-		vlsArgs.push(`--vroot=${customVrootPath}`);
-	}
-	if (isDebug) {
-		vlsArgs.push('--debug');
-	}
+
+	pushArg(['--enable', '-e'], getWorkspaceConfig().get<string>('vls.enableFeatures'));
+	pushArg(['--disable', '-d'], getWorkspaceConfig().get<string>('vls.disableFeatures'));
+	pushArg(['--vroot'], getWorkspaceConfig().get<string>('vls.customVrootPath'));
+	pushArg(['--debug'], getWorkspaceConfig().get<boolean>('vls.debug'));
 
 	if (connMode == 'tcp') {
-		vlsArgs.push('--socket');
-		vlsArgs.push(`--port=${tcpPort}`);
-		if (tcpUseRemote) {
+		pushArg(['--socket']);
+		pushArg(['--port'], tcpPort);
+
+		// This will instruct the client to not launch the VLS process
+		// and use an existing one with TCP enabled.
+		if (getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer')) {
 			shouldSpawnProcess = false;
 		}
 	}
