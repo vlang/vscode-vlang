@@ -93,20 +93,20 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = getWorkspaceConfig().get<string>('vls.customArgs').split(' ').filter(Boolean);
 	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a == flag || a.startsWith(flag)) != -1;
-	const pushArg = (flags: string[], value?: any) => {
-		if ((typeof value == "string" && value.length == 0) || value == null) {
+	const pushArg = (flags: string[], value?: string | number | boolean) => {
+		if ((typeof value == 'string' && value.length == 0) || value == null) {
 			return;
 		}
 
 		const validFlags = flags.filter(Boolean);
 		if (validFlags.length != 0 && validFlags.every(flag => !hasArg(flag))) {
-			if (typeof value == "undefined" || (typeof value == "boolean" && value)) {
+			if (typeof value == 'undefined' || (typeof value == 'boolean' && value)) {
 				vlsArgs.push(validFlags[0]);
 			} else {
-				vlsArgs.push(`${validFlags[0]}=${value}`);
+				vlsArgs.push(`${validFlags[0]}=${value.toString()}`);
 			}
 		}
-	}
+	};
 
 	pushArg(['--enable', '-e'], getWorkspaceConfig().get<string>('vls.enableFeatures'));
 	pushArg(['--disable', '-d'], getWorkspaceConfig().get<string>('vls.disableFeatures'));
