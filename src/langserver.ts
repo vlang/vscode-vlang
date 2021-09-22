@@ -127,9 +127,7 @@ export function connectVls(pathToVls: string): void {
 	if (shouldSpawnProcess) {
 		// Kill first the existing VLS process
 		// before launching a new one.
-		if (typeof vlsProcess != 'undefined' && vlsProcess && !vlsProcess.killed) {
-			vlsProcess.kill();
-		}
+		terminateVlsProcess();
 
 		console.log('Spawning VLS process...');
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
@@ -163,7 +161,7 @@ export function connectVls(pathToVls: string): void {
 			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
 
-	// NOTE: the language client was remove in the context subscription's
+	// NOTE: the language client was remove in the context subscriptions
 	// because of it's error-handling behavior which causes the progress/message
 	// box to hang and produce unnecessary errors in the output/devtools log.
 	client.start();
@@ -189,5 +187,11 @@ export async function activateVls(): Promise<void> {
 export async function deactivateVls(): Promise<void> {
 	if (client && isVlsEnabled()) {
 		return client.stop();
+	}
+}
+
+export function terminateVlsProcess(): void {
+	if (shouldSpawnProcess && typeof vlsProcess != 'undefined' && vlsProcess && !vlsProcess.killed) {
+		vlsProcess.kill();
 	}
 }
