@@ -1,7 +1,6 @@
-import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent, ProgressLocation } from 'vscode';
+import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from 'vscode';
 import * as commands from './commands';
 import { activateVls, deactivateVls, isVlsEnabled } from './langserver';
-import { outputChannel, vlsOutputChannel } from './status';
 
 const cmds = {
 	'v.run': commands.run,
@@ -9,6 +8,7 @@ const cmds = {
 	'v.prod': commands.prod,
 	'v.devbits_playground': commands.devbitsPlayground,
 	'v.vls.update': commands.updateVls,
+	'v.vls.restart': commands.restartVls,
 };
 
 /**
@@ -21,30 +21,6 @@ export function activate(context: ExtensionContext): void {
 		const disposable = vscode.commands.registerCommand(cmd, handler);
 		context.subscriptions.push(disposable);
 	}
-
-	const restartVls = vscode.commands.registerCommand('v.vls.restart', () => {
-		vscode.window.withProgress({
-			location: ProgressLocation.Notification,
-			cancellable: false,
-			title: 'VLS'
-		}, async (progress) => {
-			progress.report({ message: 'Restarting' });
-			await deactivateVls();
-			vlsOutputChannel.clear();
-			return await activateVls();
-		}).then(
-			() => {
-				return;
-			},
-			(err) => {
-				outputChannel.appendLine(err);
-				outputChannel.show();
-				void vscode.window.showErrorMessage('Failed restarting VLS. See output for more information.');
-			}
-		);
-	});
-
-	context.subscriptions.push(restartVls);
 
 	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
