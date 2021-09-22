@@ -8,7 +8,7 @@ import { window, ExtensionContext, workspace, ProgressLocation } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
-import { outputChannel } from './status';
+import { outputChannel, vlsOutputChannel } from './status';
 
 const execAsync = util.promisify(cp.exec);
 const mkdirAsync = util.promisify(fs.mkdir);
@@ -139,6 +139,7 @@ export function connectVls(pathToVls: string, context: ExtensionContext): void {
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/*.v')
 		},
+		outputChannel: vlsOutputChannel
 	};
 
 	client = new LanguageClient(
