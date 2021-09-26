@@ -45,3 +45,7 @@ export function activate(context: ExtensionContext): void {
 		void activateVls();
 	}
 }
+
+export async function deactivate(): Promise<void> {
+	await deactivateVls();
+}

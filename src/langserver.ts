@@ -4,7 +4,7 @@ import fs from 'fs';
 import cp from 'child_process';
 import util from 'util';
 import * as net from 'net';
-import { window, workspace, ProgressLocation } from 'vscode';
+import { window, workspace, ProgressLocation, Disposable } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
@@ -20,6 +20,8 @@ const vexe = getVExecCommand();
 const isWin = process.platform === 'win32';
 export let vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
+export let clientDisposable: Disposable;
+
 let vlsProcess: cp.ChildProcess;
 let shouldSpawnProcess = true;
 
@@ -164,7 +166,7 @@ export function connectVls(pathToVls: string): void {
 	// NOTE: the language client was remove in the context subscriptions
 	// because of it's error-handling behavior which causes the progress/message
 	// box to hang and produce unnecessary errors in the output/devtools log.
-	client.start();
+	clientDisposable = client.start();
 }
 
 export async function activateVls(): Promise<void> {
@@ -186,7 +188,8 @@ export async function activateVls(): Promise<void> {
 
 export async function deactivateVls(): Promise<void> {
 	if (client && isVlsEnabled()) {
-		return client.stop();
+		clientDisposable.dispose();
+		await client.stop();
 	}
 }
 
