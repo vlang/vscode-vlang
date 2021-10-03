@@ -98,7 +98,10 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "stdio",
-					"enum": ["stdio", "tcp"],
+					"enum": [
+						"stdio",
+						"tcp"
+					],
 					"description": "Specify the mode to be used when connecting to VLS.",
 					"enumDescriptions": [
 						"Connects to the language server via standard input/output. (Default)",
