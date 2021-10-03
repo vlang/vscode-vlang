@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## 0.1.10
+*3 October 2021*
+### Features
+- ℹ️ VLS has now support for connecting via TCP! (thanks @nedpals #283)
+- 🔄 Added dialog when updating settings related to VLS (thanks @nedpals #283)
+- ℹ️ Added custom CLI arguments setting that can be passed to the VLS executable (thanks @nedpals #302)
+
+### Fixes
+- 🐛Fix syntax highlighting for numeric methods (e.g. `.int()`) (thanks @pouyakary #281)
+- 🐛Fix comma not identified by the grammar (thanks @pouyakary #282)
+- ⏫ Improved VLS connection flow (thanks @nedpals #283)
+- ⏫ Fix / update VLS compilation command (thanks @nedpals #303)
+- ⏫ Fix VLS restart command (thanks @nedpals #303 #310)
+
 ## 0.1.9
 *11 August 2021*
 ### Features
