@@ -5,7 +5,8 @@ import cp from 'child_process';
 import util from 'util';
 import * as net from 'net';
 import { window, workspace, ProgressLocation, Disposable } from 'vscode';
-import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
+import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, CloseAction, ErrorAction } from 'vscode-languageclient/node';
+import { terminate } from 'vscode-languageclient/lib/node/processes';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel, vlsOutputChannel } from './status';
@@ -22,6 +23,7 @@ export let vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 export let clientDisposable: Disposable;
 
+let crashCount = 0;
 let vlsProcess: cp.ChildProcess;
 let shouldSpawnProcess = true;
 
@@ -129,7 +131,10 @@ export function connectVls(pathToVls: string): void {
 	if (shouldSpawnProcess) {
 		// Kill first the existing VLS process
 		// before launching a new one.
-		terminateVlsProcess();
+		if (vlsProcess) {
+			vlsProcess.kill(0);
+			terminate(vlsProcess);
+		}
 
 		console.log('Spawning VLS process...');
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
@@ -145,7 +150,27 @@ export function connectVls(pathToVls: string): void {
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/*.v')
 		},
-		outputChannel: vlsOutputChannel
+		outputChannel: vlsOutputChannel,
+		errorHandler: {
+			closed() {
+				crashCount++;
+				if (crashCount < 5) {
+					return CloseAction.Restart;
+				}
+				return CloseAction.DoNotRestart;
+			},
+			error(err, msg, count) {
+				// taken from: https://github.com/golang/vscode-go/blob/HEAD/src/goLanguageServer.ts#L533-L539
+				if (count < 5) {
+					return ErrorAction.Continue;
+				}
+				void window.showErrorMessage(
+					// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+					`VLS: Error communicating with the language server: ${err}: ${msg}.`
+				);
+				return ErrorAction.Shutdown;
+			}
+		},
 	};
 
 	client = new LanguageClient(
@@ -171,6 +196,7 @@ export function connectVls(pathToVls: string): void {
 
 export async function activateVls(): Promise<void> {
 	if (!isVlsEnabled()) return;
+
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (!customVlsPath) {
 		// if no vls path is given, try to used the installed one or install it.
@@ -189,12 +215,7 @@ export async function activateVls(): Promise<void> {
 export async function deactivateVls(): Promise<void> {
 	if (client && isVlsEnabled()) {
 		clientDisposable.dispose();
-		await client.stop();
-	}
-}
-
-export function terminateVlsProcess(): void {
-	if (shouldSpawnProcess && typeof vlsProcess != 'undefined' && vlsProcess && !vlsProcess.killed) {
-		vlsProcess.kill();
+		// delay 1.5 seconds just to be sure
+		await new Promise((resolve) => setTimeout(resolve, 1500));
 	}
 }

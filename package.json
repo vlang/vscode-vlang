@@ -98,7 +98,10 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "stdio",
-					"enum": ["stdio", "tcp"],
+					"enum": [
+						"stdio",
+						"tcp"
+					],
 					"description": "Specify the mode to be used when connecting to VLS.",
 					"enumDescriptions": [
 						"Connects to the language server via standard input/output. (Default)",
@@ -174,6 +177,10 @@
 				{
 					"command": "v.devbits_playground",
 					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.vls.restart",
+					"when": "editorLangId == v && config.v.vls.enable"
 				}
 			]
 		},

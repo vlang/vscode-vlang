@@ -1,6 +1,6 @@
 import vscode, { workspace, ExtensionContext, ConfigurationChangeEvent } from 'vscode';
 import * as commands from './commands';
-import { activateVls, deactivateVls, isVlsEnabled, terminateVlsProcess } from './langserver';
+import { activateVls, deactivateVls, isVlsEnabled } from './langserver';
 
 const cmds = {
 	'v.run': commands.run,
@@ -28,7 +28,6 @@ export function activate(context: ExtensionContext): void {
 				void activateVls();
 			} else {
 				void deactivateVls();
-				void terminateVlsProcess();
 			}
 		} else if (e.affectsConfiguration('v.vls') && isVlsEnabled()) {
 			void vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')

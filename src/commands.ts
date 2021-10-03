@@ -53,7 +53,7 @@ export function restartVls(): void {
 		progress.report({ message: 'Restarting' });
 		await deactivateVls();
 		vlsOutputChannel.clear();
-		return await activateVls();
+		await activateVls();
 	}).then(
 		() => {
 			return;
