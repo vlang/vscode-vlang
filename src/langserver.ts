@@ -5,7 +5,7 @@ import cp from 'child_process';
 import util from 'util';
 import * as net from 'net';
 import { window, workspace, ProgressLocation, Disposable } from 'vscode';
-import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions } from 'vscode-languageclient/node';
+import { terminate } from 'vscode-languageclient/lib/node/processes';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { outputChannel, vlsOutputChannel } from './status';
@@ -129,7 +129,10 @@ export function connectVls(pathToVls: string): void {
 	if (shouldSpawnProcess) {
 		// Kill first the existing VLS process
 		// before launching a new one.
-		terminateVlsProcess();
+		if (vlsProcess) {
+			vlsProcess.kill(0);
+			terminate(vlsProcess);
+		}
 
 		console.log('Spawning VLS process...');
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
@@ -189,12 +192,7 @@ export async function activateVls(): Promise<void> {
 export async function deactivateVls(): Promise<void> {
 	if (client && isVlsEnabled()) {
 		clientDisposable.dispose();
-		await client.stop();
-	}
-}
-
-export function terminateVlsProcess(): void {
-	if (shouldSpawnProcess && typeof vlsProcess != 'undefined' && vlsProcess && !vlsProcess.killed) {
-		vlsProcess.kill();
+		// delay 1.5 seconds just to be sure
+		await new Promise((resolve) => setTimeout(resolve, 1500));
 	}
 }
