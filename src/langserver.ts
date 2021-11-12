@@ -9,7 +9,7 @@ import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, Close
 import { terminate } from 'vscode-languageclient/lib/node/processes';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
-import { outputChannel, vlsOutputChannel } from './status';
+import { log, outputChannel, vlsOutputChannel } from './status';
 
 const execAsync = util.promisify(cp.exec);
 const mkdirAsync = util.promisify(fs.mkdir);
@@ -25,7 +25,6 @@ export let clientDisposable: Disposable;
 
 let crashCount = 0;
 let vlsProcess: cp.ChildProcess;
-let shouldSpawnProcess = true;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
@@ -75,7 +74,7 @@ export async function installVls(): Promise<void> {
 			await execAsync(`${vexe} -prod -o ${vlsPath} cmd/vls`, { maxBuffer: Infinity, cwd: vlsDir });
 		});
 	} catch (e) {
-		outputChannel.appendLine(e);
+		log(e);
 		outputChannel.show();
 		await window.showErrorMessage('Failed installing VLS. See output for more information.');
 	}
@@ -91,6 +90,8 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 }
 
 export function connectVls(pathToVls: string): void {
+	let shouldSpawnProcess = true;
+
 	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
 
@@ -98,13 +99,13 @@ export function connectVls(pathToVls: string): void {
 	const vlsArgs: string[] = getWorkspaceConfig().get<string>('vls.customArgs').split(' ').filter(Boolean);
 	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a == flag || a.startsWith(flag)) != -1;
 	const pushArg = (flags: string[], value?: string | number | boolean) => {
-		if ((typeof value == 'string' && value.length == 0) || value == null) {
+		if ((typeof value === 'string' && value.length == 0) || value === null) {
 			return;
 		}
-
+		
 		const validFlags = flags.filter(Boolean);
 		if (validFlags.length != 0 && validFlags.every(flag => !hasArg(flag))) {
-			if (typeof value == 'undefined' || (typeof value == 'boolean' && value)) {
+			if (typeof value === 'undefined' || (typeof value === 'boolean' && value)) {
 				vlsArgs.push(validFlags[0]);
 			} else {
 				vlsArgs.push(`${validFlags[0]}=${value.toString()}`);
@@ -121,8 +122,8 @@ export function connectVls(pathToVls: string): void {
 		pushArg(['--socket']);
 		pushArg(['--port'], tcpPort);
 
-		// This will instruct the client to not launch the VLS process
-		// and use an existing one with TCP enabled.
+		// This will instruct the extension to not skip launching
+		// a new VLS process and use an existing one with TCP enabled instead.
 		if (getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer')) {
 			shouldSpawnProcess = false;
 		}
@@ -131,12 +132,8 @@ export function connectVls(pathToVls: string): void {
 	if (shouldSpawnProcess) {
 		// Kill first the existing VLS process
 		// before launching a new one.
-		if (vlsProcess) {
-			vlsProcess.kill(0);
-			terminate(vlsProcess);
-		}
-
-		console.log('Spawning VLS process...');
+		killVlsProcess();
+		log(`Spawning VLS process: ${pathToVls.trim()} ${vlsArgs.join(' ')}`);
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
 	}
 
@@ -168,6 +165,8 @@ export function connectVls(pathToVls: string): void {
 					// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 					`VLS: Error communicating with the language server: ${err}: ${msg}.`
 				);
+
+				killVlsProcess();
 				return ErrorAction.Shutdown;
 			}
 		},
@@ -188,7 +187,7 @@ export function connectVls(pathToVls: string): void {
 			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
 
-	// NOTE: the language client was remove in the context subscriptions
+	// NOTE: the language client was removed in the context subscriptions
 	// because of it's error-handling behavior which causes the progress/message
 	// box to hang and produce unnecessary errors in the output/devtools log.
 	clientDisposable = client.start();
@@ -212,10 +211,17 @@ export async function activateVls(): Promise<void> {
 	}
 }
 
-export async function deactivateVls(): Promise<void> {
-	if (client && isVlsEnabled()) {
+export function deactivateVls(): void {
+	if (client) {
 		clientDisposable.dispose();
-		// delay 1.5 seconds just to be sure
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+	} else {
+		killVlsProcess();
+	}
+}
+
+export function killVlsProcess(): void {
+	if (vlsProcess && !vlsProcess.killed) {
+		log('Terminating existing VLS process.');
+		terminate(vlsProcess);
 	}
 }
