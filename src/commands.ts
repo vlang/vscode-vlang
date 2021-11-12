@@ -51,7 +51,7 @@ export function restartVls(): void {
 		title: 'VLS'
 	}, async (progress) => {
 		progress.report({ message: 'Restarting' });
-		await deactivateVls();
+		deactivateVls();
 		vlsOutputChannel.clear();
 		await activateVls();
 	}).then(

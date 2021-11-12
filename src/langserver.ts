@@ -25,7 +25,6 @@ export let clientDisposable: Disposable;
 
 let crashCount = 0;
 let vlsProcess: cp.ChildProcess;
-let shouldSpawnProcess = true;
 
 export async function checkIsVlsInstalled(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
@@ -91,6 +90,8 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 }
 
 export function connectVls(pathToVls: string): void {
+	let shouldSpawnProcess = true;
+
 	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
 	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
 
@@ -131,12 +132,7 @@ export function connectVls(pathToVls: string): void {
 	if (shouldSpawnProcess) {
 		// Kill first the existing VLS process
 		// before launching a new one.
-		if (vlsProcess) {
-			vlsProcess.kill(0);
-			terminate(vlsProcess);
-		}
-
-		console.log('Spawning VLS process...');
+		killVlsProcess();
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
 	}
 
@@ -168,6 +164,8 @@ export function connectVls(pathToVls: string): void {
 					// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 					`VLS: Error communicating with the language server: ${err}: ${msg}.`
 				);
+
+				killVlsProcess();
 				return ErrorAction.Shutdown;
 			}
 		},
@@ -212,10 +210,17 @@ export async function activateVls(): Promise<void> {
 	}
 }
 
-export async function deactivateVls(): Promise<void> {
-	if (client && isVlsEnabled()) {
+export function deactivateVls(): void {
+	if (client) {
 		clientDisposable.dispose();
-		// delay 1.5 seconds just to be sure
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+	} else {
+		killVlsProcess();
+	}
+}
+
+export function killVlsProcess(): void {
+	if (vlsProcess && !vlsProcess.killed) {
+		log('Terminating existing VLS process.');
+		terminate(vlsProcess);
 	}
 }
