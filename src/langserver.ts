@@ -122,8 +122,8 @@ export function connectVls(pathToVls: string): void {
 		pushArg(['--socket']);
 		pushArg(['--port'], tcpPort);
 
-		// This will instruct the client to not launch the VLS process
-		// and use an existing one with TCP enabled.
+		// This will instruct the extension to not skip launching
+		// a new VLS process and use an existing one with TCP enabled instead.
 		if (getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer')) {
 			shouldSpawnProcess = false;
 		}
@@ -187,7 +187,7 @@ export function connectVls(pathToVls: string): void {
 			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
 
-	// NOTE: the language client was remove in the context subscriptions
+	// NOTE: the language client was removed in the context subscriptions
 	// because of it's error-handling behavior which causes the progress/message
 	// box to hang and produce unnecessary errors in the output/devtools log.
 	clientDisposable = client.start();
