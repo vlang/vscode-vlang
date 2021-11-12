@@ -9,7 +9,7 @@ import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, Close
 import { terminate } from 'vscode-languageclient/lib/node/processes';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
-import { outputChannel, vlsOutputChannel } from './status';
+import { log, outputChannel, vlsOutputChannel } from './status';
 
 const execAsync = util.promisify(cp.exec);
 const mkdirAsync = util.promisify(fs.mkdir);
@@ -74,7 +74,7 @@ export async function installVls(): Promise<void> {
 			await execAsync(`${vexe} -prod -o ${vlsPath} cmd/vls`, { maxBuffer: Infinity, cwd: vlsDir });
 		});
 	} catch (e) {
-		outputChannel.appendLine(e);
+		log(e);
 		outputChannel.show();
 		await window.showErrorMessage('Failed installing VLS. See output for more information.');
 	}
@@ -133,6 +133,7 @@ export function connectVls(pathToVls: string): void {
 		// Kill first the existing VLS process
 		// before launching a new one.
 		killVlsProcess();
+		log(`Spawning VLS process: ${pathToVls.trim()} ${vlsArgs.join(' ')}`);
 		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
 	}
 

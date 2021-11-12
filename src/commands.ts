@@ -1,7 +1,7 @@
 import { window, env, Uri, ProgressLocation } from 'vscode';
 import { execVInTerminal, execV } from './exec';
 import { activateVls, deactivateVls, installVls } from './langserver';
-import { outputChannel, vlsOutputChannel } from './status';
+import { log, outputChannel, vlsOutputChannel } from './status';
 
 /** Run current file. */
 export async function run(): Promise<void> {
@@ -59,7 +59,7 @@ export function restartVls(): void {
 			return;
 		},
 		(err) => {
-			outputChannel.appendLine(err);
+			log(err);
 			outputChannel.show();
 			void window.showErrorMessage('Failed restarting VLS. See output for more information.');
 		}
