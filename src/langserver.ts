@@ -166,7 +166,6 @@ export function connectVls(pathToVls: string): void {
 					`VLS: Error communicating with the language server: ${err}: ${msg}.`
 				);
 
-				killVlsProcess();
 				return ErrorAction.Shutdown;
 			}
 		},
