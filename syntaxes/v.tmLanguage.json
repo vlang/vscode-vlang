@@ -262,7 +262,7 @@
 				{
 					"patterns": [
 						{
-							"match": "(i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
+							"match": "(i?(?:8|16|32|64|128|nt)|u?(?:16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.numeric.v"
@@ -285,7 +285,7 @@
 		},
 		"escaped-fix": {
 			"name": "meta.escaped.keyword.v",
-			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|__offsetof|typeof|type|struct|interface|enum|in|is|or|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune))",
+			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|__offsetof|typeof|type|struct|interface|enum|in|is|or|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm|i?(?:8|16|32|64|128|nt)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune))",
 			"captures": {
 				"0": {
 					"name": "keyword.other.escaped.v"
@@ -782,7 +782,7 @@
 			"patterns": [
 				{
 					"name": "storage.type.numeric.v",
-					"match": "(?<!\\.)\\b(i(8|16|nt|64|128)|u(8|16|32|64|128)|f(32|64))\\b"
+					"match": "(?<!\\.)\\b(i(8|16|32|64|128|nt)|u(8|16|32|64|128)|f(32|64))\\b"
 				},
 				{
 					"name": "storage.type.$1.v",
