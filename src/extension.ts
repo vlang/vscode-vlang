@@ -4,6 +4,7 @@ import { activateVls, deactivateVls, isVlsEnabled } from './langserver';
 
 const cmds = {
 	'v.run': commands.run,
+	'v.fmt': commands.fmt,
 	'v.ver': commands.ver,
 	'v.prod': commands.prod,
 	'v.devbits_playground': commands.devbitsPlayground,

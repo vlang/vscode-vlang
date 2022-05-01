@@ -1,6 +1,6 @@
 import { window, Terminal, Disposable } from 'vscode';
 import { getVExecCommand, getCwd } from './utils';
-import { ExecException, execFile } from 'child_process';
+import cp, { ExecException, execFile } from 'child_process';
 
 type ExecCallback = (error: ExecException | null, stdout: string, stderr: string) => void;
 
@@ -14,6 +14,13 @@ export function execVInTerminal(args: string[]): void {
 
 	vRunTerm.show();
 	vRunTerm.sendText(cmd);
+}
+
+export function execVInTerminalOnBG(args: string[]): void {
+	const vexec = getVExecCommand();
+	const cmd = `${vexec} ${args.join(' ')}`;
+
+	cp.exec(cmd);
 }
 
 export function execV(args: string[], callback: ExecCallback): void {
