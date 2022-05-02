@@ -39,4 +39,4 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Run grammar tests
-        run: npm run test testgrammar
+        run: npm run testgrammar

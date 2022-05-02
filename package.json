@@ -132,10 +132,21 @@
 				"editor.insertSpaces": false
 			}
 		},
+		"keybindings":[
+			{
+				"command": "v.fmt",
+				"key": "ctrl+i ctrl+i"
+			}
+		],
 		"commands": [
 			{
 				"command": "v.run",
 				"title": "Run current file",
+				"category": "V"
+			},
+			{
+				"command": "v.fmt",
+				"title": "Format current file",
 				"category": "V"
 			},
 			{
@@ -168,6 +179,10 @@
 			"commandPalette": [
 				{
 					"command": "v.run",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.fmt",
 					"when": "editorLangId == v"
 				},
 				{
