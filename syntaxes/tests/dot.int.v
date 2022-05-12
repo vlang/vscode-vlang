@@ -1,3 +1,3 @@
 // SYNTAX TEST "source.v"
 hello.int()
-//    ^^^ source.v
+//    ^^^ entity.name.function.v

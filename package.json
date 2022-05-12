@@ -17,6 +17,17 @@
 		"type": "git",
 		"url": "https://github.com/vlang/vscode-vlang"
 	},
+	"scripts": {
+		"compile": "node ./scripts/build.js",
+		"compile-dev": "node ./scripts/build.js --watch",
+		"lint": "eslint .",
+		"lintmd": "markdownlint *.md -i CHANGELOG.md",
+		"vscode:prepublish": "node ./scripts/minify_json.js && NODE_ENV=production node ./scripts/build.js",
+		"watch": "tsc -watch -p ./",
+		"package": "vsce package",
+		"postpackage": "node ./scripts/minify_json.js --restore",
+		"testgrammar": "vscode-tmgrammar-test -s source.v -g syntaxes/v.tmLanguage.json -t \"syntaxes/tests/*.v\""
+	},
 	"keywords": [
 		"V",
 		"v",
@@ -132,7 +143,7 @@
 				"editor.insertSpaces": false
 			}
 		},
-		"keybindings":[
+		"keybindings": [
 			{
 				"command": "v.fmt",
 				"key": "ctrl+i ctrl+i"
@@ -225,16 +236,5 @@
 		"typescript": "^4.6.4",
 		"vsce": "^2.7.0",
 		"vscode-tmgrammar-test": "~0.0.11"
-	},
-	"scripts": {
-		"compile": "node ./scripts/build.js",
-		"compile-dev": "node ./scripts/build.js --watch",
-		"lint": "eslint .",
-		"lintmd": "markdownlint *.md -i CHANGELOG.md",
-		"vscode:prepublish": "node ./scripts/minify_json.js && NODE_ENV=production node ./scripts/build.js",
-		"watch": "tsc -watch -p ./",
-		"package": "vsce package",
-		"postpackage": "node ./scripts/minify_json.js --restore",
-		"testgrammar": "vscode-tmgrammar-test -s source.v -g syntaxes/v.tmLanguage.json -t \"syntaxes/tests/*.v\""
 	}
 }
