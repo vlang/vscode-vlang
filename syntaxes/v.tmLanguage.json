@@ -1,16 +1,13 @@
 {
 	"name": "V",
 	"scopeName": "source.v",
-	"fileTypes": [
-		".v",
-		".vh",
-		".vsh",
-		".vv",
-		"v.mod"
-	],
+	"fileTypes": [".v", ".vh", ".vsh", ".vv", "v.mod"],
 	"patterns": [
 		{
 			"include": "#comments"
+		},
+		{
+			"include": "#function-decl"
 		},
 		{
 			"include": "#as-is"
@@ -47,9 +44,6 @@
 		},
 		{
 			"include": "#function-extend-decl"
-		},
-		{
-			"include": "#function-decl"
 		},
 		{
 			"include": "#function-exist"
@@ -89,6 +83,12 @@
 		},
 		{
 			"include": "#punctuations"
+		},
+		{
+			"include": "#variable-assign"
+		},
+		{
+			"include": "#function-decl"
 		}
 	],
 	"repository": {
@@ -108,7 +108,7 @@
 		},
 		"assignment": {
 			"name": "meta.definition.variable.v",
-			"match": "\\s+((?:\\:|\\+|\\-|\\*|\/|\\%|\\&|\\||\\^)?=)\\s+",
+			"match": "\\s+((?:\\:|\\+|\\-|\\*|/|\\%|\\&|\\||\\^)?=)\\s+",
 			"captures": {
 				"1": {
 					"patterns": [
@@ -134,6 +134,22 @@
 				},
 				"4": {
 					"name": "punctuation.definition.end.bracket.square.v"
+				}
+			}
+		},
+		"variable-assign": {
+			"match": "[a-zA-Z_]\\w*(?:,\\s*[a-zA-Z_]\\w*)*(?=\\s*(?:=|:=))",
+			"captures": {
+				"0": {
+					"patterns": [
+						{
+							"match": "[a-zA-Z_]\\w*",
+							"name": "variable.other.assignment.v"
+						},
+						{
+							"include": "#punctuation"
+						}
+					]
 				}
 			}
 		},
@@ -262,7 +278,7 @@
 				{
 					"patterns": [
 						{
-							"match": "(i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
+							"match": "(?<!.)(i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64))(?=\\s*\\()",
 							"captures": {
 								"1": {
 									"name": "storage.type.numeric.v"
@@ -282,15 +298,6 @@
 					]
 				}
 			]
-		},
-		"escaped-fix": {
-			"name": "meta.escaped.keyword.v",
-			"match": "((?:@)(?:mut|pub|fn|unsafe|module|import|as|const|map|assert|sizeof|__offsetof|typeof|type|struct|interface|enum|in|is|or|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm|i?(?:8|16|nt|64|128)|u?(?:16|32|64|128)|f?(?:32|64)|bool|byte|byteptr|charptr|voidptr|string|ustring|rune))",
-			"captures": {
-				"0": {
-					"name": "keyword.other.escaped.v"
-				}
-			}
 		},
 		"comments": {
 			"patterns": [
@@ -359,29 +366,18 @@
 		},
 		"function-decl": {
 			"name": "meta.definition.function.v",
-			"begin": "^\\s*(pub)?\\s*(fn)\\s+",
-			"beginCaptures": {
+			"match": "^(\\bpub\\b\\s+)?(\\bfn\\b)\\s+(?:\\([^\\)]+\\)\\s+)?(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
+			"captures": {
 				"1": {
 					"name": "storage.modifier.v"
 				},
 				"2": {
-					"name": "keyword.function.v"
-				}
-			},
-			"end": "(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
-			"endCaptures": {
-				"1": {
-					"patterns": [
-						{
-							"include": "#illegal-name"
-						},
-						{
-							"match": "\\w+",
-							"name": "entity.name.function.v"
-						}
-					]
+					"name": "keyword.fn.v"
 				},
-				"2": {
+				"3": {
+					"name": "entity.name.function.v"
+				},
+				"4": {
 					"patterns": [
 						{
 							"include": "#generic"
@@ -398,7 +394,7 @@
 					"name": "storage.modifier.v"
 				},
 				"2": {
-					"name": "keyword.function.v"
+					"name": "keyword.fn.v"
 				},
 				"3": {
 					"name": "punctuation.definition.bracket.round.begin.v"
@@ -453,7 +449,7 @@
 					"name": "storage.modifier.v"
 				},
 				"2": {
-					"name": "keyword.function.v"
+					"name": "keyword.fn.v"
 				},
 				"3": {
 					"name": "punctuation.definition.bracket.round.begin.v"
@@ -643,7 +639,7 @@
 							"name": "storage.type.struct.v"
 						},
 						"3": {
-							"name": "entity.name.struct.v"
+							"name": "entity.name.type.v"
 						},
 						"4": {
 							"name": "punctuation.definition.bracket.curly.begin.v"
@@ -766,11 +762,11 @@
 				},
 				{
 					"name": "keyword.control.v",
-					"match": "\\b(as|it|is|in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b"
+					"match": "(?<!@)\\b(as|it|is|in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b"
 				},
 				{
 					"name": "keyword.$1.v",
-					"match": "\\b(fn|type|typeof|enum|struct|interface|map|assert|sizeof|__offsetof)\\b"
+					"match": "(?<!@)\\b(fn|type|typeof|enum|struct|interface|map|assert|sizeof|__offsetof)\\b"
 				}
 			]
 		},
