@@ -55,6 +55,7 @@ export async function installVls(): Promise<void> {
 			title: 'Installing VLS',
 			cancellable: false,
 		}, async (progress) => {
+			// TODO: replace this with a v tool utility for VLS
 			progress.report({ message: 'Fetching module' });
 			const existsVlsDir = await existsAsync(vlsDir);
 			if (existsVlsDir) {
@@ -70,8 +71,7 @@ export async function installVls(): Promise<void> {
 				await mkdirAsync(vlsBin);
 			}
 			progress.report({ message: 'Building module' });
-			// TODO: add -gc boehm when libgc library is not needed anymore
-			await execAsync(`${vexe} -prod -o ${vlsPath} cmd/vls`, { maxBuffer: Infinity, cwd: vlsDir });
+			await execAsync(`${vexe} run build.vsh`, { maxBuffer: Infinity, cwd: vlsDir });
 		});
 	} catch (e) {
 		log(e);
@@ -102,7 +102,7 @@ export function connectVls(pathToVls: string): void {
 		if ((typeof value === 'string' && value.length == 0) || value === null) {
 			return;
 		}
-		
+
 		const validFlags = flags.filter(Boolean);
 		if (validFlags.length != 0 && validFlags.every(flag => !hasArg(flag))) {
 			if (typeof value === 'undefined' || (typeof value === 'boolean' && value)) {
