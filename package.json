@@ -4,7 +4,7 @@
 	"description": "V language support (syntax highlighting, formatter, snippets) for Visual Studio Code.",
 	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
-	"version": "0.1.12",
+	"version": "0.1.13",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.40.0"
