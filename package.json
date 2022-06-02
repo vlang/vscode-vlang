@@ -219,7 +219,13 @@
 	"activationEvents": [
 		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.ver"
+		"onCommand:v.run",
+		"onCommand:v.fmt",
+		"onCommand:v.prod",
+		"onCommand:v.ver",
+		"onCommand:v.devbits_playground",
+		"onCommand:v.vls.update",
+		"onCommand:v.vls.restart"
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
