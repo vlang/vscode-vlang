@@ -219,14 +219,20 @@
 	"activationEvents": [
 		"workspaceContains:**/*.v",
 		"onLanguage:v",
-		"onCommand:v.ver"
+		"onCommand:v.run",
+		"onCommand:v.fmt",
+		"onCommand:v.prod",
+		"onCommand:v.ver",
+		"onCommand:v.devbits_playground",
+		"onCommand:v.vls.update",
+		"onCommand:v.vls.restart"
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "12",
+		"@types/node": "17",
 		"@types/vscode": "1.40.0",
 		"@typescript-eslint/eslint-plugin": "^4.33",
 		"@typescript-eslint/parser": "^4.33",
