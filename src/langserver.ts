@@ -7,6 +7,7 @@ import * as net from 'net';
 import { window, workspace, ProgressLocation, Disposable } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, CloseAction, ErrorAction } from 'vscode-languageclient/node';
 import { terminate } from 'vscode-languageclient/lib/node/processes';
+import { exec } from 'child_process';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { log, outputChannel, vlsOutputChannel } from './status';
@@ -71,13 +72,47 @@ export async function installVls(): Promise<void> {
 				await mkdirAsync(vlsBin);
 			}
 			progress.report({ message: 'Building module' });
-			await execAsync(`${vexe} run build.vsh`, { maxBuffer: Infinity, cwd: vlsDir });
+			if (isWin) {
+				let compiler = '';
+				for (const command of ['msvc', 'clang', 'gcc']) {
+					if (await windowsCommandExists(command)) {
+						compiler = command;
+					}
+				}
+				if (compiler != '') {
+					await execAsync(`${vexe} run build.vsh ${compiler}`, { maxBuffer: Infinity, cwd: vlsDir });
+				} else {
+					throw new Error('No compiler found for VLS');
+				}
+			} else {
+				await execAsync(`${vexe} run build.vsh`, { maxBuffer: Infinity, cwd: vlsDir });
+			}
 		});
 	} catch (e) {
 		log(e);
 		outputChannel.show();
 		await window.showErrorMessage('Failed installing VLS. See output for more information.');
 	}
+}
+
+function windowsCommandExists(command: string) {
+	let cleanCommand = command;
+	if (/[^A-Za-z0-9_/:=-]/.test(cleanCommand)) {
+		cleanCommand = `'${cleanCommand.replace(/'/g, '\'\\\'\'')}'`;
+		cleanCommand = cleanCommand
+			.replace(/^(?:'')+/g, '')
+			.replace(/\\'''/g, '\\\'');
+	}
+
+	return new Promise(res => {
+		// eslint-disable-next-line no-control-regex
+		if (/[\x00-\x1f<>:"|?*]/.test(command)) res(false);
+		exec(`where ${cleanCommand}`, err => {
+			if (err) {
+				res(fs.access(command, err2 => res(!err2)));
+			} else res(true);
+		});
+	});
 }
 
 function connectVlsViaTcp(port: number): Promise<StreamInfo> {
@@ -138,8 +173,8 @@ export function connectVls(pathToVls: string): void {
 	}
 
 	const serverOptions: ServerOptions = connMode == 'tcp'
-											? () => connectVlsViaTcp(tcpPort)
-											: () => Promise.resolve(vlsProcess);
+		? () => connectVlsViaTcp(tcpPort)
+		: () => Promise.resolve(vlsProcess);
 
 	// LSP Client options
 	const clientOptions: LanguageClientOptions = {
