@@ -2,7 +2,7 @@
 
 [![Version](https://vsmarketplacebadge.apphb.com/version/vlanguage.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=vlanguage.vscode-vlang)
 [![Installs](https://vsmarketplacebadge.apphb.com/installs/vlanguage.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=vlanguage.vscode-vlang)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vlang/vscode-vlang/CI)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vlang/vscode-vlang/CI)](https://github.com/vlang/vscode-vlang/actions/)
 
 Provides [V language](https://vlang.io) support for Visual Studio Code.
 
@@ -34,9 +34,10 @@ _Note_: It is recommended to turn `Auto Save` on
 ## Commands
 
 - `V: Run current file`
+- `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Show V version`
-- `V: Upload and share current code to V playground`
+- `V: Open current code on DevBits V playground`
 - `V: Update VLS`
 - `V: Restart VLS`
 
