@@ -52,7 +52,7 @@ export function devbitsPlayground(): void {
 }
 
 export function updateVls(): void {
-	void installVls();
+	void installVls(true);
 }
 
 export function restartVls(): void {
