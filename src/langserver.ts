@@ -82,7 +82,7 @@ export async function installVls(update = false): Promise<void> {
 		await window.withProgress({
 			location: ProgressLocation.Notification,
 			title: 'Installing VLS',
-			cancellable: false,
+			cancellable: true,
 		}, async (progress, token) => {
 			const launcher = spawnLauncher(update ? '--update' : '--install');
 			token.onCancellationRequested(() => launcher.kill());
