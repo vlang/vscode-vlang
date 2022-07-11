@@ -1,33 +1,29 @@
-import os from 'os';
-import path from 'path';
-import fs from 'fs';
 import cp from 'child_process';
-import util from 'util';
 import * as net from 'net';
 import { window, workspace, ProgressLocation, Disposable } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, CloseAction, ErrorAction } from 'vscode-languageclient/node';
 import { terminate } from 'vscode-languageclient/lib/node/processes';
-import { exec } from 'child_process';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
 import { log, outputChannel, vlsOutputChannel } from './status';
+import { once } from 'events';
 
-const execAsync = util.promisify(cp.exec);
-const mkdirAsync = util.promisify(fs.mkdir);
-const existsAsync = util.promisify(fs.exists);
-
-const vlsDir = path.join(os.homedir(), '.vls');
-const vlsBin = path.join(vlsDir, 'bin');
-const vexe = getVExecCommand();
-const isWin = process.platform === 'win32';
-export let vlsPath = path.join(vlsBin, isWin ? 'vls.exe' : 'vls');
 export let client: LanguageClient;
 export let clientDisposable: Disposable;
 
 let crashCount = 0;
 let vlsProcess: cp.ChildProcess;
 
-export async function checkIsVlsInstalled(): Promise<boolean> {
+const vexe = getVExecCommand();
+const defaultLauncherArgs: string[] = ['--json'];
+
+function spawnLauncher(...args: string[]): cp.ChildProcess {
+	const finalArgs: string[] = ['ls'].concat(...defaultLauncherArgs).concat(...args);
+	log(`Spawning v ${finalArgs.join(' ')}...`);
+	return cp.spawn(vexe, finalArgs);
+}
+
+export async function checkVlsInstallation(): Promise<boolean> {
 	const vlsInstalled = await isVlsInstalled();
 	if (!vlsInstalled) {
 		const selected = await window.showInformationMessage('VLS is not installed. Do you want to install it now?', 'Yes', 'No');
@@ -41,78 +37,74 @@ export async function checkIsVlsInstalled(): Promise<boolean> {
 	return true;
 }
 
+function receiveLauncherJsonData(cb: (d: { error?: { code: number, message: string }, message: string }) => void) {
+	return (rawData: string | Buffer) => {
+		const data = typeof rawData == 'string' ? rawData : rawData.toString('utf8');
+		log(`[v ls] new data: ${data}`);
+		cb(JSON.parse(data));
+	};
+}
+
+function receiveLauncherError(rawData: string | Buffer) {
+	const msg = typeof rawData === 'string' ? rawData : rawData.toString('utf8');
+	const launcherMessage = `[v ls] error: ${msg}`;
+	log(launcherMessage);
+	void window.showErrorMessage(launcherMessage);
+}
+
 export async function isVlsInstalled(): Promise<boolean> {
-	return await existsAsync(vlsPath);
+	let isInstalled = false;
+	const launcher = spawnLauncher('--check');
+
+	launcher.stdout.on('data', receiveLauncherJsonData(({ error, message }) => {
+		if (error) {
+			void window.showErrorMessage(`Error (${error.code}): ${error.message}`);
+		} else if (!message.includes('not installed')) {
+			isInstalled = true;
+		}
+	}));
+
+	launcher.stderr.on('data', receiveLauncherError);
+	await once(launcher, 'close');
+	return isInstalled;
 }
 
 export function isVlsEnabled(): boolean {
 	return getWorkspaceConfig().get<boolean>('vls.enable') ?? false;
 }
 
-export async function installVls(): Promise<void> {
+export async function installVls(update = false): Promise<void> {
 	try {
 		await window.withProgress({
 			location: ProgressLocation.Notification,
-			title: 'Installing VLS',
-			cancellable: false,
-		}, async (progress) => {
-			// TODO: replace this with a v tool utility for VLS
-			progress.report({ message: 'Fetching module' });
-			const existsVlsDir = await existsAsync(vlsDir);
-			if (existsVlsDir) {
-				await execAsync('git clean -xf', { maxBuffer: Infinity, cwd: vlsDir });
-				await execAsync('git pull --rebase origin master', { maxBuffer: Infinity, cwd: vlsDir });
-			} else {
-				await execAsync(`git clone --single-branch https://github.com/vlang/vls ${vlsDir}`, { maxBuffer: Infinity });
-			}
-			progress.report({ message: 'Creating ~/.vls/bin' });
-			// build vls module to ~/.vmodules/bin
-			const existsVBin = await existsAsync(vlsBin);
-			if (!existsVBin) {
-				await mkdirAsync(vlsBin);
-			}
-			progress.report({ message: 'Building module' });
-			if (isWin) {
-				let compiler = '';
-				for (const command of ['msvc', 'clang', 'gcc']) {
-					if (await windowsCommandExists(command)) {
-						compiler = command;
-					}
-				}
-				if (compiler != '') {
-					await execAsync(`${vexe} run build.vsh ${compiler}`, { maxBuffer: Infinity, cwd: vlsDir });
+			title: update ? 'Updating VLS' : 'Installing VLS',
+			cancellable: true,
+		}, async (progress, token) => {
+			const launcher = spawnLauncher(update ? '--update' : '--install');
+			token.onCancellationRequested(() => launcher.kill());
+
+			launcher.stdout.on('data', receiveLauncherJsonData((payload) => {
+				if (payload.error) {
+					void window.showErrorMessage(`Error (${payload.error.code}): ${payload.error.message}`);
+				} else if (payload.message.includes('was updated') || payload.message.includes('was already updated')) {
+					void window.showInformationMessage(payload.message);
 				} else {
-					throw new Error('No compiler found for VLS');
+					progress.report(payload);
 				}
-			} else {
-				await execAsync(`${vexe} run build.vsh`, { maxBuffer: Infinity, cwd: vlsDir });
-			}
+			}));
+
+			launcher.stderr.on('data', receiveLauncherError);
+			await once(launcher, 'close');
 		});
 	} catch (e) {
 		log(e);
 		outputChannel.show();
-		await window.showErrorMessage('Failed installing VLS. See output for more information.');
+		if (e instanceof Error) {
+			await window.showErrorMessage(e.message);
+		} else {
+			await window.showErrorMessage('Failed installing VLS. See output for more information.');
+		}
 	}
-}
-
-function windowsCommandExists(command: string) {
-	let cleanCommand = command;
-	if (/[^A-Za-z0-9_/:=-]/.test(cleanCommand)) {
-		cleanCommand = `'${cleanCommand.replace(/'/g, '\'\\\'\'')}'`;
-		cleanCommand = cleanCommand
-			.replace(/^(?:'')+/g, '')
-			.replace(/\\'''/g, '\\\'');
-	}
-
-	return new Promise(res => {
-		// eslint-disable-next-line no-control-regex
-		if (/[\x00-\x1f<>:"|?*]/.test(command)) res(false);
-		exec(`where ${cleanCommand}`, err => {
-			if (err) {
-				res(fs.access(command, err2 => res(!err2)));
-			} else res(true);
-		});
-	});
 }
 
 function connectVlsViaTcp(port: number): Promise<StreamInfo> {
@@ -124,7 +116,7 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 	return Promise.resolve(result);
 }
 
-export function connectVls(pathToVls: string): void {
+export function connectVls(): void {
 	let shouldSpawnProcess = true;
 
 	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
@@ -168,8 +160,7 @@ export function connectVls(pathToVls: string): void {
 		// Kill first the existing VLS process
 		// before launching a new one.
 		killVlsProcess();
-		log(`Spawning VLS process: ${pathToVls.trim()} ${vlsArgs.join(' ')}`);
-		vlsProcess = cp.spawn(pathToVls.trim(), vlsArgs);
+		vlsProcess = spawnLauncher('--ls', ...vlsArgs);
 	}
 
 	const serverOptions: ServerOptions = connMode == 'tcp'
@@ -231,17 +222,14 @@ export async function activateVls(): Promise<void> {
 	if (!isVlsEnabled()) return;
 
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
-	if (!customVlsPath) {
-		// if no vls path is given, try to used the installed one or install it.
-		const installed = await checkIsVlsInstalled();
-		if (installed) {
-			connectVls(vlsPath);
-		}
-	} else {
-		// It is very important to set this or start/stopping
-		// the VLS process won't work.
-		vlsPath = customVlsPath;
-		connectVls(customVlsPath);
+	if (customVlsPath) {
+		defaultLauncherArgs.push('--path');
+		defaultLauncherArgs.push(customVlsPath);
+	}
+
+	const installed = await checkVlsInstallation();
+	if (installed) {
+		connectVls();
 	}
 }
 
