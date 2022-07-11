@@ -37,38 +37,34 @@ export async function checkVlsInstallation(): Promise<boolean> {
 	return true;
 }
 
-function receiveLauncherJsonData(cb: (d: { message: string }) => void) {
+function receiveLauncherJsonData(cb: (d: { error?: { code: number, message: string }, message: string }) => void) {
 	return (rawData: string | Buffer) => {
-		if (typeof rawData == 'string') {
-			log(`[v ls] new data: ${rawData}`);
-			cb(JSON.parse(rawData));
-		} else {
-			log(`[v ls] new data from buffer: ${rawData.toString('utf8')}`);
-			cb(JSON.parse(rawData.toString('utf8')));
-		}
+		const data = typeof rawData == 'string' ? rawData : rawData.toString('utf8');
+		log(`[v ls] new data: ${data}`);
+		cb(JSON.parse(data));
 	};
 }
 
-function receiveLauncherErrorJsonData(cb: (d: { code: number, message: string }) => void) {
-	return (rawData: string) => {
-		cb(JSON.parse(rawData));
-	};
+function receiveLauncherError(rawData: string | Buffer) {
+	const msg = typeof rawData === 'string' ? rawData : rawData.toString('utf8');
+	const launcherMessage = `[v ls] error: ${msg}`;
+	log(launcherMessage);
+	void window.showErrorMessage(launcherMessage);
 }
 
 export async function isVlsInstalled(): Promise<boolean> {
 	let isInstalled = false;
 	const launcher = spawnLauncher('--check');
 
-	launcher.stdout.on('data', receiveLauncherJsonData(({ message }) => {
-		if (!message.includes('not installed')) {
+	launcher.stdout.on('data', receiveLauncherJsonData(({ error, message }) => {
+		if (error) {
+			void window.showErrorMessage(`Error (${error.code}): ${error.message}`);
+		} else if (!message.includes('not installed')) {
 			isInstalled = true;
 		}
 	}));
 
-	launcher.stderr.on('data', receiveLauncherErrorJsonData(({ message }) => {
-		void window.showErrorMessage(message);
-	}));
-
+	launcher.stderr.on('data', receiveLauncherError);
 	await once(launcher, 'close');
 	return isInstalled;
 }
@@ -81,24 +77,23 @@ export async function installVls(update = false): Promise<void> {
 	try {
 		await window.withProgress({
 			location: ProgressLocation.Notification,
-			title: 'Installing VLS',
+			title: update ? 'Updating VLS' : 'Installing VLS',
 			cancellable: true,
 		}, async (progress, token) => {
 			const launcher = spawnLauncher(update ? '--update' : '--install');
 			token.onCancellationRequested(() => launcher.kill());
 
 			launcher.stdout.on('data', receiveLauncherJsonData((payload) => {
-				if (payload.message.includes('was updated') || payload.message.includes('was already updated')) {
+				if (payload.error) {
+					void window.showErrorMessage(`Error (${payload.error.code}): ${payload.error.message}`);
+				} else if (payload.message.includes('was updated') || payload.message.includes('was already updated')) {
 					void window.showInformationMessage(payload.message);
 				} else {
 					progress.report(payload);
 				}
 			}));
 
-			launcher.stderr.on('data', receiveLauncherErrorJsonData(({ code, message }) => {
-				throw new Error(`Error (${code}): ${message}`);
-			}));
-
+			launcher.stderr.on('data', receiveLauncherError);
 			await once(launcher, 'close');
 		});
 	} catch (e) {
