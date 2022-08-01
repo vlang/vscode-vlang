@@ -237,7 +237,7 @@
 		"@typescript-eslint/eslint-plugin": "^4.33",
 		"@typescript-eslint/parser": "^4.33",
 		"esbuild": "~0.14.39",
-		"eslint": "^7.32",
+		"eslint": "^8.21",
 		"markdownlint-cli": "^0.31.1",
 		"typescript": "^4.6.4",
 		"vsce": "^2.7.0",
