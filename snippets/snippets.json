@@ -30,8 +30,8 @@
 		"scope": "v,vlang"
 	},
 	"snippet.defer": {
-		"body": ["defer ${1:function}($0)"],
-		"description": "Code snippet for 'defer' function",
+		"body": ["defer {", "\t$0", "}"],
+		"description": "Code snippet for 'defer' block",
 		"prefix": "def",
 		"scope": "v,vlang"
 	},
