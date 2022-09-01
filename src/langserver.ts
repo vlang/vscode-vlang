@@ -222,7 +222,7 @@ export async function activateVls(): Promise<void> {
 	if (!isVlsEnabled()) return;
 
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
-	if (customVlsPath) {
+	if (customVlsPath && customVlsPath.trim().length != 0) {
 		defaultLauncherArgs.push('--path');
 		defaultLauncherArgs.push(customVlsPath);
 	}
