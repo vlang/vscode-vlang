@@ -5,7 +5,7 @@ import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, Close
 import { terminate } from 'vscode-languageclient/lib/node/processes';
 
 import { getVExecCommand, getWorkspaceConfig } from './utils';
-import { log, outputChannel, vlsOutputChannel } from './status';
+import { log, outputChannel, vlsOutputChannel } from './debug';
 import { once } from 'events';
 
 export let client: LanguageClient;

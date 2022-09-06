@@ -1,7 +1,7 @@
 import { window, ProgressLocation } from 'vscode';
 import { execVInTerminal, execVInTerminalOnBG, execV } from './exec';
 import { activateVls, deactivateVls, installVls } from './langserver';
-import { log, outputChannel, vlsOutputChannel } from './status';
+import { log, outputChannel, vlsOutputChannel } from './debug';
 
 /** Run current file. */
 export async function run(): Promise<void> {
