@@ -72,6 +72,11 @@
 		"configuration": {
 			"title": "V",
 			"properties": {
+				"v.executablePath": {
+					"scope": "resource",
+					"type": "string",
+					"description": "Custom path to the V compiler executable (`v`).\nNOTE: Setting this won't change the VROOT path in VLS."
+				},
 				"v.vls.debug": {
 					"scope": "resource",
 					"type": "boolean",
@@ -81,7 +86,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Custom path to the V installation directory (VROOT)."
+					"description": "Custom path to the V installation directory (VROOT).\nNOTE: Setting this won't change the V compiler executable to be used."
 				},
 				"v.vls.customPath": {
 					"scope": "resource",

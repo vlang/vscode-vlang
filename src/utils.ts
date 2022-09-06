@@ -13,8 +13,7 @@ const defaultCommand = 'v';
  */
 export function getVExecCommand(): string {
 	const config = getWorkspaceConfig();
-	const vPath = config.get('pathToExecutableFile', '') || defaultCommand;
-	return vPath;
+	return config.get('v.executablePath', defaultCommand);
 }
 
 /** Get V configuration. */
