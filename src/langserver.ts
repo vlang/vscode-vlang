@@ -119,11 +119,12 @@ function connectVlsViaTcp(port: number): Promise<StreamInfo> {
 export function connectVls(): void {
 	let shouldSpawnProcess = true;
 
-	const connMode = getWorkspaceConfig().get<string>('vls.connectionMode');
-	const tcpPort = getWorkspaceConfig().get<number>('vls.tcpMode.port');
+	const config = getWorkspaceConfig();
+	const connMode = config.get<string>('vls.connectionMode');
+	const tcpPort = config.get<number>('vls.tcpMode.port');
 
 	// Arguments to be passed to VLS
-	const vlsArgs: string[] = getWorkspaceConfig().get<string>('vls.customArgs').split(' ').filter(Boolean);
+	const vlsArgs: string[] = config.get<string>('vls.customArgs').split(' ').filter(Boolean);
 	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a == flag || a.startsWith(flag)) != -1;
 	const pushArg = (flags: string[], value?: string | number | boolean) => {
 		if ((typeof value === 'string' && value.length == 0) || value === null) {
@@ -140,10 +141,10 @@ export function connectVls(): void {
 		}
 	};
 
-	pushArg(['--enable', '-e'], getWorkspaceConfig().get<string>('vls.enableFeatures'));
-	pushArg(['--disable', '-d'], getWorkspaceConfig().get<string>('vls.disableFeatures'));
-	pushArg(['--vroot'], getWorkspaceConfig().get<string>('vls.customVrootPath'));
-	pushArg(['--debug'], getWorkspaceConfig().get<boolean>('vls.debug'));
+	pushArg(['--enable', '-e'], config.get<string>('vls.enableFeatures'));
+	pushArg(['--disable', '-d'], config.get<string>('vls.disableFeatures'));
+	pushArg(['--vroot'], config.get<string>('vls.customVrootPath'));
+	pushArg(['--debug'], config.get<boolean>('vls.debug'));
 
 	if (connMode == 'tcp') {
 		pushArg(['--socket']);
@@ -151,7 +152,7 @@ export function connectVls(): void {
 
 		// This will instruct the extension to not skip launching
 		// a new VLS process and use an existing one with TCP enabled instead.
-		if (getWorkspaceConfig().get<boolean>('vls.tcpMode.useRemoteServer')) {
+		if (config.get<boolean>('vls.tcpMode.useRemoteServer')) {
 			shouldSpawnProcess = false;
 		}
 	}
