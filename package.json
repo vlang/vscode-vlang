@@ -171,11 +171,6 @@
 				"category": "V"
 			},
 			{
-				"command": "v.devbits_playground",
-				"title": "Open current code on DevBits V playground",
-				"category": "V"
-			},
-			{
 				"command": "v.vls.update",
 				"title": "Update VLS",
 				"category": "V"
@@ -201,10 +196,6 @@
 					"when": "editorLangId == v"
 				},
 				{
-					"command": "v.devbits_playground",
-					"when": "editorLangId == v"
-				},
-				{
 					"command": "v.vls.restart",
 					"when": "editorLangId == v && config.v.vls.enable"
 				}
@@ -223,7 +214,6 @@
 		"onCommand:v.fmt",
 		"onCommand:v.prod",
 		"onCommand:v.ver",
-		"onCommand:v.devbits_playground",
 		"onCommand:v.vls.update",
 		"onCommand:v.vls.restart"
 	],

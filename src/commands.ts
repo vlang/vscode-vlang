@@ -1,4 +1,4 @@
-import { window, env, Uri, ProgressLocation } from 'vscode';
+import { window, ProgressLocation } from 'vscode';
 import { execVInTerminal, execVInTerminalOnBG, execV } from './exec';
 import { activateVls, deactivateVls, installVls } from './langserver';
 import { log, outputChannel, vlsOutputChannel } from './status';
@@ -41,14 +41,6 @@ export function ver(): void {
 		}
 		void window.showInformationMessage(stdout);
 	});
-}
-
-/** Open current code on DevBits V playground. */
-export function devbitsPlayground(): void {
-	const url = 'https://devbits.app/play?lang=v&code64=';
-	const code = window.activeTextEditor.document.getText();
-	const base64Code = Buffer.from(code).toString('base64');
-	void env.openExternal(Uri.parse(url + base64Code));
 }
 
 export function updateVls(): void {

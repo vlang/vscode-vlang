@@ -17,10 +17,6 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 - syntax highlighting
 - code snippets for quick coding
 
-### Others
-
-- upload to the DevBits V playground.
-
 ## Usage
 
 First you will need to install [Visual Studio Code][vs-code] >= `1.40`.
@@ -37,7 +33,6 @@ _Note_: It is recommended to turn `Auto Save` on
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Show V version`
-- `V: Open current code on DevBits V playground`
 - `V: Update VLS`
 - `V: Restart VLS`
 

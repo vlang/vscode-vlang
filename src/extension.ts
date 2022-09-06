@@ -7,7 +7,6 @@ const cmds = {
 	'v.fmt': commands.fmt,
 	'v.ver': commands.ver,
 	'v.prod': commands.prod,
-	'v.devbits_playground': commands.devbitsPlayground,
 	'v.vls.update': commands.updateVls,
 	'v.vls.restart': commands.restartVls,
 };
