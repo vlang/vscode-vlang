@@ -1,5 +1,4 @@
 import {
-	TextDocument,
 	workspace,
 	WorkspaceConfiguration,
 	window,
@@ -36,13 +35,11 @@ export function getCwd(uri?: Uri): string {
  * @param uri The URI of document
  */
 export function getWorkspaceFolder(uri?: Uri): WorkspaceFolder {
-	if (uri) return workspace.getWorkspaceFolder(uri);
-	const currentDoc = getCurrentDocument();
-	return currentDoc
-		? workspace.getWorkspaceFolder(currentDoc.uri)
-		: workspace.workspaceFolders[0];
-}
-
-export function getCurrentDocument(): TextDocument {
-	return window.activeTextEditor ? window.activeTextEditor.document : null;
+	if (uri) {
+		return workspace.getWorkspaceFolder(uri);
+	} else if (window.activeTextEditor && window.activeTextEditor.document) {
+		return workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
+	} else {
+		return workspace.workspaceFolders[0];
+	}
 }
