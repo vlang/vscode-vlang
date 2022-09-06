@@ -6,9 +6,6 @@ import {
 	Uri,
 	WorkspaceFolder,
 } from 'vscode';
-import { platform } from 'os';
-import { execFileSync } from 'child_process';
-
 const defaultCommand = 'v';
 
 /** Get V executable command.
@@ -48,14 +45,4 @@ export function getWorkspaceFolder(uri?: Uri): WorkspaceFolder {
 
 export function getCurrentDocument(): TextDocument {
 	return window.activeTextEditor ? window.activeTextEditor.document : null;
-}
-
-export function openUrl(url: string): void {
-	const os = platform();
-	const open = {
-		win32: 'start',
-		linux: 'xdg-open',
-		darwin: 'open',
-	};
-	execFileSync(open[os], [url]);
 }
