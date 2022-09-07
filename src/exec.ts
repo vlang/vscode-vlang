@@ -25,11 +25,11 @@ export function execVInTerminalOnBG(args: string[]): void {
 
 export function execV(args: string[], callback: ExecCallback): void {
 	const vexec = getVExecCommand();
-	const cwd = getCwd();
+	//const cwd = getCwd();
 
 	// void window.showErrorMessage(`Executing ${vexec} ${args.join(" ")} on ${cwd}`);
 	
-	exec(vexec+" "+args.join(" "), (err, stdout, stderr) => {
+	exec(`${vexec} ${args.join(' ')}`, (err, stdout, stderr) => {
 		callback(err, stdout, stderr);
 	});
 }
