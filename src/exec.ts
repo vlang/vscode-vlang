@@ -1,6 +1,6 @@
 import { window, Terminal } from 'vscode';
 import { getVExecCommand, getCwd } from './utils';
-import cp, { ExecException, execFile } from 'child_process';
+import cp, { exec, ExecException, execFile } from 'child_process';
 
 type ExecCallback = (error: ExecException | null, stdout: string, stderr: string) => void;
 
@@ -27,8 +27,9 @@ export function execV(args: string[], callback: ExecCallback): void {
 	const vexec = getVExecCommand();
 	const cwd = getCwd();
 
-	// console.log(`Executing ${vexec} ${args.join(" ")} on ${cwd}`);
-	execFile(vexec, args, { cwd }, (err, stdout, stderr) => {
+	// void window.showErrorMessage(`Executing ${vexec} ${args.join(" ")} on ${cwd}`);
+	
+	exec(vexec+" "+args.join(" "), (err, stdout, stderr) => {
 		callback(err, stdout, stderr);
 	});
 }
