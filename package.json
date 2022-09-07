@@ -22,7 +22,7 @@
 		"compile-dev": "node ./scripts/build.js --watch",
 		"lint": "eslint .",
 		"lintmd": "markdownlint *.md -i CHANGELOG.md",
-		"vscode:prepublish": "node ./scripts/minify_json.js && NODE_ENV=production node ./scripts/build.js",
+		"vscode:prepublish": "node ./scripts/minify_json.js && cross-env NODE_ENV=production node ./scripts/build.js",
 		"watch": "tsc -watch -p ./",
 		"package": "vsce package",
 		"postpackage": "node ./scripts/minify_json.js --restore",
@@ -224,6 +224,8 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
+		"cross-env": "^7.0.3",
+		"esbuild": "^0.15.7",
 		"vscode-languageclient": "^7.0.0"
 	},
 	"devDependencies": {
@@ -231,7 +233,6 @@
 		"@types/vscode": "1.40.0",
 		"@typescript-eslint/eslint-plugin": "^4.33",
 		"@typescript-eslint/parser": "^4.33",
-		"esbuild": "~0.14.39",
 		"eslint": "^7.32",
 		"markdownlint-cli": "^0.31.1",
 		"typescript": "^4.6.4",

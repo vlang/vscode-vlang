@@ -20,7 +20,7 @@ const defaultLauncherArgs: string[] = ['--json'];
 function spawnLauncher(...args: string[]): cp.ChildProcess {
 	const finalArgs: string[] = ['ls'].concat(...defaultLauncherArgs).concat(...args);
 	log(`Spawning v ${finalArgs.join(' ')}...`);
-	return cp.spawn(vexe, finalArgs);
+	return cp.spawn(vexe, finalArgs, {shell: true});
 }
 
 export async function checkVlsInstallation(): Promise<boolean> {
@@ -40,8 +40,9 @@ export async function checkVlsInstallation(): Promise<boolean> {
 function receiveLauncherJsonData(cb: (d: { error?: { code: number, message: string }, message: string }) => void) {
 	return (rawData: string | Buffer) => {
 		const data = typeof rawData == 'string' ? rawData : rawData.toString('utf8');
-		log(`[v ls] new data: ${data}`);
-		cb(JSON.parse(data));
+		const escapedData:string = data.replaceAll('\\', '/'); // replace backslashes found in Windows paths to prevent JSON parsing errors, TODO: proper JSON escaping solution needed
+		log(`[v ls] new data: ${data}\tescaped: ${escapedData}`);
+		cb(JSON.parse(escapedData));
 	};
 }
 
