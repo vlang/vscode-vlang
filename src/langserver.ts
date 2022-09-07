@@ -20,7 +20,7 @@ const defaultLauncherArgs: string[] = ['--json'];
 function spawnLauncher(...args: string[]): cp.ChildProcess {
 	const finalArgs: string[] = ['ls'].concat(...defaultLauncherArgs).concat(...args);
 	log(`Spawning v ${finalArgs.join(' ')}...`);
-	return cp.spawn(vexe, finalArgs);
+	return cp.spawn(vexe, finalArgs, {shell: true});
 }
 
 export async function checkVlsInstallation(): Promise<boolean> {
