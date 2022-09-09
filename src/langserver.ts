@@ -40,7 +40,7 @@ export async function checkVlsInstallation(): Promise<boolean> {
 function receiveLauncherJsonData(cb: (d: { error?: { code: number, message: string }, message: string }) => void) {
 	return (rawData: string | Buffer) => {
 		const data = typeof rawData == 'string' ? rawData : rawData.toString('utf8');
-		const escapedData:string = data.replaceAll('\\', '/'); // replace backslashes found in Windows paths to prevent JSON parsing errors, TODO: proper JSON escaping solution needed
+		const escapedData: string = data.replace(/\\/g, '/'); // replace backslashes found in Windows paths to prevent JSON parsing errors, TODO: proper JSON escaping solution needed
 		log(`[v ls] new data: ${data}\tescaped: ${escapedData}`);
 		cb(JSON.parse(escapedData));
 	};
