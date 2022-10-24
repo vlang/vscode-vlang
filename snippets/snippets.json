@@ -5,6 +5,18 @@
 		"prefix": "as",
 		"scope": "v,vlang"
 	},
+	"snippet.unimpl": {
+		"body": ["assert false, unimplemented"],
+		"description": "Code snippet for unimplemented 'assert'",
+		"prefix": "unimpl",
+		"scope": "v,vlang"
+	},
+	"snippet.unreach": {
+		"body": ["assert false, unreachable"],
+		"description": "Code snippet for unreachable 'assert'",
+		"prefix": "unreach",
+		"scope": "v,vlang"
+	},
 	"snippet.break": {
 		"body": ["break$0"],
 		"description": "Code snippet for 'break'",
