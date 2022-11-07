@@ -233,7 +233,7 @@
 		"@types/vscode": "1.40.0",
 		"@typescript-eslint/eslint-plugin": "^4.33",
 		"@typescript-eslint/parser": "^4.33",
-		"eslint": "^7.32",
+		"eslint": "^8.27",
 		"markdownlint-cli": "^0.31.1",
 		"typescript": "^4.6.4",
 		"vsce": "^2.7.0",
