@@ -22,17 +22,17 @@ export function activate(context: ExtensionContext): void {
 		context.subscriptions.push(disposable);
 	}
 
-	workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
+	workspace.onDidChangeConfiguration(async (e: ConfigurationChangeEvent) => {
 		if (e.affectsConfiguration('v.vls.enable')) {
 			if (isVlsEnabled()) {
 				void activateVls();
 			} else {
-				deactivateVls();
+				await deactivateVls();
 			}
 		} else if (e.affectsConfiguration('v.vls') && isVlsEnabled()) {
 			void vscode.window.showInformationMessage('VLS: Restart is required for changes to take effect. Would you like to proceed?', 'Yes', 'No')
 				.then(selected => {
-					if (selected == 'Yes') {
+					if (selected === 'Yes') {
 						void vscode.commands.executeCommand('v.vls.restart');
 					}
 				});
@@ -45,8 +45,8 @@ export function activate(context: ExtensionContext): void {
 	}
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
 	if (isVlsEnabled()) {
-		deactivateVls();
+		await deactivateVls();
 	}
 }
