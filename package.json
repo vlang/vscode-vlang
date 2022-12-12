@@ -7,7 +7,7 @@
 	"version": "0.1.14",
 	"license": "MIT",
 	"engines": {
-		"vscode": "^1.40.0"
+		"vscode": "^1.74.0"
 	},
 	"homepage": "https://vlang.io/",
 	"bugs": {
@@ -225,18 +225,18 @@
 	"main": "./out/extension.js",
 	"dependencies": {
 		"cross-env": "^7.0.3",
-		"esbuild": "^0.15.7",
-		"vscode-languageclient": "^7.0.0"
+		"esbuild": "^0.16.4",
+		"vscode-languageclient": "^8.0.2"
 	},
 	"devDependencies": {
-		"@types/node": "12",
-		"@types/vscode": "1.40.0",
-		"@typescript-eslint/eslint-plugin": "^4.33",
-		"@typescript-eslint/parser": "^4.33",
-		"eslint": "^7.32",
-		"markdownlint-cli": "^0.31.1",
-		"typescript": "^4.6.4",
+		"@types/node": "18",
+		"@types/vscode": "1.74.0",
+		"@typescript-eslint/eslint-plugin": "^5.46",
+		"@typescript-eslint/parser": "^5.46",
+		"eslint": "^8.29",
+		"markdownlint-cli": "^0.32.2",
+		"typescript": "^4.9.4",
 		"vsce": "^2.7.0",
-		"vscode-tmgrammar-test": "~0.0.11"
+		"vscode-tmgrammar-test": "~0.1.1"
 	}
 }
