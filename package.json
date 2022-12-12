@@ -18,16 +18,16 @@
 		"url": "https://github.com/vlang/vscode-vlang"
 	},
 	"scripts": {
-		"compile": "node ./scripts/build.js",
-		"compile-dev": "node ./scripts/build.js --watch",
-		"lint": "eslint .",
-		"lintmd": "markdownlint *.md -i CHANGELOG.md",
-		"vscode:prepublish": "node ./scripts/minify_json.js && cross-env NODE_ENV=production node ./scripts/build.js",
-		"watch": "tsc -watch -p ./",
-		"package": "vsce package",
-		"postpackage": "node ./scripts/minify_json.js --restore",
-		"testgrammar": "vscode-tmgrammar-test -s source.v -g syntaxes/v.tmLanguage.json -t \"syntaxes/tests/*.v\""
-	},
+        "compile": "node ./scripts/build.js",
+        "compile-dev": "node ./scripts/build.js --watch",
+        "lint": "eslint .",
+        "lintmd": "markdownlint *.md -i CHANGELOG.md",
+        "vscode:prepublish": "node ./scripts/minify_json.js && cross-env NODE_ENV=production node ./scripts/build.js",
+        "watch": "tsc -watch -p ./",
+        "package": "vsce package",
+        "postpackage": "node ./scripts/minify_json.js --restore",
+        "testgrammar": "vscode-tmgrammar-test \"syntaxes/tests/*.v\" -g syntaxes/v.tmLanguage.json"
+    },
 	"keywords": [
 		"V",
 		"v",
