@@ -271,7 +271,7 @@
 						},
 						{
 							"name": "keyword.control.v",
-							"match": "\\b(as|in|is|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b(?=\\s*\\()"
+							"match": "\\b(as|in|is|or|break|continue|default|unsafe|match|if|else|for|go|spawn|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b(?=\\s*\\()"
 						}
 					]
 				},
@@ -762,7 +762,7 @@
 				},
 				{
 					"name": "keyword.control.v",
-					"match": "(?<!@)\\b(as|it|is|in|or|break|continue|default|unsafe|match|if|else|for|go|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b"
+					"match": "(?<!@)\\b(as|it|is|in|or|break|continue|default|unsafe|match|if|else|for|go|spawn|goto|defer|return|shared|select|rlock|lock|atomic|asm)\\b"
 				},
 				{
 					"name": "keyword.$1.v",
