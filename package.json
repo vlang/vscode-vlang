@@ -9,11 +9,7 @@
 	"engines": {
 		"vscode": "^1.40.0"
 	},
-	"recommendations": [
-    {
-      "id": "ms-vscode.cpptools",
-      "description": "The C/C++ Extension for Visual Studio Code provides visual conditional debugging."
-    },
+	"extensionDependencies": ["ms-vscode.cpptools"],
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"
