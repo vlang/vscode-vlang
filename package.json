@@ -60,14 +60,19 @@
 					".vv",
 					"v.mod"
 				],
-				"configuration": "./language-configuration.json"
+				"configuration": "language-configuration.json"
 			}
 		],
 		"grammars": [
 			{
 				"language": "v",
 				"scopeName": "source.v",
-				"path": "./syntaxes/v.tmLanguage.json"
+				"path": "syntaxes/v.tmLanguage.json"
+			},
+			{
+				"language": "v.mod",
+				"scopeName": "v.mod",
+				"path": "syntaxes/v.mod.tmLanguage.json"
 			}
 		],
 		"configuration": {

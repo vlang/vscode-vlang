@@ -1,7 +1,6 @@
 {
 	"name": "V",
 	"scopeName": "source.v",
-	"fileTypes": [".v", ".vh", ".vsh", ".vv", "v.mod"],
 	"patterns": [
 		{
 			"include": "#comments"

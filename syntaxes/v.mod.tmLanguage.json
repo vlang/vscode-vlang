@@ -1,0 +1,69 @@
+{
+    "scopeName": "v.mod",
+    "patterns": [
+        {
+            "include": "#module-decl"
+        },
+        {
+            "include": "#brackets"
+        },
+        {
+            "include": "#field"
+        }, 
+        {
+            "include": "#string-placeholder"
+        }
+    ],
+    "repository": {
+        "module-decl": {
+            "name": "keyword.module.v.mod",
+            "match": "(\\bModule)"
+        },
+        "brackets": {
+			"patterns": [
+				{
+					"begin": "{",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.curly.begin.v.mod"
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.bracket.curly.end.v.mod"
+						}
+					}
+                }
+            ]
+        },
+        "field": {
+            "name": "meta.definition.field.$1.v.mod",
+            "match": "\\b'([\\w]+)':\\s*'([\\w]*)'\\s*"
+        },
+        "string": {
+            "name": "meta.definition.string.v.mod",
+            "begin": "'",
+            "beginCaptures":{
+                "0": {
+                    "name": "storage.type.string.v.mod"
+                }
+            },
+            "end": "'",
+            "endCaptures": {
+                "0": {
+                    "name": "storage.type.string.v.mod"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#string-placeholder"
+                }
+            ]
+        },
+        "string-placeholder": {
+			"match": "%(\\[\\d+\\])?([\\+#\\-0\\x20]{,2}((\\d+|\\*)?(\\.?(\\d+|\\*|(\\[\\d+\\])\\*?)?(\\[\\d+\\])?)?))?[vT%tbcdoqxXUbeEfFgGsp]",
+			"name": "constant.other.placeholder.v.mod"
+		}
+    }
+}
