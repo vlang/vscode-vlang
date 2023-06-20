@@ -1,6 +1,6 @@
-import cp from 'child_process';
+import cp, { ChildProcess } from 'child_process';
 import * as net from 'net';
-import { window, workspace, ProgressLocation, Disposable } from 'vscode';
+import { window, workspace, ProgressLocation } from 'vscode';
 import { LanguageClient, LanguageClientOptions, StreamInfo, ServerOptions, CloseAction, ErrorAction } from 'vscode-languageclient/node';
 import { terminate } from 'vscode-languageclient/lib/node/processes';
 
@@ -9,7 +9,6 @@ import { log, outputChannel, vlsOutputChannel } from './debug';
 import { once } from 'events';
 
 export let client: LanguageClient;
-export let clientDisposable: Disposable;
 
 let crashCount = 0;
 let vlsProcess: cp.ChildProcess;
@@ -37,12 +36,13 @@ export async function checkVlsInstallation(): Promise<boolean> {
 	return true;
 }
 
-function receiveLauncherJsonData(cb: (d: { error?: { code: number, message: string }, message: string }) => void) {
+interface CBInput { error?: { code: number, message: string }, message: string }
+function receiveLauncherJsonData(cb: (d: CBInput) => void) {
 	return (rawData: string | Buffer) => {
-		const data = typeof rawData == 'string' ? rawData : rawData.toString('utf8');
+		const data = typeof rawData === 'string' ? rawData : rawData.toString('utf8');
 		const escapedData: string = data.replace(/\\/g, '/'); // replace backslashes found in Windows paths to prevent JSON parsing errors, TODO: proper JSON escaping solution needed
 		log(`[v ls] new data: ${data}\tescaped: ${escapedData}`);
-		cb(JSON.parse(escapedData));
+		cb(JSON.parse(escapedData) as CBInput);
 	};
 }
 
@@ -98,7 +98,7 @@ export async function installVls(update = false): Promise<void> {
 			await once(launcher, 'close');
 		});
 	} catch (e) {
-		log(e);
+		log((e as Error).toString());
 		outputChannel.show();
 		if (e instanceof Error) {
 			await window.showErrorMessage(e.message);
@@ -126,14 +126,14 @@ export function connectVls(): void {
 
 	// Arguments to be passed to VLS
 	const vlsArgs: string[] = config.get<string>('vls.customArgs').split(' ').filter(Boolean);
-	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a == flag || a.startsWith(flag)) != -1;
+	const hasArg = (flag: string): boolean => vlsArgs.findIndex(a => a === flag || a.startsWith(flag)) !== -1;
 	const pushArg = (flags: string[], value?: string | number | boolean) => {
-		if ((typeof value === 'string' && value.length == 0) || value === null) {
+		if ((typeof value === 'string' && value.length === 0) || value === null) {
 			return;
 		}
 
 		const validFlags = flags.filter(Boolean);
-		if (validFlags.length != 0 && validFlags.every(flag => !hasArg(flag))) {
+		if (validFlags.length !== 0 && validFlags.every(flag => !hasArg(flag))) {
 			if (typeof value === 'undefined' || (typeof value === 'boolean' && value)) {
 				vlsArgs.push(validFlags[0]);
 			} else {
@@ -147,7 +147,7 @@ export function connectVls(): void {
 	pushArg(['--vroot'], config.get<string>('vls.customVrootPath'));
 	pushArg(['--debug'], config.get<boolean>('vls.debug'));
 
-	if (connMode == 'tcp') {
+	if (connMode === 'tcp') {
 		pushArg(['--socket']);
 		pushArg(['--port'], tcpPort);
 
@@ -165,7 +165,7 @@ export function connectVls(): void {
 		vlsProcess = spawnLauncher('--ls', ...vlsArgs);
 	}
 
-	const serverOptions: ServerOptions = connMode == 'tcp'
+	const serverOptions: ServerOptions = connMode === 'tcp'
 		? () => connectVlsViaTcp(tcpPort)
 		: () => Promise.resolve(vlsProcess);
 
@@ -180,21 +180,21 @@ export function connectVls(): void {
 			closed() {
 				crashCount++;
 				if (crashCount < 5) {
-					return CloseAction.Restart;
+					return { action: CloseAction.Restart };
 				}
-				return CloseAction.DoNotRestart;
+				return { action: CloseAction.DoNotRestart };
 			},
 			error(err, msg, count) {
 				// taken from: https://github.com/golang/vscode-go/blob/HEAD/src/goLanguageServer.ts#L533-L539
 				if (count < 5) {
-					return ErrorAction.Continue;
+					return { action: ErrorAction.Continue};
 				}
 				void window.showErrorMessage(
 					// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 					`VLS: Error communicating with the language server: ${err}: ${msg}.`
 				);
 
-				return ErrorAction.Shutdown;
+				return { action: ErrorAction.Shutdown};
 			}
 		},
 	};
@@ -206,25 +206,22 @@ export function connectVls(): void {
 		true
 	);
 
-	client.onReady()
+	client.start()
 		.then(() => {
 			window.setStatusBarMessage('The V language server is ready.', 3000);
 		})
 		.catch(() => {
 			window.setStatusBarMessage('The V language server failed to initialize.', 3000);
 		});
-
-	// NOTE: the language client was removed in the context subscriptions
-	// because of it's error-handling behavior which causes the progress/message
-	// box to hang and produce unnecessary errors in the output/devtools log.
-	clientDisposable = client.start();
 }
 
 export async function activateVls(): Promise<void> {
-	if (!isVlsEnabled()) return;
+	if (!isVlsEnabled()) {
+        return;
+    }
 
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
-	if (customVlsPath && customVlsPath.trim().length != 0) {
+	if (customVlsPath && customVlsPath.trim().length !== 0) {
 		defaultLauncherArgs.push('--path');
 		defaultLauncherArgs.push(customVlsPath);
 	}
@@ -235,9 +232,9 @@ export async function activateVls(): Promise<void> {
 	}
 }
 
-export function deactivateVls(): void {
+export async function deactivateVls(): Promise<void> {
 	if (client) {
-		clientDisposable.dispose();
+		await client.dispose();
 	} else {
 		killVlsProcess();
 	}
@@ -246,6 +243,12 @@ export function deactivateVls(): void {
 export function killVlsProcess(): void {
 	if (vlsProcess && !vlsProcess.killed) {
 		log('Terminating existing VLS process.');
-		terminate(vlsProcess);
+        // Not sure, how the terminate function works
+        // but it requires pid which is not present in the
+        // vlsProcess currently. For now, I am keeping it
+        // to make eslint happy. This should not brake it
+        // even more than it already was.
+        // TODO: Investigate further
+		terminate(vlsProcess as unknown as ChildProcess & { pid: number });
 	}
 }
