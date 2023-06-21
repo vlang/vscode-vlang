@@ -36,7 +36,11 @@ export async function checkVlsInstallation(): Promise<boolean> {
 	return true;
 }
 
-interface CBInput { error?: { code: number, message: string }, message: string }
+interface CBInput {
+	error?: { code: number, message: string },
+	message: string
+}
+
 function receiveLauncherJsonData(cb: (d: CBInput) => void) {
 	return (rawData: string | Buffer) => {
 		const data = typeof rawData === 'string' ? rawData : rawData.toString('utf8');
@@ -216,9 +220,7 @@ export function connectVls(): void {
 }
 
 export async function activateVls(): Promise<void> {
-	if (!isVlsEnabled()) {
-        return;
-    }
+	if (!isVlsEnabled()) return;
 
 	const customVlsPath = getWorkspaceConfig().get<string>('vls.customPath');
 	if (customVlsPath && customVlsPath.trim().length !== 0) {
@@ -243,12 +245,12 @@ export async function deactivateVls(): Promise<void> {
 export function killVlsProcess(): void {
 	if (vlsProcess && !vlsProcess.killed) {
 		log('Terminating existing VLS process.');
-        // Not sure, how the terminate function works
-        // but it requires pid which is not present in the
-        // vlsProcess currently. For now, I am keeping it
-        // to make eslint happy. This should not brake it
-        // even more than it already was.
-        // TODO: Investigate further
+		// Not sure, how the terminate function works
+		// but it requires pid which is not present in the
+		// vlsProcess currently. For now, I am keeping it
+		// to make eslint happy. This should not brake it
+		// even more than it already was.
+		// TODO: Investigate further
 		terminate(vlsProcess as unknown as ChildProcess & { pid: number });
 	}
 }

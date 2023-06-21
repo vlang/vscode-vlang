@@ -10,9 +10,7 @@ export function execVInTerminal(args: string[]): void {
 	const vexec = getVExecCommand();
 	const cmd = `${vexec} ${args.join(' ')}`;
 
-	if (!vRunTerm) {
-        vRunTerm = window.createTerminal('V');
-    }
+	if (!vRunTerm) vRunTerm = window.createTerminal('V');
 
 	vRunTerm.show();
 	vRunTerm.sendText(cmd);
