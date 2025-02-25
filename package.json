@@ -152,7 +152,7 @@
 		"keybindings": [
 			{
 				"command": "v.fmt",
-				"key": "ctrl+i ctrl+i"
+				"key": "ctrl+shift+i"
 			}
 		],
 		"commands": [
