@@ -227,7 +227,7 @@
 	"dependencies": {
 		"cross-env": "^7.0.3",
 		"esbuild": "^0.15.7",
-		"vscode-languageclient": "^7.0.0"
+		"vscode-languageclient": "^8.1.0"
 	},
 	"devDependencies": {
 		"@types/node": "12",
