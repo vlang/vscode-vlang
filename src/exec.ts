@@ -26,5 +26,9 @@ export async function execVInTerminalOnBG(args: string[], cwd = "/"): Promise<vo
 	const vexec = getVExecCommand()
 	const cmd = `${vexec} ${args.join(" ")}`
 
-	await exec(cmd, { cwd })
+	try {
+		await exec(cmd, { cwd })
+	} catch (error) {
+		console.error("Error executing command:", error)
+	}
 }
