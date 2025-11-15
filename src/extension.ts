@@ -4,19 +4,68 @@ import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
+import { VDocumentFormattingProvider } from "./formatProvider"
 
 export let client: LanguageClient | undefined
 
+// The verified dynamic linker path for Debian 64-bit systems
+const linkerPath = "/lib64/ld-linux-x86-64.so.2"
+const isLinux = process.platform === "linux"
+// The absolute path to your V installation root
+const vRootPath = "/home/tshimo/v"
+// The required arguments for VLS to use the standard I/O communication method
+const vlsArgs = ["--stdio"]
+
 async function createAndStartClient(): Promise<void> {
+	// getVls() will resolve VLS path now that it's in ~/.local/bin/
 	const vlsPath = await getVls()
 
-	const serverOptions: ServerOptions = {
-		run: { command: vlsPath },
-		debug: { command: vlsPath },
+	// CRITICAL FIX: Define Environment variables for VLS execution
+	const vlsEnvironment = {
+		// 1. Tell VLS where the V installation is located
+		V_HOME: vRootPath,
+		// 2. Ensure the V executable is discoverable in the PATH
+		PATH: `${vRootPath}:${process.env.PATH || ""}`,
+		// Preserve existing environment variables
+		...process.env,
+	}
+
+	let serverOptions: ServerOptions
+
+	if (isLinux) {
+		// FIX: Use the linker path to execute the VLS binary
+		serverOptions = {
+			run: {
+				command: linkerPath,
+				// Pass the VLS path first, then its arguments
+				args: [vlsPath, ...vlsArgs],
+				options: {
+					env: vlsEnvironment, // Inject environment variables
+					cwd: vRootPath, // Set working directory
+				},
+			},
+			debug: {
+				command: linkerPath,
+				args: [vlsPath, ...vlsArgs],
+				options: {
+					env: vlsEnvironment,
+					cwd: vRootPath,
+				},
+			},
+		}
+	} else {
+		// Original logic for non-Linux systems
+		serverOptions = {
+			run: { command: vlsPath, args: vlsArgs },
+			debug: { command: vlsPath, args: vlsArgs },
+		}
 	}
 
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: "file", language: "v" }],
+		initializationOptions: {
+			enableHover: true,
+		},
 		outputChannel: vlsOutputChannel,
 		synchronize: {
 			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.v"),
@@ -30,14 +79,14 @@ async function createAndStartClient(): Promise<void> {
 }
 
 export async function activate(context: ExtensionContext): Promise<void> {
-	// Register output channels so users can open them even without VLS.
+	// Register output channels
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
 
-	// Check for V only if it's not installed
+	// Original V installation check logic
 	if (!(await isVInstalled())) {
 		const selection = await vscode.window.showInformationMessage(
 			"The V programming language is not detected on this system. Would you like to install it?",
-			{ modal: true }, // Modal makes the user have to choose before continuing
+			{ modal: true },
 			"Yes",
 			"No",
 		)
@@ -50,13 +99,22 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register commands regardless of whether VLS is enabled
 	await registerCommands(context)
 
+	// --- Register Document Formatter ---
+	const formattingProvider = new VDocumentFormattingProvider()
+	context.subscriptions.push(
+		vscode.languages.registerDocumentFormattingEditProvider(
+			{ scheme: "file", language: "v" },
+			formattingProvider,
+		),
+	)
+	// --- END Register Document Formatter ---
+
 	// Only start the language server if the user enabled it in settings.
 	if (isVlsEnabled()) {
 		try {
 			await createAndStartClient()
 		} catch (err) {
-			// If starting the client fails, log and continue. Users can still
-			// use non-LSP features of the extension.
+			// If starting the client fails, log and continue.
 			console.error("Failed to start VLS:", err)
 			vscode.window.showErrorMessage("Failed to start VLS. See output for details.")
 			outputChannel.show()
@@ -67,7 +125,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	registerVlsCommands(context, client)
 
-	// React to configuration changes: enable/disable or request restart.
+	// Original configuration change handler logic
 	workspace.onDidChangeConfiguration(async (e: ConfigurationChangeEvent) => {
 		const vlsEnabled = isVlsEnabled()
 
