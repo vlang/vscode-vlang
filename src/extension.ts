@@ -4,6 +4,7 @@ import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
+import { VDocumentFormatProvider } from "./formater"
 
 export let client: LanguageClient | undefined
 
@@ -111,6 +112,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
 				})
 		}
 	})
+
+	// Register format provider
+	const formatProvider = new VDocumentFormatProvider()
+	context.subscriptions.push(
+		vscode.languages.registerDocumentFormattingEditProvider(
+			{ scheme: "file", language: "v" },
+			formatProvider,
+		),
+	)
 }
 
 export function deactivate(): Promise<void> | undefined {
