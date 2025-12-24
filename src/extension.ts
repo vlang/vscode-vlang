@@ -4,7 +4,7 @@ import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
-import { VDocumentFormatProvider } from "./formater"
+import { VDocumentFormatProvider } from "./formatter"
 
 export let client: LanguageClient | undefined
 
@@ -124,6 +124,5 @@ export async function activate(context: ExtensionContext): Promise<void> {
 }
 
 export function deactivate(): Promise<void> | undefined {
-	if (!client) return undefined
-	return client.stop()
+	return client?.stop()
 }
