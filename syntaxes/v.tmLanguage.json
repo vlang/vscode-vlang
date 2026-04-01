@@ -995,30 +995,6 @@
 							"name": "variable.other.v"
 						}
 					]
-				},
-				{
-					"name": "meta.string.interpolation.v",
-					"match": "(\\$)(\\d[\\.\\w]+)",
-					"captures": {
-						"1": {
-							"name": "punctuation.definition.template-expression.begin.v"
-						},
-						"2": {
-							"name": "invalid.illegal.v"
-						}
-					}
-				},
-				{
-					"name": "meta.string.interpolation.v",
-					"match": "(\\$)([\\w.]+)",
-					"captures": {
-						"1": {
-							"name": "punctuation.definition.template-expression.begin.v"
-						},
-						"2": {
-							"name": "variable.other.interpolated.v"
-						}
-					}
 				}
 			]
 		},

@@ -4,8 +4,7 @@ _ := 'test'
 a := 1
 b := 2
 _ := '$a'
-//    ^ punctuation.definition.template-expression.begin.v
-//     ^ variable.other.interpolated.v
+//    ^^ string.quoted.v
 _ := '\\'
 //    ^^ constant.character.escape.v
 _ := c'test'
