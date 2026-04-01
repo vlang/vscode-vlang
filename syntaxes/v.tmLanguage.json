@@ -883,9 +883,6 @@
 					"name": "string.quoted.raw.v",
 					"patterns": [
 						{
-							"include": "#string-interpolation"
-						},
-						{
 							"include": "#string-placeholder"
 						}
 					]
@@ -900,9 +897,6 @@
 					"end": "\"",
 					"name": "string.quoted.raw.v",
 					"patterns": [
-						{
-							"include": "#string-interpolation"
-						},
 						{
 							"include": "#string-placeholder"
 						}
@@ -965,22 +959,68 @@
 			]
 		},
 		"string-interpolation": {
-			"name": "meta.string.interpolation.v",
-			"match": "(\\$([\\w.]+|\\{.*?\\}))",
-			"captures": {
-				"1": {
+			"patterns": [
+				{
+					"name": "meta.string.interpolation.v",
+					"begin": "(\\$\\{)",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.definition.template-expression.begin.v"
+						}
+					},
+					"end": "(\\})",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.template-expression.end.v"
+						}
+					},
 					"patterns": [
 						{
-							"name": "invalid.illegal.v",
-							"match": "\\$\\d[\\.\\w]+"
+							"include": "#operators"
 						},
 						{
-							"name": "variable.other.interpolated.v",
-							"match": "\\$([\\.\\w]+|\\{.*?\\})"
+							"include": "#numbers"
+						},
+						{
+							"include": "#function-exist"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"include": "#constants"
+						},
+						{
+							"match": "\\w+",
+							"name": "variable.other.v"
 						}
 					]
+				},
+				{
+					"name": "meta.string.interpolation.v",
+					"match": "(\\$)(\\d[\\.\\w]+)",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.template-expression.begin.v"
+						},
+						"2": {
+							"name": "invalid.illegal.v"
+						}
+					}
+				},
+				{
+					"name": "meta.string.interpolation.v",
+					"match": "(\\$)([\\w.]+)",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.template-expression.begin.v"
+						},
+						"2": {
+							"name": "variable.other.interpolated.v"
+						}
+					}
 				}
-			}
+			]
 		},
 		"string-placeholder": {
 			"match": "%(\\[\\d+\\])?([\\+#\\-0\\x20]{,2}((\\d+|\\*)?(\\.?(\\d+|\\*|(\\[\\d+\\])\\*?)?(\\[\\d+\\])?)?))?[vT%tbcdoqxXUbeEfFgGsp]",
