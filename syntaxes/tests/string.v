@@ -2,8 +2,9 @@
 _ := 'test'
 //    ^^^^ string.quoted.v
 a := 1
+b := 2
 _ := '$a'
-//    ^^ variable.other.interpolated.v
+//    ^^ string.quoted.v
 _ := '\\'
 //    ^^ constant.character.escape.v
 _ := c'test'
@@ -17,5 +18,11 @@ _ := r"\"
 //   ^ storage.type.string.v
 //    ^^^ string.quoted.raw.v
 _ := r'$a'
-//     ^^ variable.other.interpolated.v
+//   ^ storage.type.string.v
+//    ^^^ string.quoted.raw.v
+_ := '${a + b}'
+//    ^^ punctuation.definition.template-expression.begin.v
+//        ^ keyword.operator.arithmetic.v
+//          ^ variable.other.v
+//           ^ punctuation.definition.template-expression.end.v
 
