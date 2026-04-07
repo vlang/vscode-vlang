@@ -90,10 +90,13 @@ export function registerCommands(context: ExtensionContext): Promise<void> {
 	return Promise.resolve()
 }
 
-export function registerVlsCommands(context: ExtensionContext, client?: LanguageClient): void {
+export function registerVlsCommands(
+	context: ExtensionContext,
+	getClient?: () => LanguageClient | undefined,
+): void {
 	context.subscriptions.push(
-		commands.registerCommand("v.vls.update", () => updateVls(client)),
-		commands.registerCommand("v.vls.restart", () => restartVls(client)),
+		commands.registerCommand("v.vls.update", () => updateVls(getClient?.())),
+		commands.registerCommand("v.vls.restart", () => restartVls(getClient?.())),
 		commands.registerCommand("v.vls.openOutput", () => {
 			vlsOutputChannel.show()
 		}),

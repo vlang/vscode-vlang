@@ -93,6 +93,32 @@
 			"type": "object",
 			"title": "V",
 			"properties": {
+				"v.releaseChannel": {
+					"type": "string",
+					"default": "stable",
+					"enum": [
+						"stable",
+						"nightly",
+						"custom"
+					],
+					"description": "Specify the V version to use",
+					"enumDescriptions": [
+						"Get the latest stable release of V. (Default)",
+						"Gets the latest development version of V.",
+						"Uses a custom version of V."
+					]
+				},
+				"v.buildPath": {
+					"type": "string",
+					"default": "",
+					"description": "Custom path to the V repo. Used only if 'v.releaseChannel' is set to 'custom'."
+				},
+				"v.forceCleanInstall": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": false,
+					"description": "Removes any existing V installation and forces a clean install on startup."
+				},
 				"v.vls.command": {
 					"type": "string",
 					"default": "v",
@@ -113,18 +139,6 @@
 					"scope": "resource",
 					"type": "boolean",
 					"description": "Enables / disables the language server's debug mode.\nSetting it to true will create a log file to your workspace folder for bug reports."
-				},
-				"v.vls.customVrootPath": {
-					"scope": "resource",
-					"type": "string",
-					"default": "",
-					"description": "Custom path to the V installation directory (VROOT).\nNOTE: Setting this won't change the V compiler executable to be used."
-				},
-				"v.vls.customPath": {
-					"scope": "resource",
-					"type": "string",
-					"default": "",
-					"description": "Custom path to the VLS (V Language Server) executable."
 				},
 				"v.vls.enable": {
 					"scope": "resource",
@@ -147,6 +161,7 @@
 				"v.vls.buildPath": {
 					"scope": "resource",
 					"type": "string",
+					"default": "",
 					"description": "Path to vls source to build."
 				},
 				"v.vls.enableFeatures": {
@@ -266,15 +281,17 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
+		"extract-zip": "^2.0.1",
+		"tar": "^7.5.1",
 		"vscode-languageclient": "10.0.0-next.15"
 	},
 	"devDependencies": {
-		"esbuild": "^0.25.10",
 		"@types/node": "24",
 		"@types/vscode": "1.105.0",
 		"@typescript-eslint/eslint-plugin": "^8.46",
 		"@typescript-eslint/parser": "^8.46",
 		"@vscode/vsce": "^3.6.2",
+		"esbuild": "^0.25.10",
 		"eslint": "^9.37.0",
 		"globals": "^15.9.0",
 		"markdownlint-cli": "^0.45.0",

@@ -3,7 +3,7 @@ import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
-import { installV, isVInstalled } from "./utils"
+import { handleVinstallation } from "./vUtils"
 
 export let client: LanguageClient | undefined
 
@@ -18,6 +18,7 @@ async function createAndStartClient(): Promise<void> {
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: "file", language: "v" }],
 		outputChannel: vlsOutputChannel,
+		traceOutputChannel: vlsOutputChannel,
 		synchronize: {
 			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.v"),
 		},
@@ -33,19 +34,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register output channels so users can open them even without VLS.
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
 
-	// Check for V only if it's not installed
-	if (!(await isVInstalled())) {
-		const selection = await vscode.window.showInformationMessage(
-			"The V programming language is not detected on this system. Would you like to install it?",
-			{ modal: true }, // Modal makes the user have to choose before continuing
-			"Yes",
-			"No",
-		)
-
-		if (selection === "Yes") {
-			await installV()
-		}
-	}
+	await handleVinstallation()
 
 	// Register commands regardless of whether VLS is enabled
 	await registerCommands(context)
@@ -65,10 +54,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		log("VLS is disabled in settings.")
 	}
 
-	registerVlsCommands(context, client)
+	registerVlsCommands(context, () => client)
 
 	// React to configuration changes: enable/disable or request restart.
-	workspace.onDidChangeConfiguration(async (e: ConfigurationChangeEvent) => {
+	const configListener = workspace.onDidChangeConfiguration(async (e: ConfigurationChangeEvent) => {
 		const vlsEnabled = isVlsEnabled()
 
 		if (e.affectsConfiguration("v.vls.enable")) {
@@ -109,8 +98,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 						}
 					}
 				})
+		} else if (e.affectsConfiguration("v.releaseChannel")) {
+			await handleVinstallation()
 		}
 	})
+	context.subscriptions.push(configListener)
 }
 
 export function deactivate(): Promise<void> | undefined {
