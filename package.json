@@ -95,12 +95,15 @@
 			"properties": {
 				"v.vls.command": {
 					"type": "string",
-					"default": "v",
-					"description": "Path to the V language server binary."
+					"default": "",
+					"description": "Path or command name for the V language server binary. If empty, the extension looks for `vls` in PATH."
 				},
 				"v.vls.args": {
 					"type": "array",
 					"default": [],
+					"items": {
+						"type": "string"
+					},
 					"description": "Arguments to pass to the V language server."
 				},
 				"v.executablePath": {
@@ -109,86 +112,20 @@
 					"default": "v",
 					"description": "Custom path to the V compiler executable (`v`).\nNOTE: Setting this won't change the VROOT path in VLS."
 				},
-				"v.vls.debug": {
-					"scope": "resource",
-					"type": "boolean",
-					"description": "Enables / disables the language server's debug mode.\nSetting it to true will create a log file to your workspace folder for bug reports."
-				},
-				"v.vls.customVrootPath": {
-					"scope": "resource",
-					"type": "string",
-					"default": "",
-					"description": "Custom path to the V installation directory (VROOT).\nNOTE: Setting this won't change the V compiler executable to be used."
-				},
-				"v.vls.customPath": {
-					"scope": "resource",
-					"type": "string",
-					"default": "",
-					"description": "Custom path to the VLS (V Language Server) executable."
-				},
 				"v.vls.enable": {
-					"scope": "resource",
-					"type": "boolean",
-					"default": false,
-					"description": "Enables the language server. (alpha)"
-				},
-				"v.vls.build": {
-					"scope": "resource",
 					"type": "boolean",
 					"default": true,
-					"description": "Automatically build VLS if it's not found. (Requires V to be installed)"
+					"description": "Enable the V language server."
 				},
-				"v.vls.forceCleanInstall": {
-					"scope": "resource",
+				"v.vls.inlayHints.enabled": {
 					"type": "boolean",
-					"default": false,
-					"description": "Removes any existing VLS binary and forces a clean install on startup or vls enabled."
+					"default": true,
+					"description": "Enable inlay hints from VLS."
 				},
-				"v.vls.buildPath": {
-					"scope": "resource",
-					"type": "string",
-					"description": "Path to vls source to build."
-				},
-				"v.vls.enableFeatures": {
-					"scope": "resource",
-					"type": "string",
-					"description": "Enables specific language server features. Multiple values must be separated with a comma (,)."
-				},
-				"v.vls.disableFeatures": {
-					"scope": "resource",
-					"type": "string",
-					"description": "Disables specific language server features. Multiple values must be separated with a comma (,)."
-				},
-				"v.vls.connectionMode": {
-					"scope": "resource",
-					"type": "string",
-					"default": "stdio",
-					"enum": [
-						"stdio",
-						"tcp"
-					],
-					"description": "Specify the mode to be used when connecting to VLS. (Only stdio is working currently)",
-					"enumDescriptions": [
-						"Connects to the language server via standard input/output. (Default)",
-						"Connects to the language server via TCP"
-					]
-				},
-				"v.vls.tcpMode.port": {
-					"scope": "resource",
-					"type": "number",
-					"default": 5007,
-					"description": "Port to be used when connecting to the language server. (Only in TCP mode)"
-				},
-				"v.vls.tcpMode.useRemoteServer": {
-					"scope": "resource",
-					"default": false,
+				"v.vls.diagnostics": {
 					"type": "boolean",
-					"description": "Connect to a remote server instead of launching a new local process. (Only in TCP mode)"
-				},
-				"v.vls.customArgs": {
-					"scope": "resource",
-					"type": "string",
-					"description": "Custom arguments to be passed to the VLS executable."
+					"default": true,
+					"description": "Enable live diagnostics from VLS."
 				}
 			}
 		},
@@ -266,7 +203,7 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
-		"vscode-languageclient": "10.0.0-next.15"
+		"vscode-languageclient": "10.1.0"
 	},
 	"devDependencies": {
 		"esbuild": "^0.25.10",

@@ -1,7 +1,6 @@
 import { exec as _exec } from "child_process"
 import { getVExecCommand } from "exec"
 import * as fs from "fs"
-import { USER_BIN_PATH } from "langserver"
 import { log } from "logger"
 import * as os from "os"
 import * as path from "path"
@@ -13,6 +12,7 @@ export const config = () => workspace.getConfiguration("v")
 export const vlsConfig = () => workspace.getConfiguration("v.vls")
 
 const exec = promisify(_exec)
+const userBinPath = path.join(os.homedir(), ".local", "bin")
 
 /** Get current working directory.
  * @param uri The URI of document
@@ -59,7 +59,7 @@ export async function isVInstalled(): Promise<boolean> {
  * Error: rejects if any git/make step fails
  */
 export async function installV(): Promise<void> {
-	const installDir = USER_BIN_PATH
+	const installDir = userBinPath
 	const vRepoPath = path.join(installDir, "v")
 	const repoUrl = "https://github.com/vlang/v"
 

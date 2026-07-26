@@ -15,6 +15,23 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 - syntax highlighting
 - code snippets for quick coding
+- completion, diagnostics, navigation, inlay hints, and other language
+  features via VLS
+
+### V Language Server
+
+Install [VLS](https://github.com/vlang/vls) and ensure the `vls`
+executable is in PATH. Alternatively, set `v.vls.command` to its
+absolute path. The extension starts VLS over stdio when a V workspace
+is opened.
+
+The available VLS settings are:
+
+- `v.vls.enable`: enable or disable VLS
+- `v.vls.command`: path or command name for the VLS executable
+- `v.vls.args`: additional command-line arguments
+- `v.vls.inlayHints.enabled`: enable or disable inlay hints
+- `v.vls.diagnostics`: enable or disable live diagnostics
 
 ## Usage
 
