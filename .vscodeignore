@@ -41,3 +41,7 @@ coverage/**
 .yarn*
 *.log
 .vscodeignore
+out/test/**
+out/**/*.map
+scripts/**
+eslint.config.mjs

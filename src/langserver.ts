@@ -1,6 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 import { log } from "./logger"
+import { migratedSetting } from "./settings"
 import { vlsConfig } from "./utils"
 
 export const BINARY_NAME = process.platform === "win32" ? "vls.exe" : "vls"
@@ -38,7 +39,7 @@ function findInPath(command: string): string | undefined {
 }
 
 export function getVls(): string {
-	const configuredCommand = vlsConfig().get<string>("command", "").trim()
+	const configuredCommand = migratedSetting("v.vls", "command", "vls", "command", "").trim()
 	const command = configuredCommand || BINARY_NAME
 	const hasPath = path.isAbsolute(command) || command.includes("/") || command.includes("\\")
 	const vlsPath = hasPath ? path.resolve(command) : findInPath(command)
