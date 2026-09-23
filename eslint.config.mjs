@@ -6,7 +6,7 @@ import globals from "globals"
 export default [
 	{
 		// ignore generated and dependency folders
-		ignores: ["node_modules/**", "out/**"],
+		ignores: ["node_modules/**", "out/**", "src/test/**"],
 	},
 	eslint.configs.recommended,
 	{

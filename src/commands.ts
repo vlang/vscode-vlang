@@ -25,8 +25,7 @@ export async function fmt(): Promise<void> {
 	}
 
 	await document.save()
-	const filePath = `"${document.fileName}"`
-	await execVInTerminalOnBG(["fmt", "-w", filePath])
+	await execVInTerminalOnBG(["fmt", "-w", document.fileName])
 }
 
 /** Build an optimized executable from the current file using `v -prod`. */

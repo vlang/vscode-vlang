@@ -1,4 +1,4 @@
-import { exec as _exec } from "child_process"
+import { exec as _exec, execFile as _execFile } from "child_process"
 import { getVExecCommand } from "exec"
 import * as fs from "fs"
 import { log } from "logger"
@@ -12,6 +12,7 @@ export const config = () => workspace.getConfiguration("v")
 export const vlsConfig = () => workspace.getConfiguration("v.vls")
 
 const exec = promisify(_exec)
+const execFile = promisify(_execFile)
 const userBinPath = path.join(os.homedir(), ".local", "bin")
 
 /** Get current working directory.
@@ -43,7 +44,7 @@ export async function isVInstalled(): Promise<boolean> {
 	const vexec = getVExecCommand()
 	try {
 		// A simple command to check if V is installed and in the PATH.
-		const version = await exec(`${vexec} --version`)
+		const version = await execFile(vexec, ["--version"])
 		log(`V is already installed, version: ${version.stdout.trim()}`)
 		return true
 	} catch (error) {
