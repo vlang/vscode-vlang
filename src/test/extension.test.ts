@@ -53,6 +53,28 @@ describe("VLS VS Code extension", () => {
 		)
 	})
 
+	it("shows the notices of V in task output as information", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const matcher = manifest.contributes.problemMatchers.find((entry: { name: string }) => {
+			return entry.name === "vls"
+		})
+		const pattern = new RegExp(matcher.pattern.regexp)
+		// VS Code reads `error`, `warning` and `info` from the captured severity and
+		// gives any other value, as the `notice` of V, the severity of the matcher, or
+		// an error when the matcher sets none.
+		const severityOf = (line: string): string => {
+			const captured = pattern.exec(line)?.[matcher.pattern.severity]
+			if (captured !== undefined && ["error", "warning", "info"].includes(captured)) {
+				return captured
+			}
+			return matcher.severity ?? "error"
+		}
+		assert.strictEqual(severityOf("main.v:3:5: error: undefined ident: `x`"), "error")
+		assert.strictEqual(severityOf("main.v:4:2: warning: unused variable: `y`"), "warning")
+		assert.strictEqual(severityOf("lib/lib.v:7:7: notice: unused constant: `z`"), "info")
+	})
+
 	it("instruments V test arguments with an isolated coverage directory", () => {
 		assert.deepStrictEqual(
 			instrumentCoverageArgs(["-nocolor", "test", "."], "/tmp/vls-coverage/run"),

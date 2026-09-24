@@ -168,6 +168,7 @@
 				"name": "vls",
 				"label": "V compiler diagnostics",
 				"owner": "v",
+				"severity": "info",
 				"fileLocation": [
 					"autoDetect",
 					"${workspaceFolder}"
