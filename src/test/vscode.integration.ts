@@ -57,6 +57,8 @@ export async function run(): Promise<void> {
 	console.log("Build task passed")
 	assert.equal(await taskExit("vls.run"), 0)
 	console.log("Run task passed")
+	assert.equal(await taskExit("v.run"), 0)
+	console.log("Run current file task passed")
 	assert.ok(runLens.command)
 	assert.equal(
 		await taskExit(runLens.command.command, ...(runLens.command.arguments ?? [])),
