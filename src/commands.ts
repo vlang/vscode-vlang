@@ -3,17 +3,19 @@ import { commands, ExtensionContext, window } from "vscode"
 import type { LanguageClient } from "vscode-languageclient/node"
 import { execVInTerminal, execVInTerminalOnBG } from "./exec"
 
-/** Run the currently active V file using `v run`. */
+/** Run the active V module or script through the same task as `V: Run`. */
 export async function run(): Promise<void> {
 	const document = window.activeTextEditor?.document
-	if (!document) {
+	if (
+		!document ||
+		document.uri.scheme !== "file" ||
+		(document.languageId !== "v" && !document.fileName.endsWith(".vsh"))
+	) {
 		void window.showErrorMessage("No active V file to run.")
 		return
 	}
 
-	await document.save()
-	const filePath = `"${document.fileName}"`
-	execVInTerminal(["run", filePath])
+	await commands.executeCommand("vls.run")
 }
 
 /** Format the currently active V file in-place using `v fmt -w`. */

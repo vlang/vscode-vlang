@@ -30,7 +30,11 @@ async function main() {
 	)
 	fs.writeFileSync(
 		path.join(workspace, "main.v"),
-		"module main\n\nfn add(a int, b int) int { return a + b }\n\nfn main() { println(add(1, 2)) }\n",
+		"module main\n\nfn main() { println(add(1, 2)) }\n",
+	)
+	fs.writeFileSync(
+		path.join(workspace, "helper.v"),
+		"module main\n\nfn add(a int, b int) int { return a + b }\n",
 	)
 	fs.writeFileSync(
 		path.join(workspace, "main_test.v"),

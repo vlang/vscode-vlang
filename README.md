@@ -52,6 +52,9 @@ Run uses the active V module or script when one is open, and Test uses the
 active `_test.v` file. The extension saves modified V files in the target
 before running.
 
+`V: Run current file` uses the same run task. For a `.v` file, it runs the
+containing module; for a `.vsh` file, it runs the script.
+
 VLS CodeLens actions such as `Run Main`, `Run File`, and `Run Test` use the
 same tasks. Test runs collect coverage by default. Covered executable lines
 are highlighted green and uncovered lines red. Click the coverage status
