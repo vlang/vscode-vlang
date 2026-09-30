@@ -14,3 +14,6 @@ type Unsigned = u8 | u16 | u32 | u64 | usize | f32 | f64
 //                                     ^^^^^ storage.type.numeric.v
 //                                             ^^^ storage.type.numeric.v
 //                                                   ^^^ storage.type.numeric.v
+type Wide = i128 | u128
+//          ^^^^ storage.type.numeric.v
+//                 ^^^^ storage.type.numeric.v
