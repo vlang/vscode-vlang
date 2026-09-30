@@ -4,14 +4,11 @@
 	"description": "V language support with VLS, tasks, test coverage, syntax highlighting, and snippets for Visual Studio Code.",
 	"publisher": "vlanguage",
 	"icon": "icons/icon.png",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"license": "GPL-2.0-only",
 	"engines": {
 		"vscode": "^1.105.0"
 	},
-	"extensionPack": [
-		"ms-vscode.cpptools"
-	],
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"
@@ -26,15 +23,17 @@
 		"build:prod": "npm run build:base -- --minify",
 		"watch": "npm run build:base -- --sourcemap --watch",
 		"typecheck": "tsc --noEmit",
-		"lint": "eslint src --ext ts",
+		"lint": "oxlint src --deny-warnings",
 		"lint:md": "markdownlint README.md",
-		"fmt": "prettier -w .",
-		"test": "npm run typecheck && npm run lint && npm run test:logic",
+		"fmt": "oxfmt --write .",
+		"test": "npm run typecheck && npm run lint && npm run fmt:check && npm run test:logic && npm run test:tools",
 		"test:logic": "esbuild src/test/extension.test.ts --bundle --platform=node --target=node24 --format=cjs --outfile=out/test/extension.test.js && node --test out/test/extension.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
-		"package": "npm run build:prod && vsce package",
-		"test:grammar": "vscode-tmgrammar-test source.v -g syntaxes/v.tmLanguage.json  syntaxes/tests/*.v"
+		"package": "vsce package",
+		"test:grammar": "vscode-tmgrammar-test source.v -g syntaxes/v.tmLanguage.json  syntaxes/tests/*.v",
+		"test:tools": "node scripts/test-tool-manager.cjs",
+		"fmt:check": "oxfmt --check ."
 	},
 	"keywords": [
 		"V",
@@ -98,11 +97,13 @@
 			"title": "V",
 			"properties": {
 				"v.vls.command": {
+					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Path or command name for the V language server binary. If empty, the extension looks for `vls` in PATH."
+					"description": "Path or command name for VLS. Defaults to vls in PATH. Supports ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.args": {
+					"scope": "resource",
 					"type": "array",
 					"default": [],
 					"items": {
@@ -114,7 +115,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "v",
-					"description": "Path or command name of the V compiler used by VLS and V build, run, and test tasks. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
+					"description": "V compiler for tasks and formatting; VLS uses the active or first workspace folder at startup. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.enable": {
 					"type": "boolean",
@@ -136,6 +137,12 @@
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"v.tools.checkForUpdates": {
+					"type": "boolean",
+					"default": true,
+					"scope": "application",
+					"description": "Check official V and VLS upstream revisions at most once a day and offer updates. Missing tools still prompt for installation. No installation or update runs without confirmation."
 				}
 			}
 		},
@@ -152,12 +159,14 @@
 						"enum": [
 							"build",
 							"run",
-							"test"
+							"test",
+							"prod"
 						],
 						"enumDescriptions": [
 							"Build the workspace with v .",
 							"Run the workspace with v run .",
-							"Test the workspace with v test ."
+							"Test the workspace with v test .",
+							"Build an optimized executable with v -prod ."
 						]
 					}
 				}
@@ -191,7 +200,8 @@
 		"keybindings": [
 			{
 				"command": "v.fmt",
-				"key": "ctrl+shift+i"
+				"key": "ctrl+shift+i",
+				"when": "editorTextFocus && editorLangId == v && !editorReadonly"
 			}
 		],
 		"commands": [
@@ -227,7 +237,7 @@
 			},
 			{
 				"command": "v.prod",
-				"title": "Build an optimized executable from current file",
+				"title": "Build optimized module",
 				"category": "V"
 			},
 			{
@@ -236,13 +246,28 @@
 				"category": "V"
 			},
 			{
-				"command": "v.vls.update",
-				"title": "Update VLS",
+				"command": "v.vls.restart",
+				"title": "Restart VLS",
 				"category": "V"
 			},
 			{
-				"command": "v.vls.restart",
-				"title": "Restart VLS",
+				"command": "v.vls.openOutput",
+				"title": "Show Language Server Output",
+				"category": "V"
+			},
+			{
+				"command": "v.install",
+				"title": "Install or Update V",
+				"category": "V"
+			},
+			{
+				"command": "v.vls.update",
+				"title": "Install or Update VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.tools.checkForUpdates",
+				"title": "Check for Tool Updates",
 				"category": "V"
 			}
 		],
@@ -262,7 +287,7 @@
 				},
 				{
 					"command": "v.vls.restart",
-					"when": "editorLangId == v && config.v.vls.enable"
+					"when": "config.v.vls.enable"
 				}
 			]
 		},
@@ -278,22 +303,25 @@
 		"onTaskType:v"
 	],
 	"main": "./out/extension.js",
+	"overrides": {
+		"markdownlint-cli": {
+			"js-yaml": "^5.4.2"
+		}
+	},
 	"dependencies": {
-		"vscode-languageclient": "10.1.0"
+		"vscode-languageclient": "10.1.2"
 	},
 	"devDependencies": {
-		"@types/node": "24",
+		"@types/node": "^24.19.0",
 		"@types/vscode": "1.105.0",
-		"@typescript-eslint/eslint-plugin": "^8.46",
-		"@typescript-eslint/parser": "^8.46",
 		"@vscode/test-electron": "^3.1.0",
-		"@vscode/vsce": "^3.6.2",
-		"esbuild": "^0.25.10",
-		"eslint": "^9.37.0",
-		"globals": "^15.9.0",
-		"markdownlint-cli": "^0.45.0",
-		"prettier": "^3.6.2",
-		"typescript": "^5.9.3",
-		"vscode-tmgrammar-test": "~0.1.3"
+		"@vscode/vsce": "^4.0.0",
+		"esbuild": "^0.28.2",
+		"markdownlint-cli": "^0.49.1",
+		"oxfmt": "^0.71.0",
+		"oxlint": "^1.86.0",
+		"oxlint-tsgolint": "^7.0.2003",
+		"typescript": "^7.0.2",
+		"vscode-tmgrammar-test": "^0.1.3"
 	}
 }

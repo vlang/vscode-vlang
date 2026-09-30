@@ -28,10 +28,6 @@ coverage/**
 
 # Configuration and metadata
 .github/**
-.eslintrc*
-.eslintignore
-.prettierrc*
-.prettierignore
 .editorconfig
 
 # Misc
@@ -44,4 +40,6 @@ coverage/**
 out/test/**
 out/**/*.map
 scripts/**
-eslint.config.mjs
+docs/**
+.oxlintrc.json
+.oxfmtrc.json

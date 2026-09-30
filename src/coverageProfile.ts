@@ -64,6 +64,7 @@ class LcovProfileParser {
 			return
 		}
 		const fileHits = this.hitsByFile.get(this.currentFile)
+		if (!fileHits) return
 		fileHits.set(line, (fileHits.get(line) || 0) + hits)
 	}
 
@@ -73,7 +74,7 @@ class LcovProfileParser {
 			const covered: number[] = []
 			const uncovered: number[] = []
 			for (const [line, hits] of lineHits) {
-				(hits > 0 ? covered : uncovered).push(line)
+				;(hits > 0 ? covered : uncovered).push(line)
 			}
 			covered.sort((left, right) => left - right)
 			uncovered.sort((left, right) => left - right)
@@ -231,14 +232,14 @@ export function visibleCoverageLines(
 		let right = oneBasedLines.length
 		while (left < right) {
 			const middle = Math.floor((left + right) / 2)
-			if (oneBasedLines[middle] < firstLine) {
+			if (oneBasedLines[middle]! < firstLine) {
 				left = middle + 1
 			} else {
 				right = middle
 			}
 		}
 		for (let index = left; index < oneBasedLines.length; index++) {
-			const line = oneBasedLines[index]
+			const line = oneBasedLines[index]!
 			if (line > lastLine) {
 				break
 			}

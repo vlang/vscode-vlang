@@ -1,33 +1,61 @@
 const fs = require("node:fs")
 const os = require("node:os")
 const path = require("node:path")
-const { execFileSync } = require("node:child_process")
+const { execFileSync, spawnSync } = require("node:child_process")
 const {
 	downloadAndUnzipVSCode,
 	resolveCliArgsFromVSCodeExecutablePath,
 	runTests,
 } = require("@vscode/test-electron")
 
+function resolveExecutable(candidate) {
+	if (candidate && (path.isAbsolute(candidate) || candidate.includes(path.sep))) {
+		if (!fs.existsSync(candidate)) throw new Error(`Executable not found: ${candidate}`)
+		return fs.realpathSync(candidate)
+	}
+	const command = candidate || "v"
+	const lookup = spawnSync(process.platform === "win32" ? "where" : "which", [command], {
+		encoding: "utf8",
+	})
+	if (lookup.status !== 0) {
+		throw new Error(
+			`Cannot find ${command}. Set V_BINARY to a V compiler path or add it to PATH.`,
+		)
+	}
+	return lookup.stdout.trim().split(/\r?\n/)[0]
+}
+
 async function main() {
+	// Codex itself may run inside a VS Code extension host. Those variables
+	// would make the launched Electron executable behave like plain Node.
+	delete process.env.ELECTRON_RUN_AS_NODE
+	for (const key of Object.keys(process.env)) {
+		if (key.startsWith("VSCODE_")) delete process.env[key]
+	}
 	const root = path.resolve(__dirname, "..")
+	const vBinary = resolveExecutable(process.env.V_BINARY)
 	const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-vlang-test-"))
 	const workspace = path.join(temporaryDirectory, "workspace")
+	const fakeVls = !process.env.VLS_BINARY
+	const eventsPath = path.join(temporaryDirectory, "vls-events.jsonl")
 	fs.mkdirSync(path.join(workspace, ".vscode"), { recursive: true })
-	fs.writeFileSync(
-		path.join(workspace, ".vscode", "settings.json"),
-		JSON.stringify(
-			process.env.TEST_LEGACY_SETTINGS
-				? {
-					"vls.command": process.env.VLS_BINARY || path.join(os.homedir(), "code/vls/vls"),
-					"vls.vCommand": process.env.V_BINARY || path.join(os.homedir(), "code/v/v"),
-				}
-				: {
-					"v.vls.command": process.env.VLS_BINARY || path.join(os.homedir(), "code/vls/vls"),
-					"v.executablePath": process.env.V_BINARY || path.join(os.homedir(), "code/v/v"),
-					"v.vls.diagnostics": false,
-				},
-		),
-	)
+	const settings = {
+		"v.executablePath": vBinary,
+		"v.vls.command": fakeVls ? process.execPath : resolveExecutable(process.env.VLS_BINARY),
+		"v.vls.args": fakeVls ? [path.join(root, "scripts", "fixtures", "fake-vls.cjs")] : [],
+		"v.vls.diagnostics": false,
+	}
+	if (process.env.TEST_LEGACY_SETTINGS) {
+		settings["vls.vCommand"] = settings["v.executablePath"]
+		settings["vls.command"] = settings["v.vls.command"]
+		settings["vls.args"] = settings["v.vls.args"]
+		settings["vls.diagnostics.enabled"] = settings["v.vls.diagnostics"]
+		delete settings["v.executablePath"]
+		delete settings["v.vls.command"]
+		delete settings["v.vls.args"]
+		delete settings["v.vls.diagnostics"]
+	}
+	fs.writeFileSync(path.join(workspace, ".vscode", "settings.json"), JSON.stringify(settings))
 	fs.writeFileSync(
 		path.join(workspace, "main.v"),
 		"module main\n\nfn main() { println(add(1, 2)) }\n",
@@ -44,12 +72,18 @@ async function main() {
 	try {
 		const extensionsDirectory = path.join(temporaryDirectory, "extensions")
 		const userDataDirectory = path.join(temporaryDirectory, "user-data")
+		fs.mkdirSync(path.join(userDataDirectory, "User"), { recursive: true })
+		fs.writeFileSync(
+			path.join(userDataDirectory, "User", "settings.json"),
+			JSON.stringify({ "v.tools.checkForUpdates": false }),
+		)
 		const cachePath = path.join(os.tmpdir(), "vscode-vlang-code")
 		let vscodeExecutablePath = process.env.CODE_EXECUTABLE || undefined
 		let extensionDevelopmentPath = root
 		if (process.env.TEST_PACKAGED) {
 			vscodeExecutablePath ||= await downloadAndUnzipVSCode({ cachePath })
-			const [cli, ...cliArguments] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath)
+			const [cli, ...cliArguments] =
+				resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath)
 			const manifest = require(path.join(root, "package.json"))
 			execFileSync(
 				cli,
@@ -76,7 +110,10 @@ async function main() {
 					main: "./extension.js",
 				}),
 			)
-			fs.writeFileSync(path.join(extensionDevelopmentPath, "extension.js"), "exports.activate = () => {}\n")
+			fs.writeFileSync(
+				path.join(extensionDevelopmentPath, "extension.js"),
+				"exports.activate = () => {}\n",
+			)
 		}
 		await runTests({
 			cachePath,
@@ -85,7 +122,9 @@ async function main() {
 			extensionTestsPath: path.join(root, "out/test/vscode.integration.js"),
 			extensionTestsEnv: {
 				TEST_WORKSPACE: workspace,
-				TEST_LEGACY_SETTINGS: process.env.TEST_LEGACY_SETTINGS,
+				TEST_FAKE_VLS: fakeVls ? "1" : "",
+				TEST_VLS_EVENTS: eventsPath,
+				TEST_LEGACY_SETTINGS: process.env.TEST_LEGACY_SETTINGS || "",
 			},
 			launchArgs: [
 				workspace,

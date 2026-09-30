@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0
+
+### Added
+
+- Offer to install missing V and VLS tools and check for upstream updates daily.
+- Build accepted installations in private, versioned directories, verify them
+  before switching settings, and preserve existing installations on failure.
+- Add working install/update commands with progress, cancellation, and revision
+  checks; external VLS builds with unknown revisions can opt into managed copies.
+
+### Fixed
+
+- Recreate VLS on restart and configuration changes, recover after missing binaries,
+  and restore feature settings after server restarts.
+- Recover from failed VLS transports using a fresh client, with a bounded retry limit.
+- Show the compiler version and actionable startup errors with VLS status and logs.
+- Build optimized modules through tasks without interpolating paths into a shell.
+- Format unsaved buffers with undo support and protection against concurrent edits.
+
+### Changed
+
+- Migrate formatting to Oxfmt and linting to Oxlint with type-aware rules; update
+  editor recommendations and enforce formatting in CI.
+- Update development dependencies, TypeScript to 7, and the language client to
+  10.1.2. Override the Markdown CLI's pinned js-yaml with the patched 5.4.2 line.
+- Replace the unsafe V installer and placeholder VLS update command with managed
+  installations. Remove unused helpers, duplicate file watcher, and empty inlay
+  hint provider.
+- Stop installing the C/C++ extension automatically; manual debugger setups remain supported.
+- Add extension-host checks with an isolated LSP fixture and optional real VLS runs.
+
 ## 0.2.1
 
 _23 September 2026_

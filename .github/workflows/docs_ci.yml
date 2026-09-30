@@ -11,6 +11,6 @@ jobs:
         with:
           node-version: "24"
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Check readme linting
         run: npm run lint:md

@@ -1,9 +1,13 @@
+import "./toolInstallation.test"
+import "./toolVersions.test"
+import "./toolProvisioning.test"
 import * as assert from "assert"
 import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
 import {
+	activeBuildTaskSpec,
 	activeRunTaskSpec,
 	codeLensTaskSpec,
 	shouldSaveTaskDocument,
@@ -45,7 +49,12 @@ describe("VLS VS Code extension", () => {
 
 		const taskDefinition = manifest.contributes.taskDefinitions[0]
 		assert.strictEqual(taskDefinition.type, "v")
-		assert.deepStrictEqual(taskDefinition.properties.action.enum, ["build", "run", "test"])
+		assert.deepStrictEqual(taskDefinition.properties.action.enum, [
+			"build",
+			"run",
+			"test",
+			"prod",
+		])
 		assert.ok(manifest.contributes.configuration.properties["v.executablePath"])
 		assert.strictEqual(
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
@@ -202,9 +211,10 @@ describe("VLS VS Code extension", () => {
 			visibleCoverageLines(lines, [{ start: 99, end: 109 }], lines.length, 5),
 			[100, 101, 102, 103, 104],
 		)
-		assert.deepStrictEqual(visibleCoverageLines([1, 5, 10], [{ start: 4, end: 9 }], 7, 1000), [
-			5,
-		])
+		assert.deepStrictEqual(
+			visibleCoverageLines([1, 5, 10], [{ start: 4, end: 9 }], 7, 1000),
+			[5],
+		)
 	})
 
 	it("canonicalizes relative LCOV paths through workspace symlinks", () => {
@@ -346,6 +356,18 @@ describe("VLS VS Code extension", () => {
 			args: ["-nocolor", "test", "."],
 			name: "Test",
 		})
+	})
+
+	it("builds optimized modules with literal shell characters and protects option-like paths", () => {
+		assert.deepStrictEqual(
+			activeBuildTaskSpec("/workspace/app $(echo nope)/main.v", "/workspace").args,
+			["-nocolor", "-prod", "app $(echo nope)"],
+		)
+		assert.deepStrictEqual(activeBuildTaskSpec("/workspace/-app/main.v", "/workspace").args, [
+			"-nocolor",
+			"-prod",
+			`.${path.sep}-app`,
+		])
 	})
 
 	it("maps CodeLens actions to V task arguments", () => {

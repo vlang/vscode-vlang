@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"semi": false,
+	"singleQuote": false,
+	"printWidth": 100,
+	"useTabs": true,
+	"tabWidth": 4,
+	"sortImports": false,
+	"sortPackageJson": false,
+	"overrides": [
+		{
+			"files": ["**/*.{yml,yaml}"],
+			"options": { "useTabs": false, "tabWidth": 2 }
+		}
+	],
+	"ignorePatterns": ["node_modules/**", "out/**", "*.vsix", "package-lock.json"]
+}

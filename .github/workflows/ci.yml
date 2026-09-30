@@ -28,8 +28,8 @@ jobs:
           node-version: "24"
       - name: Install dependencies
         run: npm ci
-      - name: Run eslint
-        run: npm run lint
+      - name: Check formatting and Markdown
+        run: npm run fmt:check && npm run lint:md
 
   grammar-tests:
     runs-on: ubuntu-latest
@@ -42,3 +42,23 @@ jobs:
         run: npm ci
       - name: Run grammar tests
         run: npm run test:grammar
+
+  extension-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build V compiler
+        run: |
+          git init "$RUNNER_TEMP/v"
+          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 3005dc383743bb2e2b3642f44307b6e75e7b37e3
+          git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
+          make -C "$RUNNER_TEMP/v"
+      - name: Run VS Code integration tests
+        env:
+          V_BINARY: ${{ runner.temp }}/v/v
+        run: xvfb-run -a npm run test:vscode
