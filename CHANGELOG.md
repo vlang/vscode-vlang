@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before switching settings, and preserve existing installations on failure.
 - Add working install/update commands with progress, cancellation, and revision
   checks; external VLS builds with unknown revisions can opt into managed copies.
+- Show the V logo as the file icon for `.v`, `.vsh`, `.vh`, `.vv` and `v.mod` files
+  in icon themes without their own V icon.
 
 ### Fixed
 

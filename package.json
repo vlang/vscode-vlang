@@ -67,7 +67,11 @@
 					".vh",
 					".vv"
 				],
-				"configuration": "language-configuration.json"
+				"configuration": "language-configuration.json",
+				"icon": {
+					"light": "./icons/v.svg",
+					"dark": "./icons/v.svg"
+				}
 			},
 			{
 				"id": "v.mod",
@@ -77,7 +81,11 @@
 				"extensions": [
 					"v.mod"
 				],
-				"configuration": "language-configuration.json"
+				"configuration": "language-configuration.json",
+				"icon": {
+					"light": "./icons/v.svg",
+					"dark": "./icons/v.svg"
+				}
 			}
 		],
 		"grammars": [
