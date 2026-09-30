@@ -1,4 +1,6 @@
 import { execFile } from "child_process"
+import * as fs from "fs"
+import * as path from "path"
 import { promisify } from "util"
 import { processLaunchCommand } from "./processExecution"
 import type { ToolName } from "./toolInstallation"
@@ -60,6 +62,32 @@ export async function getLatestRevision(
 		throw new Error(`GitHub returned an invalid revision for ${tool}.`)
 	}
 	return result.sha.toLowerCase()
+}
+
+export interface ToolRelease {
+	tag: string
+	revision: string
+}
+
+const releaseTag = /^[\w][\w.+-]{0,99}$/
+
+/** The latest published release, resolved to the commit its tag names. */
+export async function getLatestRelease(
+	tool: ToolName,
+	signal?: AbortSignal,
+	fetcher: GitHubFetch = fetch,
+): Promise<ToolRelease> {
+	const release = await githubJson(tool, "releases/latest", signal, fetcher)
+	const tag = isRecord(release) ? release.tag_name : undefined
+	if (typeof tag !== "string" || !releaseTag.test(tag)) {
+		throw new Error(`GitHub returned an invalid release for ${tool}.`)
+	}
+	// The commits endpoint also peels annotated tags.
+	const commit = await githubJson(tool, `commits/${encodeURIComponent(tag)}`, signal, fetcher)
+	if (!isRecord(commit) || typeof commit.sha !== "string" || !fullRevision.test(commit.sha)) {
+		throw new Error(`GitHub returned an invalid revision for ${tool} ${tag}.`)
+	}
+	return { tag, revision: commit.sha.toLowerCase() }
 }
 
 /** Only an upstream descendant proves that an installed build is outdated. */
@@ -130,6 +158,7 @@ export async function readVRevision(
 	signal?: AbortSignal,
 ): Promise<string | undefined> {
 	if (signal?.aborted) return undefined
+	let revision: string | undefined
 	try {
 		const launch = processLaunchCommand(executable, ["version"])
 		const result = await executeFile(launch.command, launch.args, {
@@ -140,7 +169,39 @@ export async function readVRevision(
 			maxBuffer: 64 * 1024,
 			signal,
 		})
-		return parseVRevision(result.stdout)
+		revision = parseVRevision(result.stdout)
+	} catch {
+		return undefined
+	}
+	if (!revision || fullRevision.test(revision)) return revision
+	return (await expandGitRevision(executable, revision, signal)) ?? revision
+}
+
+/**
+ * `v version` prints an abbreviated hash, which GitHub cannot compare: across the
+ * vlang/v fork network seven characters are ambiguous. A V built from a clone can
+ * expand it locally.
+ */
+async function expandGitRevision(
+	executable: string,
+	revision: string,
+	signal?: AbortSignal,
+): Promise<string | undefined> {
+	try {
+		const root = path.dirname(await fs.promises.realpath(executable))
+		const result = await executeFile(
+			"git",
+			["-C", root, "rev-parse", "--verify", "--quiet", `${revision}^{commit}`],
+			{
+				windowsHide: true,
+				timeout: 5_000,
+				killSignal: "SIGKILL",
+				maxBuffer: 4 * 1024,
+				signal,
+			},
+		)
+		const full = result.stdout.trim().toLowerCase()
+		return fullRevision.test(full) && full.startsWith(revision) ? full : undefined
 	} catch {
 		return undefined
 	}

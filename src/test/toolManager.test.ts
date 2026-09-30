@@ -169,6 +169,85 @@ describe("ToolManager VS Code adapter", () => {
 		}
 	})
 
+	it("compares against the latest release on the release channel", async () => {
+		const release = "c".repeat(40)
+		setSetting("v.executablePath", executable("v-release", release.slice(0, 7)))
+		setSetting("v.vls.enable", false)
+		setSetting("v.tools.updateChannel", "release")
+		globalThis.fetch = (async (input: RequestInfo | URL) => {
+			const url = String(input)
+			requests.push(url)
+			const body = url.endsWith("/releases/latest")
+				? { tag_name: "0.5.2" }
+				: url.endsWith("/commits/0.5.2")
+					? { sha: release }
+					: { sha: latest }
+			return { ok: true, status: 200, json: async () => body } as Response
+		}) as typeof fetch
+		const owner = manager(context())
+		try {
+			await owner.check(true)
+			assert.deepEqual(requests, [
+				"https://api.github.com/repos/vlang/v/releases/latest",
+				"https://api.github.com/repos/vlang/v/commits/0.5.2",
+			])
+			assert.ok(
+				state.information.some((message) =>
+					message.includes("up to date with the latest release"),
+				),
+			)
+		} finally {
+			owner.dispose()
+		}
+	})
+
+	it("keeps VLS on master when V follows releases", async () => {
+		setSetting("v.vls.command", executable("vls-external"))
+		setSetting("v.tools.updateChannel", "release")
+		const owner = manager(context())
+		try {
+			await owner.check(true, "vls")
+			assert.deepEqual(requests, ["https://api.github.com/repos/vlang/vls/commits/master"])
+		} finally {
+			owner.dispose()
+		}
+	})
+
+	it("offers the release by its tag when the installed build is older", async () => {
+		const release = "c".repeat(40)
+		setSetting("v.executablePath", executable("v-old", "aaaaaaa"))
+		setSetting("v.vls.enable", false)
+		setSetting("v.tools.updateChannel", "release")
+		globalThis.fetch = (async (input: RequestInfo | URL) => {
+			const url = String(input)
+			requests.push(url)
+			const body = url.endsWith("/releases/latest")
+				? { tag_name: "0.5.2" }
+				: url.includes("/compare/")
+					? { status: "ahead", ahead_by: 3, behind_by: 0 }
+					: { sha: release }
+			return { ok: true, status: 200, json: async () => body } as Response
+		}) as typeof fetch
+		const owner = manager(context())
+		try {
+			await owner.check(true)
+			assert.ok(
+				requests.includes(
+					`https://api.github.com/repos/vlang/v/compare/aaaaaaa...${release}`,
+				),
+			)
+			assert.ok(
+				state.information.some(
+					(message) =>
+						message.startsWith("V 0.5.2 is available.") &&
+						message.includes("Build V 0.5.2 in extension storage"),
+				),
+			)
+		} finally {
+			owner.dispose()
+		}
+	})
+
 	it("prompts for a missing compiler even when update checks are disabled", async () => {
 		setSetting("v.executablePath", path.join(root, "missing-v"))
 		setSetting("v.vls.enable", false)

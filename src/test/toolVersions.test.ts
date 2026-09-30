@@ -1,10 +1,12 @@
 import * as assert from "assert"
+import { execFileSync } from "child_process"
 import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
 import {
 	classifyCompareResponse,
+	getLatestRelease,
 	getLatestRevision,
 	getUpdateStatus,
 	parseVRevision,
@@ -80,6 +82,35 @@ describe("tool revision checks", () => {
 				/invalid revision/,
 			)
 		}
+	})
+
+	it("resolves the latest release tag to its commit", async () => {
+		const urls: string[] = []
+		const release = await getLatestRelease("v", undefined, async (url) => {
+			urls.push(url)
+			return url.endsWith("/releases/latest")
+				? response({ tag_name: "0.5.2" })
+				: response({ sha: previous.toUpperCase() })
+		})
+		assert.deepEqual(release, { tag: "0.5.2", revision: previous })
+		assert.deepEqual(urls, [
+			"https://api.github.com/repos/vlang/v/releases/latest",
+			"https://api.github.com/repos/vlang/v/commits/0.5.2",
+		])
+		for (const tag_name of [undefined, "", "../master", "0.5.2?x", "a b"]) {
+			await assert.rejects(
+				getLatestRelease("v", undefined, async () => response({ tag_name })),
+				/invalid release/,
+			)
+		}
+		await assert.rejects(
+			getLatestRelease("vls", undefined, async (url) =>
+				url.endsWith("/releases/latest")
+					? response({ tag_name: "0.3" })
+					: response({ sha: "0.3" }),
+			),
+			/invalid revision for vls 0.3/,
+		)
 	})
 
 	it("reports latest-revision HTTP errors and propagates cancellation", async () => {
@@ -191,6 +222,44 @@ describe("tool revision checks", () => {
 					},
 				)
 				assert.strictEqual(await readVRevision(executable), "b583c01")
+			} finally {
+				fs.rmSync(directory, { recursive: true, force: true })
+			}
+		},
+	)
+
+	it(
+		"expands an abbreviated revision from the git clone the compiler was built in",
+		{
+			skip: process.platform === "win32",
+		},
+		async () => {
+			const directory = fs.mkdtempSync(path.join(os.tmpdir(), "v-clone-"))
+			const git = (...args: string[]) =>
+				execFileSync("git", ["-C", directory, ...args], { encoding: "utf8" }).trim()
+			try {
+				git("init", "--quiet")
+				git(
+					"-c",
+					"user.name=V",
+					"-c",
+					"user.email=v@example.com",
+					"commit",
+					"--quiet",
+					"--allow-empty",
+					"-m",
+					"initial",
+				)
+				const full = git("rev-parse", "HEAD")
+				const executable = path.join(directory, "v")
+				fs.writeFileSync(
+					executable,
+					`#!/bin/sh\nprintf 'V 0.5.2 ${full.slice(0, 7)}\\n'\n`,
+					{ mode: 0o755 },
+				)
+				const link = path.join(directory, "bin-v")
+				fs.symlinkSync(executable, link)
+				assert.strictEqual(await readVRevision(link), full)
 			} finally {
 				fs.rmSync(directory, { recursive: true, force: true })
 			}

@@ -4,10 +4,18 @@ import { outputChannel } from "./logger"
 import { migratedSetting } from "./settings"
 import { installTool, readManagedToolInstallation, ToolName } from "./toolInstallation"
 import { InstalledTool, ToolOffer, ToolProvisioner } from "./toolProvisioning"
-import { getLatestRevision, getUpdateStatus, readVRevision } from "./toolVersions"
+import { getLatestRelease, getLatestRevision, getUpdateStatus, readVRevision } from "./toolVersions"
 import { resolvedCommand } from "./vCommand"
 
 const day = 24 * 60 * 60 * 1000
+
+/** VLS publishes no regular releases, so only V can follow its release tags. */
+function followsRelease(tool: ToolName): boolean {
+	return (
+		tool === "v" &&
+		vscode.workspace.getConfiguration("v.tools").get<string>("updateChannel") === "release"
+	)
+}
 
 interface ToolConfiguration {
 	resource?: string
@@ -76,6 +84,7 @@ export class ToolManager implements vscode.Disposable {
 	private manualCheck = false
 	private userChoseInstall = false
 	private readonly revisions = new Map<ToolName, Promise<string>>()
+	private readonly releaseTags = new Map<ToolName, string>()
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -118,6 +127,7 @@ export class ToolManager implements vscode.Disposable {
 				: undefined
 			)?.uri ?? vscode.workspace.workspaceFolders?.[0]?.uri
 		this.revisions.clear()
+		this.releaseTags.clear()
 		this.pending = this.checkTools(manual, only).finally(() => {
 			this.pending = undefined
 		})
@@ -137,6 +147,7 @@ export class ToolManager implements vscode.Disposable {
 			const configuration = configurationFor(tool, this.resource)
 			const identity = createHash("sha256")
 				.update(JSON.stringify(configuration))
+				.update(followsRelease(tool) ? "release" : "master")
 				.update(resolvedCommand(configuration.command, this.resource?.fsPath) ?? "missing")
 				.digest("hex")
 			const key = `tools.lastUpdateCheck.${tool}.${identity}`
@@ -176,7 +187,11 @@ export class ToolManager implements vscode.Disposable {
 			results.every((result) => result.endsWith(": current"))
 		) {
 			void vscode.window.showInformationMessage(
-				`${tools.map((tool) => tool.toUpperCase()).join(" and ")} are up to date with upstream.`,
+				followsRelease("v") && tools.includes("v")
+					? tools.length === 1
+						? "V is up to date with the latest release."
+						: "V is up to date with the latest release and VLS with upstream."
+					: `${tools.map((tool) => tool.toUpperCase()).join(" and ")} are up to date with upstream.`,
 			)
 		}
 	}
@@ -202,7 +217,12 @@ export class ToolManager implements vscode.Disposable {
 	private latest(tool: ToolName): Promise<string> {
 		let revision = this.revisions.get(tool)
 		if (!revision) {
-			revision = getLatestRevision(tool, this.abort.signal)
+			revision = followsRelease(tool)
+				? getLatestRelease(tool, this.abort.signal).then((release) => {
+						this.releaseTags.set(tool, release.tag)
+						return release.revision
+					})
+				: getLatestRevision(tool, this.abort.signal)
 			this.revisions.set(tool, revision)
 		}
 		return revision
@@ -220,14 +240,23 @@ export class ToolManager implements vscode.Disposable {
 			return false
 		const name = offer.tool.toUpperCase()
 		const label = offer.reason === "outdated" ? "Update and Use" : "Install and Use"
+		const release = followsRelease(offer.tool)
+		const tag = this.releaseTags.get(offer.tool)
 		const reason =
 			offer.reason === "missing"
 				? `${name} was not found.`
 				: offer.reason === "outdated"
-					? `A newer ${name} revision is available (${offer.latestRevision?.slice(0, 8)}).`
+					? release && tag
+						? `${name} ${tag} is available.`
+						: `A newer ${name} revision is available (${offer.latestRevision?.slice(0, 8)}).`
 					: `The installed ${name} revision cannot be verified.`
+		const target = release
+			? tag
+				? `${name} ${tag}`
+				: `the latest ${name} release`
+			: `the latest upstream ${name}`
 		const action = await vscode.window.showInformationMessage(
-			`${reason} Build the latest upstream ${name} in extension storage and use it here? Requires Git, GNU make, a shell and a C compiler${offer.tool === "vls" ? " plus V; VLS arguments will be reset" : ""}. Existing installations are kept.`,
+			`${reason} Build ${target} in extension storage and use it here? Requires Git, GNU make, a shell and a C compiler${offer.tool === "vls" ? " plus V; VLS arguments will be reset" : ""}. Existing installations are kept.`,
 			label,
 			"Open Settings",
 			"Later",

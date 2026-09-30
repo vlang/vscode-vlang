@@ -70,6 +70,9 @@ The available VLS settings are:
   paths, `~`, `${env:NAME}`, and `${workspaceFolder}`
 - `v.tools.checkForUpdates`: enable automatic update checks (default: true).
   Missing tools still prompt for installation; manual checks remain available.
+- `v.tools.updateChannel`: track the latest V `master` commit (default) or the
+  latest published V `release`. VLS always tracks master and usually needs a V
+  newer than the latest release.
 
 Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain

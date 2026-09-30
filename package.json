@@ -151,6 +151,20 @@
 					"default": true,
 					"scope": "application",
 					"description": "Check official V and VLS upstream revisions at most once a day and offer updates. Missing tools still prompt for installation. No installation or update runs without confirmation."
+				},
+				"v.tools.updateChannel": {
+					"type": "string",
+					"enum": [
+						"master",
+						"release"
+					],
+					"enumDescriptions": [
+						"Track the latest commit on master, as `v up` does.",
+						"Track the latest published V release. Builds newer than that release count as up to date. VLS usually needs a V newer than the latest release, so a managed VLS may fail to build with it."
+					],
+					"default": "master",
+					"scope": "application",
+					"description": "Which V revisions update checks and installations use. VLS has no regular releases and always tracks master."
 				}
 			}
 		},
