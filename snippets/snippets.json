@@ -233,10 +233,10 @@
 		"prefix": "bool",
 		"scope": "v,vlang"
 	},
-	"snippet.type.byte": {
-		"body": ["byte"],
+	"snippet.type.u8": {
+		"body": ["u8"],
 		"description": "Code snippet for Unsigned 8-bit Integer",
-		"prefix": "byte",
+		"prefix": "u8",
 		"scope": "v,vlang"
 	},
 	"snippet.type.byteptr": {
