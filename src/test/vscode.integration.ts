@@ -2,6 +2,9 @@ import * as assert from "node:assert/strict"
 import * as fs from "node:fs"
 import * as path from "node:path"
 import * as vscode from "vscode"
+import { runFormattingRegressionTests } from "./formatting.integration"
+import { runIssue523Checks } from "./issue523.integration"
+import { assertVlsStartupConfiguration } from "./lifecycle.integration"
 
 type ServerEvent = {
 	event: string
@@ -121,6 +124,7 @@ export async function run(): Promise<void> {
 	assert.equal(header.isDirty, true)
 	assert.match(header.getText(), /fn header_sum\(a int, b int\) int \{/)
 	console.log("Header buffer formatting passed")
+	await runFormattingRegressionTests(workspace)
 	const script = await vscode.workspace.openTextDocument(path.join(workspace, "sample.vsh"))
 	await vscode.window.showTextDocument(script)
 	let startedTasks = 0
@@ -224,12 +228,69 @@ export async function run(): Promise<void> {
 	)
 
 	if (!fakeVls) {
+		const outlineDirectory = vscode.Uri.file(path.join(workspace, "outline"))
+		await vscode.workspace.fs.createDirectory(outlineDirectory)
+		const outlineUri = vscode.Uri.joinPath(outlineDirectory, "main.v")
+		const source = [
+			"module main",
+			"",
+			"import os",
+			"import strings",
+			"",
+			"struct OutlineItem {",
+			"\tname string",
+			"}",
+			"",
+			"enum OutlineColor {",
+			"\tred",
+			"\tblue",
+			"}",
+			"",
+			"fn main() {",
+			"\tprintln(os.args)",
+			"\tprintln(strings.new_builder(16))",
+			"}",
+			"",
+		].join("\n")
+		await vscode.workspace.fs.writeFile(outlineUri, Buffer.from(source))
+		const outline = await vscode.workspace.openTextDocument(outlineUri)
+		await vscode.window.showTextDocument(outline)
+		const mainSymbol = await waitFor(async () => {
+			const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+				"vscode.executeDocumentSymbolProvider",
+				outlineUri,
+			)
+			return symbols?.find((symbol) => symbol.name === "main")
+		}, "main function in the real VLS outline")
+		assert.equal(mainSymbol.kind, vscode.SymbolKind.Function)
+		assert.equal(mainSymbol.selectionRange.start.line, 14)
+		const ranges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+			"vscode.executeFoldingRangeProvider",
+			outlineUri,
+		)
+		for (const [label, start, end] of [
+			["imports", 2, 3],
+			["struct", 5, 7],
+			["enum", 9, 12],
+			["function", 14, 17],
+		] as const) {
+			assert.ok(
+				ranges?.some((range) => range.start === start && range.end === end),
+				`real VLS did not provide the ${label} folding range`,
+			)
+		}
+		assert.equal(
+			ranges?.find((range) => range.start === 2)?.kind,
+			vscode.FoldingRangeKind.Imports,
+		)
+		console.log("Real VLS main outline and imports, struct, enum, function folding passed")
 		const dirty = await vscode.window.showTextDocument(main)
 		await dirty.edit((edit) => edit.insert(new vscode.Position(0, 0), "\n"))
 		assert.equal(main.isDirty, true)
 		assert.equal(await vscode.commands.executeCommand<boolean>("v.fmt"), true)
 		assert.equal(main.isDirty, true)
 		assert.ok(main.getText().startsWith("module main"))
+		await runIssue523Checks(workspace, fakeVls)
 		assert.equal(
 			realRenameMissesTest,
 			false,
@@ -246,6 +307,7 @@ export async function run(): Promise<void> {
 				.at(-1)?.pid,
 		"initial VLS settings",
 	)
+	assertVlsStartupConfiguration(serverEvents())
 	assert.equal(
 		serverEvents().find((event) => event.event === "settings")?.settings?.vls?.diagnostics
 			?.enabled,
@@ -421,4 +483,7 @@ export async function run(): Promise<void> {
 	assert.equal(main.isDirty, true, "formatting must preserve the unsaved editor buffer")
 	assert.ok(main.getText().startsWith("module main"), "V fmt must apply to the editor buffer")
 	console.log("Unsaved-buffer formatting passed")
+	await runIssue523Checks(workspace, fakeVls)
+	assertVlsStartupConfiguration(serverEvents())
+	console.log("VLS configuration was sent once per initialized server without racing shutdown")
 }

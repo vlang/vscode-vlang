@@ -47,7 +47,8 @@ export class ToolProvisioner {
 		if (!(await this.host.choose({ tool, reason, installed, latestRevision })))
 			return "declined"
 		latestRevision ??= await this.host.latest(tool)
-		let compiler: string | undefined
+		// An installed V speeds up building V; the installer falls back without it.
+		let compiler = tool === "v" ? installed.executable : undefined
 		if (tool === "vls") {
 			compiler = (await this.host.inspect("v")).executable
 			if (!compiler) {

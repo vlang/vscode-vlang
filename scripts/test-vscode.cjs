@@ -1,3 +1,4 @@
+const assert = require("node:assert/strict")
 const fs = require("node:fs")
 const os = require("node:os")
 const path = require("node:path")
@@ -23,6 +24,29 @@ function resolveExecutable(candidate) {
 		)
 	}
 	return lookup.stdout.trim().split(/\r?\n/)[0]
+}
+
+function verifyConfigurationLogs(directory) {
+	let checked = 0
+	function visit(current) {
+		for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+			const file = path.join(current, entry.name)
+			if (entry.isDirectory()) {
+				visit(file)
+			} else if (entry.isFile() && entry.name.endsWith(".log")) {
+				checked++
+				assert.doesNotMatch(
+					fs.readFileSync(file, "utf8"),
+					/Sending notification workspace\/didChangeConfiguration failed/,
+					`Configuration notification failed during the host run: ${file}`,
+				)
+			}
+		}
+	}
+	assert.ok(fs.existsSync(directory), "VS Code must create logs for the host run")
+	visit(directory)
+	assert.ok(checked, "The host must produce logs before configuration errors can be checked")
+	console.log("Host logs contain no failed VLS configuration notifications")
 }
 
 async function main() {
@@ -134,7 +158,7 @@ async function main() {
 				"--skip-welcome",
 				"--skip-release-notes",
 			],
-		})
+		}).finally(() => verifyConfigurationLogs(path.join(userDataDirectory, "logs")))
 	} finally {
 		fs.rmSync(temporaryDirectory, { recursive: true, force: true })
 	}

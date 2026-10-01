@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before switching settings, and preserve existing installations on failure.
 - Add working install/update commands with progress, cancellation, and revision
   checks; external VLS builds with unknown revisions can opt into managed copies.
+- Build managed V with the installed V when there is one, as `v up` does, and fall
+  back to the full bootstrap if that fails.
 - Add `v.tools.updateChannel` to track the latest V release instead of master;
   VLS keeps tracking master.
 - Show the V logo as the file icon for `.v`, `.vsh`, `.vh`, `.vv` and `v.mod` files
@@ -24,9 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recreate VLS on restart and configuration changes, recover after missing binaries,
   and restore feature settings after server restarts.
 - Recover from failed VLS transports using a fresh client, with a bounded retry limit.
+- Send settings after each serialized VLS startup without racing notifications
+  against the previous client's shutdown.
 - Show the compiler version and actionable startup errors with VLS status and logs.
 - Build optimized modules through tasks without interpolating paths into a shell.
 - Format unsaved buffers with undo support and protection against concurrent edits.
+- Preserve project-local imports when formatting unsaved buffers, and use the
+  correct compiler settings for files outside workspace folders.
+- Avoid exponential backtracking and missing highlighting for long numeric literals.
 - Identify V builds from a git clone by their full revision, so update checks no
   longer report them as unverifiable because GitHub cannot resolve `v version`'s
   abbreviated hash.

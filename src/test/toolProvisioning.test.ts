@@ -88,7 +88,7 @@ describe("tool provisioning decisions", () => {
 		assert.equal(fixture.offers[0]?.latestRevision, "v-revision")
 		assert.ok(
 			fixture.calls.indexOf("choose:v:outdated") <
-				fixture.calls.indexOf("install:v:v-revision:"),
+				fixture.calls.indexOf("install:v:v-revision:/old/v"),
 		)
 		assert.equal(fixture.tools.v.executable, "/managed/v")
 	})

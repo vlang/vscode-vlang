@@ -91,6 +91,54 @@ describe("managed tool installations", () => {
 		})
 	})
 
+	it("builds V with an installed V instead of bootstrapping from vc", async () => {
+		await withTemporaryRoot(async (root) => {
+			const calls: ProcessCall[] = []
+			const installation = await installTool("v", revision, root, "/installed/v", {
+				run: fakeBuild("v", calls),
+				platform: "linux",
+			})
+			const builds = calls
+				.filter(
+					(call) => call.command !== "git" && call.command !== installation.executable,
+				)
+				.map((call) => [call.command, ...call.args])
+			assert.deepEqual(builds.slice(0, 2), [
+				["make", "latest_tcc"],
+				["/installed/v", "-o", installation.executable, "cmd/v"],
+			])
+			assert.ok(!builds.some((args) => args.length === 1 && args[0] === "make"))
+		})
+	})
+
+	it("falls back to the full bootstrap when the installed V cannot build V", async () => {
+		await withTemporaryRoot(async (root) => {
+			const calls: ProcessCall[] = []
+			const build = fakeBuild("v", calls)
+			const installation = await installTool("v", revision, root, "/installed/v", {
+				run: async (command, args, options) => {
+					if (command === "/installed/v") {
+						calls.push({ command, args, options })
+						throw new Error("old compiler cannot build this revision")
+					}
+					return build(command, args, options)
+				},
+				platform: "linux",
+			})
+			const builds = calls
+				.filter(
+					(call) => call.command !== "git" && call.command !== installation.executable,
+				)
+				.map((call) => [call.command, ...call.args])
+			assert.deepEqual(builds.slice(0, 3), [
+				["make", "latest_tcc"],
+				["/installed/v", "-o", installation.executable, "cmd/v"],
+				["make"],
+			])
+			assert.equal(installation.revision, revision)
+		})
+	})
+
 	it("keeps existing installations intact when a replacement build fails", async () => {
 		await withTemporaryRoot(async (root) => {
 			const installed = await installTool("v", revision, root, undefined, {

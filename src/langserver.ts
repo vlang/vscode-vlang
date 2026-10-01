@@ -167,8 +167,8 @@ export class VlsManager implements vscode.Disposable {
 		const options: LanguageClientOptions = {
 			documentSelector: [{ scheme: "file", language: "v" }],
 			outputChannel: vlsOutputChannel,
-			// Translate stored settings into the configuration schema understood by VLS.
-			synchronize: { configurationSection: ["v.vls", "vls"] },
+			// Configuration changes restart the client through our queue. Send settings
+			// after startup only; an independent synchronizer can race the old shutdown.
 			errorHandler: {
 				error: (error) => {
 					this.scheduleRecovery(nextClient, error.message)
@@ -184,7 +184,6 @@ export class VlsManager implements vscode.Disposable {
 				},
 			},
 			middleware: {
-				workspace: { didChangeConfiguration: () => sendSettings(nextClient) },
 				handleDiagnostics: (uri, diagnostics, next) => {
 					next(uri, featureEnabled("diagnostics") ? diagnostics : [])
 				},

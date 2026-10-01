@@ -9,10 +9,11 @@ async function main() {
 	const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-vlang-tool-manager-"))
 	try {
 		const fixture = path.join(root, "src", "test", "fixtures", "vscode.ts")
-		const outfile = path.join(temporaryDirectory, "tool-manager.test.cjs")
+		const tests = ["toolManager.test", "exec.test"]
 		await esbuild.build({
-			entryPoints: [path.join(root, "src", "test", "toolManager.test.ts")],
-			outfile,
+			entryPoints: tests.map((name) => path.join(root, "src", "test", `${name}.ts`)),
+			outdir: temporaryDirectory,
+			outExtension: { ".js": ".cjs" },
 			bundle: true,
 			platform: "node",
 			target: "node24",
@@ -26,7 +27,11 @@ async function main() {
 				},
 			],
 		})
-		execFileSync(process.execPath, ["--test", outfile], { stdio: "inherit" })
+		execFileSync(
+			process.execPath,
+			["--test", ...tests.map((name) => path.join(temporaryDirectory, `${name}.cjs`))],
+			{ stdio: "inherit" },
+		)
 	} finally {
 		fs.rmSync(temporaryDirectory, { recursive: true, force: true })
 	}

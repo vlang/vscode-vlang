@@ -1,5 +1,3 @@
-import * as fs from "fs/promises"
-import * as os from "os"
 import * as path from "path"
 import {
 	commands,
@@ -34,19 +32,17 @@ export async function fmt(): Promise<boolean> {
 		void window.showErrorMessage("No active V file to format.")
 		return false
 	}
-	let directory: string | undefined
 	try {
 		const version = document.version
 		const content = document.getText()
-		directory = await fs.mkdtemp(path.join(os.tmpdir(), "vscode-v-fmt-"))
-		// V headers contain V syntax, but v fmt rejects the .vh extension.
-		const name = document.fileName.endsWith(".vh")
-			? "header.v"
-			: path.basename(document.fileName)
-		const temporaryFile = path.join(directory, name)
-		await fs.writeFile(temporaryFile, content)
-		await executeV(["fmt", "-w", temporaryFile], document.uri)
-		const formatted = await fs.readFile(temporaryFile, "utf8")
+		if (document.fileName.includes("_vfmt_off")) return true
+		// stdin keeps the buffer unsaved while resolving imports from its original directory.
+		// Preserve the formatter's opt-out from JSON migration for .vv fixtures.
+		const args = document.fileName.endsWith(".vv") ? ["fmt", "-no-migrate-json2"] : ["fmt"]
+		const formatted = await executeV(args, document.uri, {
+			input: content,
+			cwd: path.dirname(document.fileName),
+		})
 		if (document.isClosed || document.version !== version) {
 			void window.showWarningMessage(
 				"V: The document changed while formatting. Run Format again.",
@@ -65,14 +61,12 @@ export async function fmt(): Promise<boolean> {
 		outputChannel.error(String(error))
 		void window.showErrorMessage(`V format failed: ${String(error)}`)
 		return false
-	} finally {
-		if (directory) await fs.rm(directory, { recursive: true, force: true })
 	}
 }
 
 export async function ver(): Promise<string | undefined> {
 	try {
-		const version = await executeV(["version"])
+		const version = (await executeV(["version"])).trim()
 		outputChannel.info(version)
 		void window.showInformationMessage(version)
 		return version

@@ -312,11 +312,41 @@ export async function installTool(
 		}
 		const executable = path.join(directory, tool + (platform === "win32" ? ".exe" : ""))
 		options.onProgress?.(`Building ${tool === "v" ? "V" : "VLS"}…`)
+		const reportsRevision = async (): Promise<boolean> => {
+			const version = await execute(executable, ["version"], { timeoutMs: 15_000 })
+			return (
+				/^V \d+\.\d+(?:\.\d+)?\b/m.test(version.stdout) &&
+				version.stdout.toLowerCase().includes(revision.slice(0, 7).toLowerCase())
+			)
+		}
 		if (tool === "v") {
 			const make = ["freebsd", "openbsd", "netbsd", "sunos"].includes(platform)
 				? "gmake"
 				: "make"
-			if (platform === "win32") {
+			// An installed V builds the new one much faster than bootstrapping from
+			// vc/v.c with the system C compiler, as `v up` does. The result finds its
+			// vlib and tcc next to itself, so it is fetched alongside.
+			let selfHosted = false
+			if (compiler && platform !== "win32") {
+				try {
+					options.onProgress?.("Building V with the installed V…")
+					await execute(make, ["latest_tcc"], { timeoutMs: 5 * 60 * 1000 })
+					await execute(compiler, ["-o", executable, "cmd/v"], {
+						timeoutMs: 15 * 60 * 1000,
+					})
+					selfHosted = await reportsRevision()
+				} catch (error) {
+					checkCancelled(options.signal)
+					options.onOutput?.(`\nBuilding with the installed V failed: ${String(error)}\n`)
+				}
+				if (!selfHosted) {
+					await fs.rm(executable, { force: true })
+					options.onOutput?.("Falling back to a full bootstrap.\n")
+				}
+			}
+			if (selfHosted) {
+				// Built above.
+			} else if (platform === "win32") {
 				await execute("cmd.exe", ["/d", "/s", "/c", "makev.bat"], {
 					timeoutMs: 15 * 60 * 1000,
 				})
@@ -350,11 +380,7 @@ export async function installTool(
 		}
 		options.onProgress?.(`Verifying ${tool === "v" ? "V" : "VLS"}…`)
 		if (tool === "v") {
-			const version = await execute(executable, ["version"], { timeoutMs: 15_000 })
-			if (
-				!/^V \d+\.\d+(?:\.\d+)?\b/m.test(version.stdout) ||
-				!version.stdout.toLowerCase().includes(revision.slice(0, 7).toLowerCase())
-			) {
+			if (!(await reportsRevision())) {
 				throw new Error("The built V compiler did not report the requested version.")
 			}
 		} else {
