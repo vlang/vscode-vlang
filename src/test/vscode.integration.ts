@@ -317,12 +317,17 @@ export async function run(): Promise<void> {
 	)
 	await settings.update("diagnostics", false, vscode.ConfigurationTarget.Workspace)
 	await settings.update("inlayHints.enabled", false, vscode.ConfigurationTarget.Workspace)
+	// The server being replaced also receives the disabled settings; only a pid
+	// started by the restart is still alive to be killed.
+	const replacedPids = new Set(serverEvents().map((event) => event.pid))
 	await vscode.commands.executeCommand("v.vls.restart")
 	const crashedPid = await waitFor(() => {
 		const latest = serverEvents()
 			.filter((event) => event.event === "settings")
 			.at(-1)
-		return latest?.settings?.vls?.diagnostics?.enabled === false &&
+		return latest &&
+			!replacedPids.has(latest.pid) &&
+			latest.settings?.vls?.diagnostics?.enabled === false &&
 			latest.settings.vls.inlayHints?.enabled === false
 			? latest.pid
 			: undefined
