@@ -4,13 +4,11 @@ import * as path from "node:path"
 import * as vscode from "vscode"
 import { runFormattingRegressionTests } from "./formatting.integration"
 import { runIssue523Checks } from "./issue523.integration"
-import { assertVlsStartupConfiguration } from "./lifecycle.integration"
-
-type ServerEvent = {
-	event: string
-	pid: number
-	settings?: { vls?: { diagnostics?: { enabled?: boolean }; inlayHints?: { enabled?: boolean } } }
-}
+import {
+	assertVlsStartupConfiguration,
+	currentVlsSettings,
+	type ServerEvent,
+} from "./lifecycle.integration"
 
 async function waitFor<T>(
 	getValue: () => Promise<T | undefined> | T | undefined,
@@ -34,6 +32,27 @@ function serverEvents(): ServerEvent[] {
 		.split("\n")
 		.filter(Boolean)
 		.map((line) => JSON.parse(line) as ServerEvent)
+}
+
+async function assertVlsReady(pid: number, document: vscode.TextDocument): Promise<void> {
+	const documents = vscode.workspace.textDocuments
+		.filter((open) => open.uri.scheme === "file" && open.languageId === "v")
+		.map((open) => open.uri.toString())
+	await waitFor(() => {
+		const opened = new Set(
+			serverEvents()
+				.filter((event) => event.pid === pid && event.event === "open")
+				.map((event) => event.uri),
+		)
+		return documents.every((uri) => opened.has(uri)) ? true : undefined
+	}, `open documents synchronized to VLS ${pid}`)
+	const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+		"vscode.executeHoverProvider",
+		document.uri,
+		new vscode.Position(2, 21),
+	)
+	assert.ok(hovers?.length, "VLS must answer document requests after restarting")
+	assert.equal(currentVlsSettings(serverEvents())?.pid, pid)
 }
 
 async function taskExit(command: string, ...args: unknown[]): Promise<number | undefined> {
@@ -301,10 +320,7 @@ export async function run(): Promise<void> {
 	}
 
 	const initialPid = await waitFor(
-		() =>
-			serverEvents()
-				.filter((event) => event.event === "settings")
-				.at(-1)?.pid,
+		() => currentVlsSettings(serverEvents())?.pid,
 		"initial VLS settings",
 	)
 	assertVlsStartupConfiguration(serverEvents())
@@ -318,11 +334,9 @@ export async function run(): Promise<void> {
 	const settings = vscode.workspace.getConfiguration("v.vls")
 	await settings.update("diagnostics", true, vscode.ConfigurationTarget.Workspace)
 	await waitFor(() => {
-		const matching = serverEvents().find(
-			(event) =>
-				event.event === "settings" && event.settings?.vls?.diagnostics?.enabled === true,
-		)
-		return matching ? true : undefined
+		return currentVlsSettings(serverEvents())?.settings?.vls?.diagnostics?.enabled === true
+			? true
+			: undefined
 	}, "updated diagnostics setting")
 	await waitFor(
 		() =>
@@ -350,9 +364,7 @@ export async function run(): Promise<void> {
 	await settings.update("diagnostics", true, vscode.ConfigurationTarget.Workspace)
 	await waitFor(
 		() =>
-			serverEvents()
-				.filter((event) => event.event === "settings")
-				.at(-1)?.settings?.vls?.diagnostics?.enabled
+			currentVlsSettings(serverEvents())?.settings?.vls?.diagnostics?.enabled
 				? true
 				: undefined,
 		"diagnostics reenabled",
@@ -360,9 +372,7 @@ export async function run(): Promise<void> {
 	await settings.update("inlayHints.enabled", false, vscode.ConfigurationTarget.Workspace)
 	await waitFor(
 		() =>
-			serverEvents()
-				.filter((event) => event.event === "settings")
-				.at(-1)?.settings?.vls?.inlayHints?.enabled === false
+			currentVlsSettings(serverEvents())?.settings?.vls?.inlayHints?.enabled === false
 				? true
 				: undefined,
 		"inlay hints disabled",
@@ -370,23 +380,19 @@ export async function run(): Promise<void> {
 	await settings.update("inlayHints.enabled", true, vscode.ConfigurationTarget.Workspace)
 	await waitFor(
 		() =>
-			serverEvents()
-				.filter((event) => event.event === "settings")
-				.at(-1)?.settings?.vls?.inlayHints?.enabled === true
+			currentVlsSettings(serverEvents())?.settings?.vls?.inlayHints?.enabled === true
 				? true
 				: undefined,
 		"inlay hints reenabled",
 	)
 	await settings.update("diagnostics", false, vscode.ConfigurationTarget.Workspace)
 	await settings.update("inlayHints.enabled", false, vscode.ConfigurationTarget.Workspace)
-	// The server being replaced also receives the disabled settings; only a pid
-	// started by the restart is still alive to be killed.
+	// Settings updates queue restarts too. Wait for the newest initialized server's
+	// settings, not a historical settings event from an intermediate server.
 	const replacedPids = new Set(serverEvents().map((event) => event.pid))
 	await vscode.commands.executeCommand("v.vls.restart")
 	const crashedPid = await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+		const latest = currentVlsSettings(serverEvents())
 		return latest &&
 			!replacedPids.has(latest.pid) &&
 			latest.settings?.vls?.diagnostics?.enabled === false &&
@@ -394,37 +400,32 @@ export async function run(): Promise<void> {
 			? latest.pid
 			: undefined
 	}, "disabled settings on restarted VLS")
+	// Startup document notifications can still be in flight after settings arrive.
+	await assertVlsReady(crashedPid, main)
 	process.kill(crashedPid, "SIGKILL")
-	await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+	const recoveredPid = await waitFor(() => {
+		const latest = currentVlsSettings(serverEvents())
 		return latest?.pid !== crashedPid &&
 			latest?.settings?.vls?.diagnostics?.enabled === false &&
 			latest.settings.vls.inlayHints?.enabled === false
 			? latest.pid
 			: undefined
 	}, "VLS automatic crash recovery with disabled settings")
+	await assertVlsReady(recoveredPid, main)
 	await settings.update("diagnostics", true, vscode.ConfigurationTarget.Workspace)
 	await settings.update("inlayHints.enabled", true, vscode.ConfigurationTarget.Workspace)
 	await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+		const latest = currentVlsSettings(serverEvents())
 		return latest?.settings?.vls?.diagnostics?.enabled === true &&
 			latest.settings.vls.inlayHints?.enabled === true
 			? true
 			: undefined
 	}, "settings restored after crash")
 	console.log("VLS automatic crash recovery preserved settings")
-	const pidBeforeRestart = serverEvents()
-		.filter((event) => event.event === "settings")
-		.at(-1)?.pid
+	const pidBeforeRestart = currentVlsSettings(serverEvents())?.pid
 	await vscode.commands.executeCommand("v.vls.restart")
 	const restartedPid = await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+		const latest = currentVlsSettings(serverEvents())
 		return latest?.pid !== pidBeforeRestart && latest?.settings?.vls?.diagnostics?.enabled
 			? latest.pid
 			: undefined
@@ -442,9 +443,7 @@ export async function run(): Promise<void> {
 	)
 	await settings.update("enable", true, vscode.ConfigurationTarget.Workspace)
 	const reenabledPid = await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+		const latest = currentVlsSettings(serverEvents())
 		return latest?.pid !== restartedPid && latest?.settings?.vls?.diagnostics?.enabled
 			? latest.pid
 			: undefined
@@ -467,9 +466,7 @@ export async function run(): Promise<void> {
 	)
 	await settings.update("command", currentCommand, vscode.ConfigurationTarget.Workspace)
 	await waitFor(() => {
-		const latest = serverEvents()
-			.filter((event) => event.event === "settings")
-			.at(-1)
+		const latest = currentVlsSettings(serverEvents())
 		return latest?.pid !== pidBeforeFailure && latest?.settings?.vls?.diagnostics?.enabled
 			? latest.pid
 			: undefined
@@ -484,6 +481,11 @@ export async function run(): Promise<void> {
 	assert.ok(main.getText().startsWith("module main"), "V fmt must apply to the editor buffer")
 	console.log("Unsaved-buffer formatting passed")
 	await runIssue523Checks(workspace, fakeVls)
+	const restored = await waitFor(
+		() => currentVlsSettings(serverEvents()),
+		"VLS configuration restored after formatting checks",
+	)
+	await assertVlsReady(restored.pid, main)
 	assertVlsStartupConfiguration(serverEvents())
 	console.log("VLS configuration was sent once per initialized server without racing shutdown")
 }

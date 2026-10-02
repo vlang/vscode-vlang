@@ -264,7 +264,7 @@ export class ToolManager implements vscode.Disposable {
 		if (action === "Open Settings") {
 			void vscode.commands.executeCommand(
 				"workbench.action.openSettings",
-				offer.tool === "v" ? "v.executablePath" : "v.vls.command",
+				offer.tool === "v" ? "v.executablePath" : "@ext:vlanguage.vscode-vlang",
 			)
 		}
 		if (offer.reason === "unknown" && action !== label)
