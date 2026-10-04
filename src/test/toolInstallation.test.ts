@@ -307,6 +307,11 @@ describe("managed tool installations", () => {
 				const build = fakeBuild("v", calls, platform)
 				const installed = await installTool("v", revision, root, undefined, {
 					platform,
+					findExecutable: (name) => {
+						assert.strictEqual(platform, "win32")
+						assert.strictEqual(name, "make")
+						return "make"
+					},
 					run: async (command, args, options) => {
 						const result = await build(command, args, options)
 						if (args.includes("checkout")) {
@@ -342,6 +347,62 @@ describe("managed tool installations", () => {
 			}
 		})
 	})
+
+	for (const available of [
+		["make", "gmake", "mingw32-make"],
+		["gmake", "mingw32-make"],
+		["mingw32-make"],
+		[],
+	]) {
+		it(`prepares Windows compatibility with ${available[0] ?? "no GNU make on PATH"}`, async () => {
+			await withTemporaryRoot(async (root) => {
+				const calls: ProcessCall[] = []
+				const lookups: string[] = []
+				const build = fakeBuild("v", calls, "win32")
+				const makePath = path.join(root, "MSYS2 tools", `${available[0]}.exe`)
+				const installing = installTool("v", revision, root, undefined, {
+					platform: "win32",
+					findExecutable: (name) => {
+						lookups.push(name)
+						return available.includes(name)
+							? path.join(root, "MSYS2 tools", `${name}.exe`)
+							: undefined
+					},
+					run: async (command, args, options) => {
+						const result = await build(command, args, options)
+						if (args.includes("checkout")) {
+							const helperDirectory = path.join(options.cwd, "cmd", "tools")
+							await fs.mkdir(helperDirectory, { recursive: true })
+							await fs.writeFile(
+								path.join(helperDirectory, "install_v1_fallback.sh"),
+								"installer",
+							)
+						}
+						return result
+					},
+				})
+				if (available.length === 0) {
+					await assert.rejects(installing, /MSYS2.*mingw32-make.*sh.*PATH/)
+					assert.ok(!calls.some((call) => call.args[0] === "v1"))
+					assert.deepStrictEqual(await fs.readdir(path.join(root, "tools")), [])
+				} else {
+					const installed = await installing
+					assert.deepStrictEqual(
+						calls.filter((call) => call.args[0] === "v1").map((call) => call.command),
+						[makePath],
+					)
+					assert.ok(await readManagedToolInstallation(installed.executable, "v", root))
+				}
+				assert.deepStrictEqual(
+					lookups,
+					["make", "gmake", "mingw32-make"].slice(
+						0,
+						available.length === 0 ? 3 : 4 - available.length,
+					),
+				)
+			})
+		})
+	}
 
 	it("does not accept copied metadata for an external or symlinked executable", async () => {
 		await withTemporaryRoot(async (root) => {

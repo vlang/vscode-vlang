@@ -30,9 +30,10 @@ Use `V: Check for Tool Updates` to check immediately, or `V: Install or Update V
 and `V: Install or Update VLS` for one tool.
 
 Accepted installations build the latest official `master` revision from source;
-they require Git, GNU make, a shell and a C compiler. On Windows, Git Bash and
-GNU make must be available to the extension host. Recent V versions also build
-the compatibility compiler used by VLS for navigation and completion.
+they require Git, GNU make, a shell and a C compiler. On Windows, GNU make
+(`make`, `gmake`, or MSYS2's `mingw32-make`) and a POSIX shell (`sh`, such as
+Git Bash or MSYS2's shell) must be on the extension host's PATH. Recent V versions
+also build the compatibility compiler used by VLS for navigation and completion.
 VLS also requires V; if V is missing, a second prompt offers to install it first.
 Each build uses a new directory in the extension's global storage. After verifying
 the executable, the extension selects it in settings and restarts VLS. Existing

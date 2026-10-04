@@ -3,6 +3,7 @@ import { createHash } from "crypto"
 import { createReadStream, promises as fs } from "fs"
 import * as path from "path"
 import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
+import { findInPath } from "./vCommand"
 
 export type ToolName = "v" | "vls"
 
@@ -32,6 +33,7 @@ export interface ToolInstallationOptions {
 	onProgress?: (text: string) => void
 	platform?: typeof process.platform
 	run?: ToolProcessRunner
+	findExecutable?: typeof findInPath
 }
 
 export interface ManagedToolInstallation {
@@ -247,6 +249,16 @@ async function executableHash(executable: string): Promise<string> {
 	return hash.digest("hex")
 }
 
+function windowsMakeCommand(findExecutable: typeof findInPath): string {
+	for (const name of ["make", "gmake", "mingw32-make"]) {
+		const executable = findExecutable(name)
+		if (executable) return executable
+	}
+	throw new Error(
+		"V language server compatibility requires GNU make. Install it in MSYS2 (make or mingw32-make) and put its tools, including sh, on PATH.",
+	)
+}
+
 /** Build a new, isolated installation. The caller switches settings only after success. */
 export async function installTool(
 	tool: ToolName,
@@ -370,7 +382,11 @@ export async function installTool(
 				options.onProgress?.(
 					"Preparing V language server compatibility (requires GNU make and a shell)…",
 				)
-				await execute(make, ["v1"], { timeoutMs: 15 * 60 * 1000 })
+				const compatibilityMake =
+					platform === "win32"
+						? windowsMakeCommand(options.findExecutable ?? findInPath)
+						: make
+				await execute(compatibilityMake, ["v1"], { timeoutMs: 15 * 60 * 1000 })
 			}
 		} else {
 			await execute(compiler!, ["-o", executable, "."], { timeoutMs: 15 * 60 * 1000 })

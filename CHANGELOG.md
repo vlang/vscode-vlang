@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Find MSYS2's `mingw32-make` as well as `make` and `gmake` when preparing VLS
+  compiler compatibility on Windows, and explain missing build prerequisites.
 - Recreate VLS on restart and configuration changes, recover after missing binaries,
   and restore feature settings after server restarts.
 - Recover from failed VLS transports using a fresh client, with a bounded retry limit.
