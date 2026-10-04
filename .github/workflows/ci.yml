@@ -57,7 +57,13 @@ jobs:
           git init "$RUNNER_TEMP/v"
           git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 3005dc383743bb2e2b3642f44307b6e75e7b37e3
           git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
-          make -C "$RUNNER_TEMP/v"
+          # Keep the bootstrap compatible with the pinned V source. A newer vc
+          # can reject code that this compiler revision still accepts.
+          git init "$RUNNER_TEMP/v/vc"
+          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 08ee621c4d106318467bb1b316a0e592fca4bc83
+          git -C "$RUNNER_TEMP/v/vc" checkout --detach FETCH_HEAD
+          make -C "$RUNNER_TEMP/v" latest_tcc
+          make -C "$RUNNER_TEMP/v" local=1
       - name: Run VS Code integration tests
         env:
           V_BINARY: ${{ runner.temp }}/v/v
