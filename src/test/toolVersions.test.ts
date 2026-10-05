@@ -12,7 +12,6 @@ import {
 	getUpdateStatus,
 	getUpstreamVlsVersion,
 	isSupportedVlsVersion,
-	MIN_VLS_REVISION,
 	parseVlsIdentity,
 	parseVRevision,
 	readVlsIdentity,
@@ -124,18 +123,15 @@ describe("tool revision checks", () => {
 		assert.equal(urls.length, 4)
 	})
 
-	it("reads only explicit VLS version or source revision output", () => {
+	it("reads only explicit VLS version output, optionally with its build commit", () => {
 		assert.deepEqual(parseVlsIdentity("VLS 0.0.3\n"), { version: "0.0.3" })
-		assert.deepEqual(parseVlsIdentity(`VLS 0.0.2 ${MIN_VLS_REVISION.toUpperCase()}`), {
-			version: "0.0.2",
-			revision: MIN_VLS_REVISION,
-		})
-		assert.deepEqual(parseVlsIdentity("VLS 0.0.3 (commit abc1234)"), {
+		assert.deepEqual(parseVlsIdentity(`VLS 0.0.3 ${latest.toUpperCase()}`), {
 			version: "0.0.3",
-			revision: "abc1234",
+			revision: latest,
 		})
-		assert.deepEqual(parseVlsIdentity("VLS revision abc1234"), { revision: "abc1234" })
 		for (const output of [
+			"VLS revision abc1234",
+			"VLS 0.0.3 (commit abc1234)",
 			"0.0.3",
 			"V 0.5.2 abc1234",
 			"VLS 0.00.3",

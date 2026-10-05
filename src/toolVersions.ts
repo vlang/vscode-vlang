@@ -7,9 +7,8 @@ import type { ToolName } from "./toolInstallation"
 
 export type UpdateStatus = "current" | "outdated" | "unknown"
 
-export const MIN_VLS_REVISION = "4f668aa04e2568eb7ffdc6a02198ef14cec3e12a"
+// VLS 0.0.3 (vlang/vls#537) is the first release that reports its version.
 export const MIN_VLS_VERSION = "0.0.3"
-export const VLS_SUPPORT_BASELINE = MIN_VLS_REVISION
 
 export interface VlsIdentity {
 	version?: string
@@ -284,18 +283,11 @@ export async function getUpstreamVlsVersion(
 
 /** Only explicitly labelled VLS output can identify the server executable. */
 export function parseVlsIdentity(output: string): VlsIdentity | undefined {
-	const revisionOnly = /^VLS[ \t]+(?:commit|revision)[ \t]+([a-f\d]{7,40})$/i.exec(output.trim())
-	if (revisionOnly) return { revision: revisionOnly[1]!.toLowerCase() }
-	const match =
-		/^VLS[ \t]+(\S+?)(?:[ \t]+(?:([a-f\d]{7,40})|\((?:commit|revision)[ \t]+([a-f\d]{7,40})\)))?$/i.exec(
-			output.trim(),
-		)
-	if (!match || !semanticVersion.test(match[1]!)) return undefined
-	const version = match[1]!
-	const prerelease = semanticVersion.exec(version)?.[4]
-	if (prerelease?.split(".").some((part) => /^0\d+$/.test(part))) return undefined
-	const revision = (match[2] ?? match[3])?.toLowerCase()
-	return { version, ...(revision ? { revision } : {}) }
+	// `VLS <version>`, optionally followed by its build commit as `v version` does.
+	const match = /^VLS[ \t]+(\S+?)(?:[ \t]+([a-f\d]{7,40}))?$/i.exec(output.trim())
+	if (!match || compareVersions(match[1]!, match[1]!) !== 0) return undefined
+	const revision = match[2]?.toLowerCase()
+	return { version: match[1]!, ...(revision ? { revision } : {}) }
 }
 
 export interface VlsVersionOptions {
@@ -386,44 +378,4 @@ export async function readVlsIdentity(
 	if (!identity?.revision || fullRevision.test(identity.revision)) return identity
 	const full = await expandGitRevision(executable, identity.revision, signal)
 	return full ? { ...identity, revision: full } : identity
-}
-
-/**
- * A reported source revision is supported only if it includes the minimum commit.
- * Throws when neither local Git history nor GitHub can answer.
- */
-export async function isSupportedVlsRevision(
-	executable: string,
-	revision: string | undefined,
-	signal?: AbortSignal,
-	fetcher: GitHubFetch = fetch,
-): Promise<boolean> {
-	if (signal?.aborted || !revision || !abbreviatedRevision.test(revision)) return false
-	const candidate = revision.toLowerCase()
-	if (MIN_VLS_REVISION.startsWith(candidate)) return true
-	const full = fullRevision.test(candidate)
-		? candidate
-		: await expandGitRevision(executable, candidate, signal)
-	if (!full) return false
-	try {
-		const root = path.dirname(await fs.promises.realpath(executable))
-		await executeFile(
-			"git",
-			["-C", root, "merge-base", "--is-ancestor", MIN_VLS_REVISION, full],
-			{
-				windowsHide: true,
-				timeout: 5_000,
-				killSignal: "SIGKILL",
-				maxBuffer: 4 * 1024,
-				signal,
-			},
-		)
-		return true
-	} catch {
-		if (signal?.aborted) return false
-	}
-	if (signal?.aborted) return false
-	// compare minimum...candidate reports "outdated" only for a strict descendant.
-	// An unavailable comparison (offline, rate limited) throws: it proves nothing.
-	return (await getUpdateStatus("vls", MIN_VLS_REVISION, full, signal, fetcher)) === "outdated"
 }

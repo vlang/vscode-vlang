@@ -23,11 +23,9 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ### V Language Server
 
-Version 0.3.0 accepts VLS 0.0.3 or newer, or a build that reports a source commit
-containing
-[`4f668aa`](https://github.com/vlang/vls/commit/4f668aa04e2568eb7ffdc6a02198ef14cec3e12a)
-and its V3 query and rename validation changes. Older or unverifiable servers
-are unsupported and offer `V: Install or Update VLS`.
+Version 0.3.0 requires VLS 0.0.3 or newer, as reported by `vls --version`, for
+its V3 query and rename validation changes. Older servers, and servers that do
+not report a version, are unsupported and offer `V: Install or Update VLS`.
 
 When V or [VLS](https://github.com/vlang/vls) is missing, the extension offers to
 install it. It also checks upstream revisions at most once a day on activation
@@ -59,19 +57,15 @@ Builds interrupted more than a day ago are removed.
 Failed or cancelled builds do not change the selection.
 These managed tools are available to this extension, not added to your shell PATH.
 
-V and VLS in PATH and custom executable paths remain supported. The extension
-reads external VLS identity with `vls --version`; VLS 0.0.3 and
-newer can start without installation metadata. Such a server cannot be compared
-with upstream by commit, so update checks leave it alone; `V: Install or Update
-VLS` offers the upstream build only when upstream declares a newer VLS version.
-A reported source commit can also establish support through the minimum
-revision's Git ancestry.
-Managed builds verify source ancestry and record their executable hash. If a
-binary changes, the extension discards stale metadata and validates its reported
-identity. Unavailable update checks are logged, retried on the next activation,
-and do not prevent a supported installation from running. When only GitHub can
-confirm a reported VLS commit and it cannot be reached, VLS reports that the check
-is unavailable rather than calling the server unsupported. Formatting and tasks
+V and VLS in PATH and custom executable paths remain supported. Managed and
+external VLS alike are checked with `vls --version`, which works offline.
+Managed builds also record their commit and executable hash, so update checks
+can compare them with upstream; a changed binary loses that metadata. An external
+VLS reports only its version and cannot be compared by commit, so update checks
+leave it alone; `V: Install or Update VLS` offers the upstream build only when
+upstream declares a newer VLS version. Unavailable update checks are logged,
+retried on the next activation, and do not prevent a supported installation from
+running. Formatting and tasks
 remain available without a supported VLS.
 
 The status bar shows whether VLS is starting, active, stopped, disabled, missing,

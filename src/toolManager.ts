@@ -23,14 +23,10 @@ import {
 	getLatestRevision,
 	getUpstreamVlsVersion,
 	getUpdateStatus,
-	isSupportedVlsRevision,
 	isSupportedVlsVersion,
-	MIN_VLS_REVISION,
 	MIN_VLS_VERSION,
 	readVlsIdentity,
 	readVRevision,
-	VLS_SUPPORT_BASELINE,
-	type VlsIdentity,
 } from "./toolVersions"
 import { resolvedCommand } from "./vCommand"
 
@@ -303,24 +299,13 @@ export class ToolManager implements vscode.Disposable {
 					this.context.globalStorageUri.fsPath,
 				)
 			: undefined
-		let vlsIdentity: VlsIdentity | undefined
-		const readIdentity = async (file: string): Promise<VlsIdentity | undefined> =>
-			(vlsIdentity ??= await readVlsIdentity(file, this.abort.signal, {
-				args: configuration.args,
-			}))
-		// The same order as server startup: stamped metadata, then the reported
-		// version, and the commit ancestry only when neither proves support.
-		let managedRevision: string | undefined
-		if (
-			managed &&
-			(tool !== "vls" ||
-				managed.vlsBaseline === VLS_SUPPORT_BASELINE ||
-				managed.revision === MIN_VLS_REVISION ||
-				isSupportedVlsVersion((await readIdentity(managed.executable))?.version) ||
-				(await this.supportedVlsRevision(managed.executable, managed.revision)))
-		)
-			managedRevision = managed.revision
-		if (tool === "vls" && executable && !managedRevision) await readIdentity(executable)
+		// Support is the reported version; intact managed metadata adds the built
+		// commit, which update checks compare with upstream.
+		const managedRevision = managed?.revision
+		const vlsIdentity =
+			tool === "vls" && executable
+				? await readVlsIdentity(executable, this.abort.signal, { args: configuration.args })
+				: undefined
 		const revision =
 			managedRevision ??
 			vlsIdentity?.revision ??
@@ -334,17 +319,6 @@ export class ToolManager implements vscode.Disposable {
 				? vlsIdentity?.version
 				: undefined,
 			configuration: JSON.stringify(configuration),
-		}
-	}
-
-	/** An unavailable ancestry check leaves the build unverified instead of failing. */
-	private async supportedVlsRevision(executable: string, revision: string): Promise<boolean> {
-		try {
-			return await isSupportedVlsRevision(executable, revision, this.abort.signal)
-		} catch (error) {
-			this.abort.signal.throwIfAborted()
-			outputChannel.warn(`VLS: ${String(error)}`)
-			return false
 		}
 	}
 

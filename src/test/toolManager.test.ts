@@ -5,7 +5,6 @@ import * as path from "node:path"
 import { createHash } from "node:crypto"
 import { afterEach, beforeEach, describe, it } from "node:test"
 import { ToolManager } from "../toolManager"
-import { MIN_VLS_REVISION } from "../toolVersions"
 import { resetVscode, setSetting, state, Uri } from "./fixtures/vscode"
 
 const latest = "b".repeat(40)
@@ -202,82 +201,6 @@ describe("ToolManager VS Code adapter", () => {
 			assert.ok(
 				!state.information.some((message) => message.includes("up to date with upstream")),
 			)
-		} finally {
-			owner.dispose()
-		}
-	})
-
-	it("offers to rebuild an unstamped managed VLS even when its revision is current", async () => {
-		const ownerContext = context()
-		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-unstamped")
-		fs.mkdirSync(directory, { recursive: true })
-		const binary = path.join(directory, "vls")
-		const content = "#!/usr/bin/env node\nconsole.log('old installation')\n"
-		fs.writeFileSync(binary, content)
-		fs.chmodSync(binary, 0o755)
-		fs.writeFileSync(
-			path.join(directory, ".vscode-vlang-installation.json"),
-			JSON.stringify({
-				schemaVersion: 1,
-				tool: "vls",
-				revision: latest,
-				executable: "vls",
-				sha256: createHash("sha256").update(content).digest("hex"),
-				installedAt: new Date().toISOString(),
-			}),
-		)
-		setSetting("v.vls.command", binary)
-		const owner = manager(ownerContext)
-		try {
-			await owner.check(true, "vls")
-			assert.ok(state.information.some((message) => message.includes("older than 0.0.3")))
-			assert.ok(
-				!state.information.some((message) => message.includes("up to date with upstream")),
-			)
-			assert.equal(fs.readFileSync(binary, "utf8"), content)
-		} finally {
-			owner.dispose()
-		}
-	})
-
-	it("keeps an unstamped managed VLS when its source ancestry proves support", async () => {
-		const ownerContext = context()
-		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-unstamped")
-		fs.mkdirSync(directory, { recursive: true })
-		const binary = path.join(directory, "vls")
-		const content = "#!/usr/bin/env node\nconsole.log('unversioned VLS')\n"
-		fs.writeFileSync(binary, content)
-		fs.chmodSync(binary, 0o755)
-		fs.writeFileSync(
-			path.join(directory, ".vscode-vlang-installation.json"),
-			JSON.stringify({
-				schemaVersion: 1,
-				tool: "vls",
-				revision: latest,
-				executable: "vls",
-				sha256: createHash("sha256").update(content).digest("hex"),
-				installedAt: new Date().toISOString(),
-			}),
-		)
-		globalThis.fetch = (async (input: RequestInfo | URL) => {
-			const url = String(input)
-			requests.push(url)
-			return {
-				ok: true,
-				status: 200,
-				json: async () =>
-					url.endsWith(`/compare/${MIN_VLS_REVISION}...${latest}`)
-						? { status: "ahead", ahead_by: 1, behind_by: 0 }
-						: { sha: latest },
-			} as Response
-		}) as typeof fetch
-		setSetting("v.vls.command", binary)
-		const owner = manager(ownerContext)
-		try {
-			await owner.check(true, "vls")
-			assert.ok(state.information.some((message) => message.includes("up to date")))
-			assert.ok(!state.information.some((message) => message.includes("Build the latest")))
-			assert.deepEqual(state.updates, [])
 		} finally {
 			owner.dispose()
 		}
@@ -636,9 +559,9 @@ describe("ToolManager VS Code adapter", () => {
 		}
 	})
 
-	it("inspects an unstamped managed VLS 0.0.3 without GitHub", async () => {
+	it("inspects a managed VLS by its reported version without GitHub", async () => {
 		const ownerContext = context()
-		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-legacy")
+		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-aaaaaa")
 		fs.mkdirSync(directory, { recursive: true })
 		const binary = path.join(directory, "vls")
 		const content = "#!/usr/bin/env node\nconsole.log('VLS 0.0.3')\n"

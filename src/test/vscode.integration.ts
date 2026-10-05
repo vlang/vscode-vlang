@@ -572,6 +572,13 @@ export async function run(): Promise<void> {
 	fs.writeFileSync(versionFile, "0.0.2\n")
 	const spawnsBeforeRejection = serverEvents().filter((event) => event.event === "spawn").length
 	await vscode.commands.executeCommand("v.vls.restart")
+	// The restart has finished, but the old server records its shutdown from its own
+	// process; wait for that rather than for a fixed delay.
+	await waitFor(
+		() => (currentVlsSettings(serverEvents()) === undefined ? true : undefined),
+		"old VLS stopped before the rejected restart",
+	)
+	// Leave time for a server that was started anyway to record its spawn.
 	await new Promise((resolve) => setTimeout(resolve, 750))
 	assert.equal(
 		serverEvents().filter((event) => event.event === "spawn").length,

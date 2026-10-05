@@ -108,7 +108,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "VLS executable, including external installations. Empty uses the VLS this extension installed on this machine, then `vls` in PATH. Requires VLS 0.0.3 or newer, or a reported source commit containing 4f668aa. Supports ~, ${env:NAME}, and ${workspaceFolder}."
+					"description": "VLS executable, including external installations. Empty uses the VLS this extension installed on this machine, then `vls` in PATH. Requires VLS 0.0.3 or newer, as reported by `vls --version`. Supports ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.args": {
 					"scope": "resource",

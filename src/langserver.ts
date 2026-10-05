@@ -66,10 +66,7 @@ export class VlsManager implements vscode.Disposable {
 	private readonly status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 9)
 	private readonly subscriptions: vscode.Disposable[]
 
-	constructor(
-		private readonly tasks: VTaskManager,
-		private readonly storageRoot: string,
-	) {
+	constructor(private readonly tasks: VTaskManager) {
 		this.status.name = "V Language Server"
 		this.status.command = "v.vls.openOutput"
 		this.subscriptions = [
@@ -205,7 +202,7 @@ export class VlsManager implements vscode.Disposable {
 			return
 		}
 		const args = migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder?.uri)
-		await requireSupportedVls(command, this.storageRoot, { args, signal: this.abort.signal })
+		await requireSupportedVls(command, { args, signal: this.abort.signal })
 		if (this.disposed) return
 		const vCommand = vCommandForServer(folder)
 		const env = { ...process.env, VLS_V_COMMAND: vCommand }

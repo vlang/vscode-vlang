@@ -13,7 +13,6 @@ import {
 	type ToolProcessOptions,
 	type ToolProcessRunner,
 } from "../toolInstallation"
-import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "../toolVersions"
 
 const revision = "0123456789abcdef0123456789abcdef01234567"
 
@@ -44,6 +43,7 @@ function fakeBuild(
 		if (tool === "v") {
 			return { stdout: `V 0.5.2 ${revision.slice(0, 7)}\n`, stderr: "" }
 		}
+		if (args.includes("--version")) return { stdout: "VLS 0.0.3\n", stderr: "" }
 		const response = JSON.stringify({
 			jsonrpc: "2.0",
 			id: 1,
@@ -276,19 +276,19 @@ describe("managed tool installations", () => {
 				installed.executable,
 				".",
 			])
-			const probe = calls.find((call) => call.command === installed.executable)
+			assert.ok(
+				calls.some(
+					(call) => call.command === installed.executable && call.args[0] === "--version",
+				),
+			)
+			const probe = calls.find(
+				(call) => call.command === installed.executable && call.options.input,
+			)
 			assert.ok(probe?.options.input?.includes('"method":"initialize"'))
 			assert.ok(probe?.options.input?.includes('"method":"shutdown"'))
 			assert.strictEqual(probe?.options.env?.VLS_V_COMMAND, compiler)
-			assert.equal(installed.vlsBaseline, VLS_SUPPORT_BASELINE)
-			assert.ok(
-				calls.some(
-					(call) =>
-						call.command === "git" &&
-						call.args.includes("merge-base") &&
-						call.args.includes(MIN_VLS_REVISION),
-				),
-			)
+			// The source is not inspected for history: a shallow fetch is enough.
+			assert.ok(!calls.some((call) => call.args.includes("--unshallow")))
 			assert.ok(await readManagedToolInstallation(installed.executable, "vls", root))
 			assert.ok(!calls.some((call) => call.args.includes("-line-info")))
 		})
@@ -323,22 +323,23 @@ describe("managed tool installations", () => {
 		})
 	})
 
-	it("rejects VLS source that does not contain the current supported baseline", async () => {
+	it("rejects a built VLS that does not report a supported version", async () => {
 		await withTemporaryRoot(async (root) => {
-			const calls: ProcessCall[] = []
-			const build = fakeBuild("vls", calls)
-			await assert.rejects(
-				installTool("vls", revision, root, "/configured/v", {
-					run: async (command, args, options) => {
-						if (args.includes("merge-base")) throw new Error("not an ancestor")
-						return build(command, args, options)
-					},
-				}),
-				/VLS source must include 4f668aa/,
-			)
-			assert.ok(
-				calls.every((call) => call.command === "git" || call.args.includes("version")),
-			)
+			for (const [output, message] of [
+				["VLS 0.0.2\n", /reports version 0\.0\.2; this extension requires VLS 0\.0\.3/],
+				["", /reports no version/],
+			] as const) {
+				const build = fakeBuild("vls", [])
+				await assert.rejects(
+					installTool("vls", revision, root, "/configured/v", {
+						run: async (command, args, options) =>
+							args.includes("--version")
+								? { stdout: output, stderr: "" }
+								: build(command, args, options),
+					}),
+					message,
+				)
+			}
 			assert.deepEqual(await fs.readdir(path.join(root, "tools")), [])
 		})
 	})

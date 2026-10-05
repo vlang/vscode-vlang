@@ -4,7 +4,7 @@ import { createReadStream, type Dirent, promises as fs } from "fs"
 import * as path from "path"
 import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
 import { findInPath } from "./vCommand"
-import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "./toolVersions"
+import { isSupportedVlsVersion, MIN_VLS_VERSION, parseVlsIdentity } from "./toolVersions"
 
 export type ToolName = "v" | "vls"
 
@@ -44,8 +44,6 @@ export interface ManagedToolInstallation {
 	directory: string
 	sha256: string
 	installedAt: string
-	/** Set only after verifying the checked-out VLS contains the supported upstream baseline. */
-	vlsBaseline?: string
 }
 
 const manifestName = ".vscode-vlang-installation.json"
@@ -349,21 +347,6 @@ export async function installTool(
 		if (checkedOut.stdout.trim().toLowerCase() !== revision.toLowerCase()) {
 			throw new Error("Downloaded source does not match the requested revision.")
 		}
-		if (tool === "vls") {
-			if (revision.toLowerCase() !== MIN_VLS_REVISION) {
-				// Only the small VLS repository needs history, to prove the source
-				// includes the compiler checks and rename validation we require.
-				await git(["fetch", "--unshallow", "https://github.com/vlang/vls.git", revision])
-				try {
-					await git(["merge-base", "--is-ancestor", MIN_VLS_REVISION, "HEAD"])
-				} catch {
-					checkCancelled(options.signal)
-					throw new Error(
-						`VLS source must include ${MIN_VLS_REVISION.slice(0, 7)} or newer. Run V: Install or Update VLS to select current upstream source.`,
-					)
-				}
-			}
-		}
 		const executable = path.join(directory, tool + (platform === "win32" ? ".exe" : ""))
 		options.onProgress?.(`Building ${tool === "v" ? "V" : "VLS"}…`)
 		const reportsRevision = async (): Promise<boolean> => {
@@ -444,6 +427,14 @@ export async function installTool(
 				throw new Error("The built V compiler did not report the requested version.")
 			}
 		} else {
+			// The same check as server startup, so an accepted build can always start.
+			const reported = await execute(executable, ["--version"], { timeoutMs: 15_000 })
+			const version = parseVlsIdentity(reported.stdout)?.version
+			if (!isSupportedVlsVersion(version)) {
+				throw new Error(
+					`The built VLS reports ${version ? `version ${version}` : "no version"}; this extension requires VLS ${MIN_VLS_VERSION} or newer.`,
+				)
+			}
 			const input = [
 				{
 					jsonrpc: "2.0",
@@ -480,7 +471,6 @@ export async function installTool(
 			directory,
 			sha256: await executableHash(executable),
 			installedAt: new Date().toISOString(),
-			...(tool === "vls" ? { vlsBaseline: VLS_SUPPORT_BASELINE } : {}),
 		}
 		checkCancelled(options.signal)
 		await fs.writeFile(
@@ -560,9 +550,6 @@ export async function readManagedToolInstallation(
 			directory,
 			sha256: manifest.sha256,
 			installedAt: manifest.installedAt,
-			...(typeof manifest.vlsBaseline === "string"
-				? { vlsBaseline: manifest.vlsBaseline }
-				: {}),
 		}
 	} catch {
 		return undefined

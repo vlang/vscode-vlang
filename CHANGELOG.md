@@ -33,7 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installation.
 - Retry update checks that could not reach GitHub, remember declined missing-tool
   prompts, and keep tool check state bounded.
-- Report an unreachable VLS ancestry check as unavailable instead of unsupported.
 - Let `V: Install or Update VLS` update a VLS that reports only its version when
   upstream declares a newer one.
 - Show a single startup notification for an unsupported VLS, and say when it is
@@ -55,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Require VLS 0.0.3 or newer, or a source commit containing `4f668aa`.
+- Require VLS 0.0.3 or newer, as reported by `vls --version`.
   Accept external installations that report a supported version or commit and
   offer installation or update for older or unverifiable servers. Do not enforce
   a V compiler revision or run compiler compatibility queries.
