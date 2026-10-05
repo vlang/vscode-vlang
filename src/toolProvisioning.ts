@@ -3,6 +3,8 @@ import type { ToolName } from "./toolInstallation"
 export interface InstalledTool {
 	executable?: string
 	revision?: string
+	/** Compatible version-only VLS installs cannot be compared by upstream commit. */
+	supportedVersion?: string
 	/** Used by the editor adapter to avoid replacing settings changed during a build. */
 	configuration: string
 }
@@ -23,12 +25,11 @@ export interface ProvisioningHost {
 		latest: string,
 	): Promise<"current" | "outdated" | "unknown">
 	choose(offer: ToolOffer): Promise<boolean>
-	validateCompiler(executable: string): Promise<void>
 	install(tool: ToolName, revision: string, compiler?: string): Promise<string>
 	use(tool: ToolName, executable: string, previous: InstalledTool): Promise<void>
 }
 
-export type ProvisioningResult = "current" | "unchecked" | "declined" | "installed"
+export type ProvisioningResult = "current" | "supported" | "unchecked" | "declined" | "installed"
 
 /** Product decisions are independent of VS Code, network access and process execution. */
 export class ToolProvisioner {
@@ -40,9 +41,13 @@ export class ToolProvisioner {
 		let reason: ToolOffer["reason"] = "missing"
 		if (installed.executable) {
 			if (!checkUpdates) return "unchecked"
+			if (tool === "vls" && installed.supportedVersion && !installed.revision)
+				return "supported"
 			latestRevision = await this.host.latest(tool)
 			const status = await this.host.status(tool, installed.revision, latestRevision)
 			if (status === "current") return "current"
+			if (tool === "vls" && installed.supportedVersion && status === "unknown")
+				return "supported"
 			reason = status
 		}
 		if (!(await this.host.choose({ tool, reason, installed, latestRevision })))
@@ -60,7 +65,6 @@ export class ToolProvisioner {
 						"VLS needs V to build. Install V first, then run V: Install or Update VLS.",
 					)
 			}
-			await this.host.validateCompiler(compiler)
 		}
 		const executable = await this.host.install(tool, latestRevision, compiler)
 		await this.host.use(tool, executable, installed)

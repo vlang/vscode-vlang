@@ -5,6 +5,7 @@ import * as path from "node:path"
 import { createHash } from "node:crypto"
 import { afterEach, beforeEach, describe, it } from "node:test"
 import { ToolManager } from "../toolManager"
+import { MIN_VLS_REVISION } from "../toolVersions"
 import { resetVscode, setSetting, state, Uri } from "./fixtures/vscode"
 
 const latest = "b".repeat(40)
@@ -16,6 +17,13 @@ let requests: string[] = []
 function executable(name: string, revision = latest.slice(0, 7)): string {
 	const file = path.join(root, name)
 	fs.writeFileSync(file, `#!/usr/bin/env node\nconsole.log("V 0.5.2 ${revision}")\n`)
+	fs.chmodSync(file, 0o755)
+	return file
+}
+
+function vlsExecutable(version: string): string {
+	const file = path.join(root, `vls-${version}`)
+	fs.writeFileSync(file, `#!/usr/bin/env node\nconsole.log("VLS ${version}")\n`)
 	fs.chmodSync(file, 0o755)
 	return file
 }
@@ -75,6 +83,37 @@ afterEach(() => {
 })
 
 describe("ToolManager VS Code adapter", () => {
+	it("keeps a supported externally installed VLS without offering managed adoption", async () => {
+		const binary = vlsExecutable("0.0.3")
+		setSetting("v.vls.command", binary)
+		const owner = manager(context())
+		try {
+			await owner.check(true, "vls")
+			assert.deepEqual(requests, [])
+			assert.deepEqual(state.updates, [])
+			assert.ok(state.information.some((message) => message.includes("version is supported")))
+			assert.ok(!state.information.some((message) => message.includes("Build the latest")))
+			assert.ok(!state.information.some((message) => message.includes("up to date")))
+			assert.equal(state.settings.get("v.vls.command")?.value, binary)
+		} finally {
+			owner.dispose()
+		}
+	})
+
+	it("still offers installation for an unsupported external VLS version", async () => {
+		const binary = vlsExecutable("0.0.2")
+		setSetting("v.vls.command", binary)
+		const owner = manager(context())
+		try {
+			await owner.check(true, "vls")
+			assert.ok(state.information.some((message) => message.includes("cannot be verified")))
+			assert.ok(state.information.some((message) => message.includes("Build the latest")))
+			assert.deepEqual(state.updates, [])
+		} finally {
+			owner.dispose()
+		}
+	})
+
 	it("checks updates once daily for each effective configuration", async () => {
 		const first = executable("v-first")
 		const second = executable("v-second")
@@ -139,6 +178,49 @@ describe("ToolManager VS Code adapter", () => {
 				!state.information.some((message) => message.includes("up to date with upstream")),
 			)
 			assert.equal(fs.readFileSync(binary, "utf8"), content)
+		} finally {
+			owner.dispose()
+		}
+	})
+
+	it("keeps an unstamped managed VLS when its source ancestry proves support", async () => {
+		const ownerContext = context()
+		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-unstamped")
+		fs.mkdirSync(directory, { recursive: true })
+		const binary = path.join(directory, "vls")
+		const content = "#!/usr/bin/env node\nconsole.log('unversioned VLS')\n"
+		fs.writeFileSync(binary, content)
+		fs.chmodSync(binary, 0o755)
+		fs.writeFileSync(
+			path.join(directory, ".vscode-vlang-installation.json"),
+			JSON.stringify({
+				schemaVersion: 1,
+				tool: "vls",
+				revision: latest,
+				executable: "vls",
+				sha256: createHash("sha256").update(content).digest("hex"),
+				installedAt: new Date().toISOString(),
+			}),
+		)
+		globalThis.fetch = (async (input: RequestInfo | URL) => {
+			const url = String(input)
+			requests.push(url)
+			return {
+				ok: true,
+				status: 200,
+				json: async () =>
+					url.endsWith(`/compare/${MIN_VLS_REVISION}...${latest}`)
+						? { status: "ahead", ahead_by: 1, behind_by: 0 }
+						: { sha: latest },
+			} as Response
+		}) as typeof fetch
+		setSetting("v.vls.command", binary)
+		const owner = manager(ownerContext)
+		try {
+			await owner.check(true, "vls")
+			assert.ok(state.information.some((message) => message.includes("up to date")))
+			assert.ok(!state.information.some((message) => message.includes("Build the latest")))
+			assert.deepEqual(state.updates, [])
 		} finally {
 			owner.dispose()
 		}

@@ -42,9 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Require VLS `4f668aa` or newer and a V compiler with V3 semantic query support.
-  Reject older and unversioned external VLS binaries; verified managed installs
-  establish the minimum source revision without network access during startup.
+- Require VLS 0.0.3 or newer, or a source commit containing `4f668aa`.
+  Accept external installations that report a supported version or commit and
+  offer installation or update for older or unverifiable servers. Do not enforce
+  a V compiler revision or run compiler compatibility queries.
 - Migrate formatting to Oxfmt and linting to Oxlint with type-aware rules; update
   editor recommendations and enforce formatting in CI.
 - Update development dependencies, TypeScript to 7, and the language client to

@@ -31,9 +31,6 @@ function hostFixture() {
 			offers.push(offer)
 			return accepted
 		},
-		async validateCompiler(executable) {
-			calls.push(`validate:${executable}`)
-		},
 		async install(tool, revision, compiler) {
 			calls.push(`install:${tool}:${revision}:${compiler ?? ""}`)
 			if (failInstall) throw new Error("build failed")
@@ -130,26 +127,40 @@ describe("tool provisioning decisions", () => {
 		)
 		assert.ok(
 			fixture.calls.indexOf("use:v:/managed/v") <
-				fixture.calls.indexOf("validate:/managed/v"),
-		)
-		assert.ok(
-			fixture.calls.indexOf("validate:/managed/v") <
 				fixture.calls.indexOf("install:vls:vls-revision:/managed/v"),
 		)
 	})
 
-	it("refuses an unsupported configured V before building or selecting VLS", async () => {
+	it("builds VLS directly with the configured V without a compiler capability query", async () => {
 		const fixture = hostFixture()
 		fixture.tools.v.executable = "/old/v"
-		fixture.host.validateCompiler = async (executable) => {
-			assert.equal(executable, "/old/v")
-			throw new Error("Update V: the current VLS requires V3 compiler answers.")
-		}
-		await assert.rejects(new ToolProvisioner(fixture.host).check("vls", false), /Update V/)
-		assert.ok(
-			!fixture.calls.some((call) => call.startsWith("install:") || call.startsWith("use:")),
-		)
+		assert.equal(await new ToolProvisioner(fixture.host).check("vls", false), "installed")
+		assert.ok(fixture.calls.includes("install:vls:vls-revision:/old/v"))
 		assert.equal(fixture.tools.v.executable, "/old/v")
+	})
+
+	it("keeps a compatible external version without requiring an upstream commit", async () => {
+		const fixture = hostFixture()
+		fixture.tools.vls = {
+			executable: "/external/vls",
+			supportedVersion: "0.0.3",
+			configuration: "external",
+		}
+		assert.equal(await new ToolProvisioner(fixture.host).check("vls", true), "supported")
+		assert.deepEqual(fixture.calls, ["inspect:vls"])
+	})
+
+	it("keeps a supported version whose custom revision is unavailable upstream", async () => {
+		const fixture = hostFixture()
+		fixture.tools.vls = {
+			executable: "/external/vls",
+			revision: "custom",
+			supportedVersion: "0.1.0",
+			configuration: "external",
+		}
+		fixture.state("unknown")
+		assert.equal(await new ToolProvisioner(fixture.host).check("vls", true), "supported")
+		assert.deepEqual(fixture.offers, [])
 	})
 
 	it("aborts VLS installation when missing V is declined", async () => {

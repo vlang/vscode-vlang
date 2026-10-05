@@ -4,7 +4,7 @@ import { createReadStream, promises as fs } from "fs"
 import * as path from "path"
 import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
 import { findInPath } from "./vCommand"
-import { MIN_VLS_REVISION, requireCurrentVCompiler, VLS_SUPPORT_BASELINE } from "./toolSupport"
+import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "./toolVersions"
 
 export type ToolName = "v" | "vls"
 
@@ -344,13 +344,6 @@ export async function installTool(
 					)
 				}
 			}
-			options.onProgress?.("Checking V3 compiler support…")
-			await requireCurrentVCompiler(compiler!, {
-				signal: options.signal,
-				run,
-				env,
-				directory: path.join(directory, ".tmp"),
-			})
 		}
 		const executable = path.join(directory, tool + (platform === "win32" ? ".exe" : ""))
 		options.onProgress?.(`Building ${tool === "v" ? "V" : "VLS"}…`)

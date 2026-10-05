@@ -9,7 +9,11 @@ import {
 	getLatestRelease,
 	getLatestRevision,
 	getUpdateStatus,
+	isSupportedVlsVersion,
+	MIN_VLS_REVISION,
+	parseVlsIdentity,
 	parseVRevision,
+	readVlsIdentity,
 	readVRevision,
 } from "../toolVersions"
 
@@ -35,6 +39,121 @@ describe("tool revision checks", () => {
 			"V 0.5.2 abc1234\nextra output",
 		]) {
 			assert.strictEqual(parseVRevision(invalid), undefined)
+		}
+	})
+
+	it("compares VLS semantic versions numerically and observes prerelease precedence", () => {
+		for (const version of [
+			"0.0.3",
+			"0.0.3+package.1",
+			"0.0.10",
+			"0.1.0",
+			"1.0.0",
+			"0.0.4-rc.1",
+		]) {
+			assert.equal(isSupportedVlsVersion(version), true, version)
+		}
+		for (const version of [
+			undefined,
+			"0.0.2",
+			"0.0.3-rc.1",
+			"0.0.3-dev",
+			"0.0.4-01",
+			"0.00.3",
+			"0.0.03",
+			"0.0.3.1",
+			"master",
+			"9007199254740992.0.0",
+		]) {
+			assert.equal(isSupportedVlsVersion(version), false, version)
+		}
+	})
+
+	it("reads only explicit VLS version or source revision output", () => {
+		assert.deepEqual(parseVlsIdentity("VLS 0.0.3\n"), { version: "0.0.3" })
+		assert.deepEqual(parseVlsIdentity(`VLS 0.0.2 ${MIN_VLS_REVISION.toUpperCase()}`), {
+			version: "0.0.2",
+			revision: MIN_VLS_REVISION,
+		})
+		assert.deepEqual(parseVlsIdentity("VLS 0.0.3 (commit abc1234)"), {
+			version: "0.0.3",
+			revision: "abc1234",
+		})
+		assert.deepEqual(parseVlsIdentity("VLS revision abc1234"), { revision: "abc1234" })
+		for (const output of [
+			"0.0.3",
+			"V 0.5.2 abc1234",
+			"VLS 0.00.3",
+			"VLS 0.0.3-01",
+			"VLS 0.0.3 abc123",
+			"VLS 0.0.3 master",
+			"VLS 0.0.3\nadditional output",
+			"2026-10-05 abc1234",
+		]) {
+			assert.equal(parseVlsIdentity(output), undefined, output)
+		}
+	})
+
+	it("reads external launcher metadata without shell interpretation", async () => {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vls-version-"))
+		const script = path.join(directory, "server with spaces; $unexpected.cjs")
+		try {
+			fs.writeFileSync(
+				script,
+				"if (process.argv.at(-1) !== '--version') process.exit(1); process.stdout.write('VLS 0.0.3\\n');",
+			)
+			assert.deepEqual(
+				await readVlsIdentity(process.execPath, undefined, { args: [script] }),
+				{ version: "0.0.3" },
+			)
+		} finally {
+			fs.rmSync(directory, { recursive: true, force: true })
+		}
+	})
+
+	it(
+		"reads the standalone version before configured server transport arguments",
+		{ skip: process.platform === "win32" },
+		async () => {
+			const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vls-standalone-"))
+			const executable = path.join(directory, "vls")
+			try {
+				fs.writeFileSync(
+					executable,
+					'#!/bin/sh\n[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 1\nprintf \'VLS 0.0.3\\n\'\n',
+					{ mode: 0o755 },
+				)
+				assert.deepEqual(
+					await readVlsIdentity(executable, undefined, { args: ["--port", "12345"] }),
+					{ version: "0.0.3" },
+				)
+			} finally {
+				fs.rmSync(directory, { recursive: true, force: true })
+			}
+		},
+	)
+
+	it("bounds a hanging metadata launcher and handles cancellation", async () => {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vls-timeout-"))
+		const script = path.join(directory, "server.cjs")
+		try {
+			fs.writeFileSync(script, "setInterval(() => {}, 1000)")
+			const started = performance.now()
+			assert.equal(
+				await readVlsIdentity(process.execPath, undefined, {
+					args: [script],
+					timeoutMs: 150,
+				}),
+				undefined,
+			)
+			assert.ok(performance.now() - started < 2_000)
+			const controller = new AbortController()
+			const pending = readVlsIdentity(process.execPath, controller.signal, { args: [script] })
+			setTimeout(() => controller.abort(), 50)
+			assert.equal(await pending, undefined)
+			assert.equal(await readVlsIdentity(process.execPath, AbortSignal.abort()), undefined)
+		} finally {
+			fs.rmSync(directory, { recursive: true, force: true })
 		}
 	})
 

@@ -10,7 +10,6 @@ import { vlsOutputChannel } from "./logger"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
-import { requireCurrentVCompiler, UnsupportedVCompilerError } from "./toolSupport"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
 
 const serverSettings = [
@@ -145,21 +144,6 @@ export class VlsManager implements vscode.Disposable {
 						})
 					return
 				}
-				if (error instanceof UnsupportedVCompilerError) {
-					this.status.command = "v.install"
-					void vscode.window
-						.showErrorMessage(`VLS: ${message}`, "Install or Update V", "Open Settings")
-						.then((action) => {
-							if (action === "Install or Update V")
-								void vscode.commands.executeCommand("v.install")
-							else if (action === "Open Settings")
-								void vscode.commands.executeCommand(
-									"workbench.action.openSettings",
-									"v.tools.updateChannel",
-								)
-						})
-					return
-				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
 					.then((action) => {
@@ -195,12 +179,9 @@ export class VlsManager implements vscode.Disposable {
 			return
 		}
 		const args = migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder?.uri)
-		await requireSupportedVls(command, this.storageRoot)
-		const compiler = vCommandForServer(folder)
-		if (!compiler) throw new UnsupportedVCompilerError("The V compiler was not found.")
-		await requireCurrentVCompiler(compiler, { signal: this.abort.signal })
+		await requireSupportedVls(command, this.storageRoot, { args, signal: this.abort.signal })
 		if (this.disposed) return
-		const env = { ...process.env, VLS_V_COMMAND: compiler }
+		const env = { ...process.env, VLS_V_COMMAND: vCommandForServer(folder) }
 		const options: LanguageClientOptions = {
 			documentSelector: [{ scheme: "file", language: "v" }],
 			outputChannel: vlsOutputChannel,

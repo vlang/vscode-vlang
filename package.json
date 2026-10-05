@@ -108,7 +108,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "Verified managed VLS executable selected by V: Install or Update VLS. Requires VLS 4f668aa or newer; older and unversioned external binaries cannot start. Supports ~, ${env:NAME}, and ${workspaceFolder}."
+					"description": "VLS executable, including external installations. Requires VLS 0.0.3 or newer, or a reported source commit containing 4f668aa. Supports ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.args": {
 					"scope": "resource",
@@ -160,7 +160,7 @@
 					],
 					"enumDescriptions": [
 						"Track the latest commit on master, as `v up` does.",
-						"Track the latest published V release. Builds newer than that release count as up to date. Current VLS requires V3 semantic queries; use master if the release lacks them. Standalone tasks and formatting can still use a release compiler."
+						"Track the latest published V release. Builds newer than that release count as up to date. Use a recent V master compiler for current VLS semantic features."
 					],
 					"default": "master",
 					"scope": "application",

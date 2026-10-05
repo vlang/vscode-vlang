@@ -1,5 +1,13 @@
 const fs = require("node:fs")
 
+const version = process.env.TEST_VLS_VERSION_FILE
+	? fs.readFileSync(process.env.TEST_VLS_VERSION_FILE, "utf8").trim()
+	: "0.0.3"
+if (process.argv.slice(2).some((argument) => ["--version", "version"].includes(argument))) {
+	process.stdout.write(`VLS ${version}\n`)
+	process.exit(0)
+}
+
 const eventsPath = process.env.TEST_VLS_EVENTS
 let buffer = Buffer.alloc(0)
 let shuttingDown = false
@@ -65,7 +73,7 @@ function handle(message) {
 				codeLensProvider: {},
 				executeCommandProvider: { commands: ["vls.runFile", "vls.runTests"] },
 			},
-			serverInfo: { name: "vls", version: "0.0.2" },
+			serverInfo: { name: "vls", version },
 		})
 		return
 	}

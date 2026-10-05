@@ -1,7 +1,6 @@
 import "./toolInstallation.test"
 import "./toolVersions.test"
 import "./toolProvisioning.test"
-import "./toolSupport.test"
 import "./vlsSupport.test"
 import "./lifecycle.test"
 import * as assert from "assert"

@@ -11,7 +11,7 @@ import {
 	type ToolProcessOptions,
 	type ToolProcessRunner,
 } from "../toolInstallation"
-import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "../toolSupport"
+import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "../toolVersions"
 
 const revision = "0123456789abcdef0123456789abcdef01234567"
 
@@ -30,9 +30,6 @@ function fakeBuild(
 		calls.push({ command, args, options })
 		if (command === "git") {
 			return { stdout: args.includes("rev-parse") ? `${revision}\n` : "", stderr: "" }
-		}
-		if (args.includes("-line-info")) {
-			return { stdout: `${args.at(-1)}:9:3\n`, stderr: "" }
 		}
 		const executable = path.join(options.cwd, tool + (platform === "win32" ? ".exe" : ""))
 		if (command !== executable) {
@@ -288,6 +285,7 @@ describe("managed tool installations", () => {
 				),
 			)
 			assert.ok(await readManagedToolInstallation(installed.executable, "vls", root))
+			assert.ok(!calls.some((call) => call.args.includes("-line-info")))
 		})
 	})
 
@@ -338,19 +336,18 @@ describe("managed tool installations", () => {
 		})
 	})
 
-	it("rejects unsupported V before compiling VLS and removes only its candidate", async () => {
+	it("cleans the VLS candidate when the configured compiler cannot build it", async () => {
 		await withTemporaryRoot(async (root) => {
 			const calls: ProcessCall[] = []
 			const build = fakeBuild("vls", calls)
 			await assert.rejects(
 				installTool("vls", revision, root, "/old/v", {
 					run: async (command, args, options) => {
-						if (args.includes("-line-info"))
-							throw new Error("unknown option `-vls-mode`")
+						if (command === "/old/v") throw new Error("VLS build failed")
 						return build(command, args, options)
 					},
 				}),
-				/Install or Update V using the master channel/,
+				/VLS build failed/,
 			)
 			assert.ok(!calls.some((call) => call.args.includes("-o")))
 			assert.deepEqual(await fs.readdir(path.join(root, "tools")), [])

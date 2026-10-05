@@ -567,29 +567,25 @@ export async function run(): Promise<void> {
 			: undefined
 	}, "VLS recovery after invalid command")
 	console.log("VLS failure recovery passed")
-	const manifestPath = process.env.TEST_VLS_MANIFEST
-	assert.ok(manifestPath, "fixture host must provide managed VLS metadata")
-	const currentManifest = fs.readFileSync(manifestPath, "utf8")
-	const previousManifest = JSON.parse(currentManifest) as Record<string, unknown>
-	previousManifest.revision = "436058d058b2ae9cb17d329d7b7f73ec129b2b8a"
-	delete previousManifest.vlsBaseline
-	fs.writeFileSync(manifestPath, JSON.stringify(previousManifest))
+	const versionFile = process.env.TEST_VLS_VERSION_FILE
+	assert.ok(versionFile, "fixture host must provide the external VLS version file")
+	fs.writeFileSync(versionFile, "0.0.2\n")
 	const spawnsBeforeRejection = serverEvents().filter((event) => event.event === "spawn").length
 	await vscode.commands.executeCommand("v.vls.restart")
 	await new Promise((resolve) => setTimeout(resolve, 750))
 	assert.equal(
 		serverEvents().filter((event) => event.event === "spawn").length,
 		spawnsBeforeRejection,
-		"a VLS installation older than the supported baseline must not start",
+		"an external VLS reporting an unsupported version must not start",
 	)
 	assert.equal(currentVlsSettings(serverEvents()), undefined)
-	fs.writeFileSync(manifestPath, currentManifest)
+	fs.writeFileSync(versionFile, "0.0.3\n")
 	await vscode.commands.executeCommand("v.vls.restart")
 	await waitFor(
 		() => currentVlsSettings(serverEvents()),
-		"supported VLS restored after rejection",
+		"external VLS 0.0.3 restored after rejection",
 	)
-	console.log("Unsupported VLS is rejected and the supported installation restarts")
+	console.log("External VLS 0.0.2 is rejected and 0.0.3 restarts without installation metadata")
 
 	const dirty = await vscode.window.showTextDocument(main)
 	await dirty.edit((edit) => edit.insert(new vscode.Position(0, 0), "\n"))

@@ -1,13 +1,22 @@
-import { execFile } from "child_process"
+import { execFile, spawn } from "child_process"
 import * as fs from "fs"
 import * as path from "path"
 import { promisify } from "util"
-import { processLaunchCommand } from "./processExecution"
+import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
 import type { ToolName } from "./toolInstallation"
 
 export type UpdateStatus = "current" | "outdated" | "unknown"
 
-type GitHubFetch = (
+export const MIN_VLS_REVISION = "4f668aa04e2568eb7ffdc6a02198ef14cec3e12a"
+export const MIN_VLS_VERSION = "0.0.3"
+export const VLS_SUPPORT_BASELINE = MIN_VLS_REVISION
+
+export interface VlsIdentity {
+	version?: string
+	revision?: string
+}
+
+export type GitHubFetch = (
 	url: string,
 	options: RequestInit,
 ) => Promise<Pick<Response, "ok" | "status" | "json">>
@@ -152,7 +161,7 @@ export function parseVRevision(output: string): string | undefined {
 	return (match?.[2] ?? match?.[1])?.toLowerCase()
 }
 
-/** V supports `version`; VLS does not, so never use this probe for VLS. */
+/** Read the compiler's build identity without compiling a source fixture. */
 export async function readVRevision(
 	executable: string,
 	signal?: AbortSignal,
@@ -204,5 +213,172 @@ async function expandGitRevision(
 		return fullRevision.test(full) && full.startsWith(revision) ? full : undefined
 	} catch {
 		return undefined
+	}
+}
+
+const semanticVersion =
+	/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?(?:\+([\da-z-]+(?:\.[\da-z-]+)*))?$/i
+
+/** Compare semantic versions numerically; a prerelease of the minimum is older. */
+export function isSupportedVlsVersion(version: string | undefined): boolean {
+	if (!version) return false
+	const match = semanticVersion.exec(version)
+	if (!match) return false
+	const numbers = match.slice(1, 4).map(Number)
+	if (!numbers.every(Number.isSafeInteger)) return false
+	const prerelease = match[4]
+	if (prerelease?.split(".").some((part) => /^0\d+$/.test(part))) return false
+	const minimum = MIN_VLS_VERSION.split(".").map(Number)
+	for (let index = 0; index < numbers.length; index++) {
+		if (numbers[index]! > minimum[index]!) return true
+		if (numbers[index]! < minimum[index]!) return false
+	}
+	return !prerelease
+}
+
+/** Only explicitly labelled VLS output can identify the server executable. */
+export function parseVlsIdentity(output: string): VlsIdentity | undefined {
+	const revisionOnly = /^VLS[ \t]+(?:commit|revision)[ \t]+([a-f\d]{7,40})$/i.exec(output.trim())
+	if (revisionOnly) return { revision: revisionOnly[1]!.toLowerCase() }
+	const match =
+		/^VLS[ \t]+(\S+?)(?:[ \t]+(?:([a-f\d]{7,40})|\((?:commit|revision)[ \t]+([a-f\d]{7,40})\)))?$/i.exec(
+			output.trim(),
+		)
+	if (!match || !semanticVersion.test(match[1]!)) return undefined
+	const version = match[1]!
+	const prerelease = semanticVersion.exec(version)?.[4]
+	if (prerelease?.split(".").some((part) => /^0\d+$/.test(part))) return undefined
+	const revision = (match[2] ?? match[3])?.toLowerCase()
+	return { version, ...(revision ? { revision } : {}) }
+}
+
+export interface VlsVersionOptions {
+	args?: readonly string[]
+	timeoutMs?: number
+}
+
+/** Version requests never open a project and are bounded even for older VLS builds. */
+async function readVlsVersionOutput(
+	executable: string,
+	signal: AbortSignal | undefined,
+	options: VlsVersionOptions,
+): Promise<string | undefined> {
+	if (signal?.aborted) return undefined
+	const launch = processLaunchCommand(executable, [...(options.args ?? []), "--version"])
+	return new Promise((resolve) => {
+		let output = ""
+		let settled = false
+		const child = spawn(launch.command, launch.args, {
+			shell: false,
+			windowsVerbatimArguments: launch.windowsVerbatimArguments,
+			windowsHide: true,
+			detached: process.platform !== "win32",
+			stdio: ["ignore", "pipe", "pipe"],
+		})
+		const stop = () => {
+			if (child.pid) {
+				const treeKill = processTreeKillCommand(child.pid)
+				if (treeKill) {
+					const killer = spawn(treeKill.command, treeKill.args, {
+						windowsHide: true,
+						stdio: "ignore",
+					})
+					killer.once("error", () => child.kill("SIGKILL"))
+				} else {
+					try {
+						process.kill(-child.pid, "SIGKILL")
+					} catch {
+						child.kill("SIGKILL")
+					}
+				}
+			}
+		}
+		const finish = (result: string | undefined, terminate = false) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			signal?.removeEventListener("abort", cancelled)
+			if (terminate) stop()
+			resolve(result)
+		}
+		const cancelled = () => finish(undefined, true)
+		const timeoutMs = Math.max(1, Math.min(options.timeoutMs ?? 5_000, 5_000))
+		const timer = setTimeout(() => finish(undefined, true), timeoutMs)
+		signal?.addEventListener("abort", cancelled, { once: true })
+		if (signal?.aborted) cancelled()
+		child.stdout.setEncoding("utf8")
+		child.stdout.on("data", (chunk: string) => {
+			output += chunk
+			if (output.length > 16 * 1024) finish(undefined, true)
+		})
+		// Drain stderr so an unsupported flag cannot fill its pipe and stall exit.
+		child.stderr.resume()
+		child.once("error", () => finish(undefined))
+		child.once("close", (code) => finish(code === 0 ? output : undefined))
+	})
+}
+
+export async function readVlsIdentity(
+	executable: string,
+	signal?: AbortSignal,
+	options: VlsVersionOptions = {},
+): Promise<VlsIdentity | undefined> {
+	const timeoutMs = Math.max(1, Math.min(options.timeoutMs ?? 5_000, 5_000))
+	const deadline = performance.now() + timeoutMs
+	const output = await readVlsVersionOutput(executable, signal, { timeoutMs })
+	let identity = output === undefined ? undefined : parseVlsIdentity(output)
+	const remaining = deadline - performance.now()
+	// Server flags must not interfere with VLS's standalone --version command.
+	// Launcher prefixes (for example node path/to/vls.js) need their configured args.
+	if (!identity && options.args?.length && !signal?.aborted && remaining > 0) {
+		const launcherOutput = await readVlsVersionOutput(executable, signal, {
+			args: options.args,
+			timeoutMs: remaining,
+		})
+		identity = launcherOutput === undefined ? undefined : parseVlsIdentity(launcherOutput)
+	}
+	if (!identity?.revision || fullRevision.test(identity.revision)) return identity
+	const full = await expandGitRevision(executable, identity.revision, signal)
+	return full ? { ...identity, revision: full } : identity
+}
+
+/** A reported source revision is supported only if it includes the minimum commit. */
+export async function isSupportedVlsRevision(
+	executable: string,
+	revision: string | undefined,
+	signal?: AbortSignal,
+	fetcher: GitHubFetch = fetch,
+): Promise<boolean> {
+	if (signal?.aborted || !revision || !abbreviatedRevision.test(revision)) return false
+	const candidate = revision.toLowerCase()
+	if (MIN_VLS_REVISION.startsWith(candidate)) return true
+	const full = fullRevision.test(candidate)
+		? candidate
+		: await expandGitRevision(executable, candidate, signal)
+	if (!full) return false
+	try {
+		const root = path.dirname(await fs.promises.realpath(executable))
+		await executeFile(
+			"git",
+			["-C", root, "merge-base", "--is-ancestor", MIN_VLS_REVISION, full],
+			{
+				windowsHide: true,
+				timeout: 5_000,
+				killSignal: "SIGKILL",
+				maxBuffer: 4 * 1024,
+				signal,
+			},
+		)
+		return true
+	} catch {
+		if (signal?.aborted) return false
+	}
+	try {
+		// compare minimum...candidate reports "outdated" only for a strict descendant.
+		return (
+			(await getUpdateStatus("vls", MIN_VLS_REVISION, full, signal, fetcher)) === "outdated"
+		)
+	} catch {
+		return false
 	}
 }

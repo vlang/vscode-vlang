@@ -4,9 +4,18 @@ import { outputChannel } from "./logger"
 import { migratedSetting } from "./settings"
 import { installTool, readManagedToolInstallation, ToolName } from "./toolInstallation"
 import { InstalledTool, ToolOffer, ToolProvisioner } from "./toolProvisioning"
-import { getLatestRelease, getLatestRevision, getUpdateStatus, readVRevision } from "./toolVersions"
+import {
+	getLatestRelease,
+	getLatestRevision,
+	getUpdateStatus,
+	isSupportedVlsRevision,
+	isSupportedVlsVersion,
+	MIN_VLS_REVISION,
+	readVlsIdentity,
+	readVRevision,
+	VLS_SUPPORT_BASELINE,
+} from "./toolVersions"
 import { resolvedCommand } from "./vCommand"
-import { requireCurrentVCompiler, VLS_SUPPORT_BASELINE } from "./toolSupport"
 
 const day = 24 * 60 * 60 * 1000
 
@@ -97,8 +106,6 @@ export class ToolManager implements vscode.Disposable {
 			status: (tool, revision, latest) =>
 				getUpdateStatus(tool, revision, latest, this.abort.signal),
 			choose: (offer) => this.choose(offer),
-			validateCompiler: (executable) =>
-				requireCurrentVCompiler(executable, { signal: this.abort.signal }),
 			install: (tool, revision, compiler) => this.install(tool, revision, compiler),
 			use: (tool, executable, previous) => this.use(tool, executable, previous),
 		})
@@ -197,6 +204,11 @@ export class ToolManager implements vscode.Disposable {
 					: `${tools.map((tool) => tool.toUpperCase()).join(" and ")} are up to date with upstream.`,
 			)
 		}
+		if (manual && results.some((result) => result === "VLS: supported")) {
+			void vscode.window.showInformationMessage(
+				"The installed VLS version is supported. Its build revision is unavailable for comparison with upstream.",
+			)
+		}
 	}
 
 	private async inspect(tool: ToolName): Promise<InstalledTool> {
@@ -209,16 +221,35 @@ export class ToolManager implements vscode.Disposable {
 					this.context.globalStorageUri.fsPath,
 				)
 			: undefined
-		const managedRevision =
-			tool === "vls" && managed?.vlsBaseline !== VLS_SUPPORT_BASELINE
-				? undefined
-				: managed?.revision
+		const supportedManagedRevision =
+			managed &&
+			(tool !== "vls" ||
+				managed.vlsBaseline === VLS_SUPPORT_BASELINE ||
+				managed.revision === MIN_VLS_REVISION ||
+				(await isSupportedVlsRevision(
+					managed.executable,
+					managed.revision,
+					this.abort.signal,
+				)))
+		const managedRevision = supportedManagedRevision ? managed?.revision : undefined
+		const vlsIdentity =
+			tool === "vls" && executable && !managedRevision
+				? await readVlsIdentity(executable, this.abort.signal, { args: configuration.args })
+				: undefined
 		const revision =
 			managedRevision ??
+			vlsIdentity?.revision ??
 			(tool === "v" && executable
 				? await readVRevision(executable, this.abort.signal)
 				: undefined)
-		return { executable, revision, configuration: JSON.stringify(configuration) }
+		return {
+			executable,
+			revision,
+			supportedVersion: isSupportedVlsVersion(vlsIdentity?.version)
+				? vlsIdentity?.version
+				: undefined,
+			configuration: JSON.stringify(configuration),
+		}
 	}
 
 	private latest(tool: ToolName): Promise<string> {
