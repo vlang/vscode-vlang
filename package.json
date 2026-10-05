@@ -12,6 +12,16 @@
 	"extensionPack": [
 		"ms-vscode.cpptools"
 	],
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "Reading, highlighting, tasks and VLS start in an untrusted workspace. Installing the V compiler does not: it clones and builds it outside the workspace, so that prompt only appears in a trusted workspace."
+		},
+		"virtualWorkspaces": {
+			"supported": false,
+			"description": "V support needs to run the V compiler and the V language server, which cannot run against a virtual filesystem."
+		}
+	},
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"

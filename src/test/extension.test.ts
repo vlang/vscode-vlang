@@ -31,6 +31,7 @@ import {
 	processLaunchCommand,
 	processTreeKillCommand,
 } from "../processExecution"
+import { installPlan, V_REPO_URL } from "../installPlan"
 
 describe("VLS VS Code extension", () => {
 	it("contributes build, run, and test commands and tasks", () => {
@@ -475,5 +476,45 @@ describe("VLS VS Code extension", () => {
 		)
 		const missing = path.join("/missing", "custom-v")
 		assert.strictEqual(serverCommand(missing, "/workspace"), missing)
+	})
+
+	it("installs V without deleting anything from the user's bin directory", () => {
+		const home = path.join(path.sep, "home", "dev")
+		const plan = installPlan(home)
+		// The checkout is a child of the bin directory, so deleting the bin directory
+		// to make room for it takes every other tool the user installed with it.
+		assert.strictEqual(plan.binDir, path.join(home, ".local", "bin"))
+		assert.strictEqual(plan.repoDir, path.join(plan.binDir, "v"))
+		assert.deepStrictEqual(
+			plan.steps.filter((step) => step.kind === "remove"),
+			[],
+		)
+		// The one directory the installer creates is the bin directory itself, and it
+		// is only ever created, never removed.
+		assert.deepStrictEqual(
+			plan.steps.filter((step) => step.kind === "mkdir"),
+			[{ kind: "mkdir", dir: plan.binDir, message: "Preparing directory..." }],
+		)
+
+		const runs = plan.steps.filter((step) => step.kind === "run")
+		assert.deepStrictEqual(
+			runs.map((step) => [step.command, ...step.args]),
+			[
+				["git", "clone", "--depth=1", V_REPO_URL],
+				["make"],
+				// The symlink step names the binary by absolute path, so it does not
+				// depend on `v` already being on PATH, and it is the only optional step:
+				// the other two failing means the install did not happen.
+				[plan.executable, "symlink"],
+			],
+		)
+		assert.deepStrictEqual(
+			runs.filter((step) => step.optional),
+			[runs[2]],
+		)
+		// Each command is a program plus an argument array, so no argument can be
+		// re-read as a separate command the way an interpolated `git clone <url>`
+		// string handed to a shell could.
+		assert.ok(runs.every((step) => Array.isArray(step.args)))
 	})
 })

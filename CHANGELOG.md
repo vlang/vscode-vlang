@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Installing V no longer deletes `~/.local/bin`. The installer used to remove
+  the whole directory before cloning, which destroyed every other tool the user
+  had installed there. It now only creates the directory it needs and reports a
+  leftover checkout instead of clearing it.
+- The install-V prompt is no longer modal, and no longer appears in an untrusted
+  workspace, where cloning and building a compiler outside the workspace is not
+  appropriate.
+- Install failures and symlink failures go to the extension's output channel
+  instead of the extension host console.
+
+### Changed
+
+- The install steps run as programs with argument arrays rather than interpolated
+  shell commands, and the symlink step names the V binary by absolute path rather
+  than relying on `v` already being on `PATH`.
+- The manifest declares its workspace capabilities: limited support in untrusted
+  workspaces, and none in virtual workspaces, which have no processes to run.
+
 ## 0.2.1
 
 _23 September 2026_

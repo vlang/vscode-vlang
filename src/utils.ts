@@ -1,9 +1,8 @@
-import { exec as _exec, execFile as _execFile } from "child_process"
+import { execFile as _execFile } from "child_process"
 import { getVExecCommand } from "exec"
+import { installPlan } from "installPlan"
 import * as fs from "fs"
 import { log } from "logger"
-import * as os from "os"
-import * as path from "path"
 import { promisify } from "util"
 import { ProgressLocation, Uri, window, workspace, WorkspaceFolder } from "vscode"
 
@@ -11,9 +10,7 @@ export const config = () => workspace.getConfiguration("v")
 
 export const vlsConfig = () => workspace.getConfiguration("v.vls")
 
-const exec = promisify(_exec)
 const execFile = promisify(_execFile)
-const userBinPath = path.join(os.homedir(), ".local", "bin")
 
 /** Get current working directory.
  * @param uri The URI of document
@@ -54,15 +51,13 @@ export async function isVInstalled(): Promise<boolean> {
 }
 
 /**
- * Clone and build the `v` compiler
+ * Clone and build the `v` compiler into `~/.local/bin/v`.
  *
- * Returns: absolute path to the `v` binary (string)
- * Error: rejects if any git/make step fails
+ * Nothing is deleted: `~/.local/bin` holds every tool the user installed, so a
+ * failed earlier attempt is left in place and reported instead of wiped.
  */
 export async function installV(): Promise<void> {
-	const installDir = userBinPath
-	const vRepoPath = path.join(installDir, "v")
-	const repoUrl = "https://github.com/vlang/v"
+	const plan = installPlan()
 
 	await window.withProgress(
 		{
@@ -72,46 +67,42 @@ export async function installV(): Promise<void> {
 		},
 		async (progress) => {
 			try {
-				// 0. Clean up any previous failed attempts
-				progress.report({ message: "Preparing workspace..." })
-				if (fs.existsSync(installDir)) {
-					fs.rmSync(installDir, { recursive: true, force: true })
+				for (const step of plan.steps) {
+					progress.report({ message: step.kind === "remove" ? "" : step.message })
+
+					if (step.kind === "mkdir") {
+						fs.mkdirSync(step.dir, { recursive: true })
+						continue
+					}
+
+					if (step.kind === "remove") {
+						// The plan never produces one of these. Fail loudly rather than
+						// delete a directory the installer does not own.
+						throw new Error(`refusing to remove ${step.target}`)
+					}
+
+					try {
+						await execFile(step.command, step.args, { cwd: step.cwd })
+					} catch (error) {
+						if (!step.optional) {
+							throw error
+						}
+						log(`Optional install step "${step.command}" failed: ${error}`)
+						window.showWarningMessage(
+							`V was built successfully, but the automatic symlink failed (likely due to permissions). Please run '${plan.executable} symlink' manually with administrator/sudo rights.`,
+							"OK",
+						)
+						return
+					}
 				}
-				fs.mkdirSync(installDir)
 
-				// 1. Clone the repository
-				progress.report({ message: "Cloning V repository..." })
-				await exec(`git clone --depth=1 ${repoUrl}`, { cwd: installDir })
-
-				// 2. Build V using make
-				progress.report({ message: "Building V from source (this may take a moment)..." })
-				await exec("make", { cwd: vRepoPath })
-
-				// 3. Create a symlink
-				// This command often requires sudo/admin privileges.
-				// We run it and inform the user to run it manually if it fails.
-				progress.report({ message: "Attempting to create symlink..." })
-
-				try {
-					// On Windows, the build script handles the path. On Linux/macOS, symlink is used.
-					const symlinkCommand =
-						os.platform() === "win32" ? "v.exe symlink" : "./v symlink"
-					await exec(symlinkCommand, { cwd: vRepoPath })
-
-					window.showInformationMessage(
-						"V language installed and linked successfully! Please restart VS Code to use the `v` command.",
-					)
-				} catch (symlinkError) {
-					console.error(symlinkError)
-					window.showWarningMessage(
-						`V was built successfully, but the automatic symlink failed (likely due to permissions). Please run '${path.join(vRepoPath, "v")} symlink' manually with administrator/sudo rights.`,
-						"OK",
-					)
-				}
+				window.showInformationMessage(
+					"V language installed and linked successfully! Please restart VS Code to use the `v` command.",
+				)
 			} catch (error) {
-				console.error(error)
+				log(`Failed to install V: ${error}`)
 				window.showErrorMessage(
-					`Failed to install V. Please check the logs for details. Error: ${error}`,
+					`Failed to install V. Check the logs for details. If ${plan.repoDir} already exists, remove it and try again.`,
 				)
 			}
 		},

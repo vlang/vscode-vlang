@@ -88,11 +88,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
 	const taskManager = registerVTasks(context)
 
-	// Check for V only if it's not installed
-	if (!(await isVInstalled())) {
+	// Offering to clone and build a compiler would run `git` and `make` outside the
+	// workspace, so only ask in a workspace the user trusts.
+	if (vscode.workspace.isTrusted && !(await isVInstalled())) {
 		const selection = await vscode.window.showInformationMessage(
 			"The V programming language is not detected on this system. Would you like to install it?",
-			{ modal: true }, // Modal makes the user have to choose before continuing
 			"Yes",
 			"No",
 		)
