@@ -32,6 +32,7 @@ import {
 	processTreeKillCommand,
 } from "../processExecution"
 import { installPlan, V_REPO_URL } from "../installPlan"
+import { presentVlsStatus, vlsServerSettings, VlsStatus } from "../vlsState"
 
 describe("VLS VS Code extension", () => {
 	it("contributes build, run, and test commands and tasks", () => {
@@ -516,5 +517,57 @@ describe("VLS VS Code extension", () => {
 		// re-read as a separate command the way an interpolated `git clone <url>`
 		// string handed to a shell could.
 		assert.ok(runs.every((step) => Array.isArray(step.args)))
+	})
+
+	it("reports every server state in the status bar", () => {
+		const statuses: VlsStatus[] = ["disabled", "starting", "active", "stopped", "error"]
+		const presentations = statuses.map((status) => presentVlsStatus(status))
+		// Every state names itself in the tooltip, so the status bar text does not
+		// have to carry the whole message.
+		assert.strictEqual(
+			new Set(presentations.map((entry) => entry.tooltip)).size,
+			statuses.length,
+		)
+		assert.ok(presentations.every((entry) => entry.text.length > 0))
+		// Only a failure and an explicit disablement look like something is wrong.
+		assert.ok(presentVlsStatus("error").text.includes("$(error)"))
+		assert.ok(presentVlsStatus("disabled").text.includes("$(circle-slash)"))
+		assert.ok(presentVlsStatus("active").text.includes("$(check)"))
+		assert.ok(presentVlsStatus("starting").text.includes("$(loading~spin)"))
+		// A stopped server and a disabled one look alike on purpose; the tooltip is
+		// what tells them apart.
+		assert.strictEqual(
+			presentVlsStatus("stopped").text,
+			presentVlsStatus("disabled").text,
+		)
+		assert.notStrictEqual(
+			presentVlsStatus("stopped").tooltip,
+			presentVlsStatus("disabled").tooltip,
+		)
+	})
+
+	it("sends the inlay hint and diagnostics settings the server reads", () => {
+		// VLS reads these under a `vls` key while the manifest configures them under
+		// `v.vls`, so the payload is built by hand. A setting added to one and not
+		// the other would silently stay at its default, which this shape keeps honest.
+		assert.deepStrictEqual(vlsServerSettings(true, false), {
+			vls: { inlayHints: { enabled: true }, diagnostics: { enabled: false } },
+		})
+		assert.deepStrictEqual(vlsServerSettings(false, true), {
+			vls: { inlayHints: { enabled: false }, diagnostics: { enabled: true } },
+		})
+	})
+
+	it("declares every registered VLS command in the manifest", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const declared = new Set<string>(
+			manifest.contributes.commands.map((entry: { command: string }) => entry.command),
+		)
+		// `v.vls.openOutput` was registered but not declared, so it never appeared in
+		// the Command Palette and could not be bound to a key.
+		for (const command of ["v.vls.update", "v.vls.restart", "v.vls.openOutput"]) {
+			assert.ok(declared.has(command), `${command} is not declared in package.json`)
+		}
 	})
 })

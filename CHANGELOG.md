@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate.
 - Install failures and symlink failures go to the extension's output channel
   instead of the extension host console.
+- `V: Update VLS` no longer reports a restart as an update. It stopped and
+  started the server and then said "VLS has been restarted after update", while
+  never fetching anything. It now says where VLS was found and how to update it.
+- `V: Open V Language Server Output` was registered but not declared in the
+  manifest, so it never appeared in the Command Palette and could not be bound to
+  a key.
+- Changing `v.vls.command`, `v.vls.args` or `v.executablePath` while the server
+  is running no longer risks two overlapping restarts. The prompt is awaited and
+  a restart already in flight is skipped rather than racing the shared client.
+- VLS start and restart failures go to the V Language Server output channel,
+  where they can be read, instead of the extension host console.
 
 ### Changed
 
@@ -26,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than relying on `v` already being on `PATH`.
 - The manifest declares its workspace capabilities: limited support in untrusted
   workspaces, and none in virtual workspaces, which have no processes to run.
+- The two information messages raised on every activation are replaced by a
+  status bar entry that shows whether the language server is starting, active,
+  stopped, disabled or failed, and opens its output on click.
+- `V: Update VLS` is titled "How to Update VLS", which is what it does.
 
 ## 0.2.1
 

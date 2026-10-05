@@ -1,3 +1,4 @@
+import { getVls } from "langserver"
 import { vlsOutputChannel } from "logger"
 import { commands, ExtensionContext, window } from "vscode"
 import type { LanguageClient } from "vscode-languageclient/node"
@@ -50,21 +51,24 @@ export function ver(): void {
 	})
 }
 
-export async function updateVls(client?: LanguageClient): Promise<void> {
-	// For now, show an informational message. If we had an update mechanism
-	// (download/install), it would be invoked here and possibly restart the client.
-	void window.showInformationMessage("Update VLS: not implemented.")
-	// If a client is provided, optionally restart to pick up a new binary.
-	if (client) {
-		try {
-			await client.stop()
-			await client.start()
-			void window.showInformationMessage("VLS has been restarted after update.")
-		} catch {
-			// ignore error details for now
-			void window.showErrorMessage("Failed to restart VLS after update.")
-		}
+/** Report how to update VLS.
+ *
+ * There is no update mechanism the extension can rely on: VLS is a separate
+ * binary the user builds or installs themselves. This used to stop and start the
+ * client and then report "VLS has been restarted after update", which described
+ * a restart as an update. It now says what is actually true.
+ */
+export async function updateVls(): Promise<void> {
+	let location: string
+	try {
+		location = getVls()
+	} catch {
+		location = "not found on PATH"
 	}
+	await window.showInformationMessage(
+		`VLS (${location}) is not updated automatically. Rebuild it from https://github.com/vlang/vls and make sure "vls" is on PATH, or set "v.vls.command".`,
+		"OK",
+	)
 }
 
 export async function restartVls(cli?: LanguageClient): Promise<void> {
@@ -96,7 +100,7 @@ export function registerVlsCommands(
 	getClient: () => LanguageClient | undefined,
 ): void {
 	context.subscriptions.push(
-		commands.registerCommand("v.vls.update", () => updateVls(getClient())),
+		commands.registerCommand("v.vls.update", () => updateVls()),
 		commands.registerCommand("v.vls.restart", () => restartVls(getClient())),
 		commands.registerCommand("v.vls.openOutput", () => {
 			vlsOutputChannel.show()

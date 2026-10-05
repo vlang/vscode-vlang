@@ -247,12 +247,17 @@
 			},
 			{
 				"command": "v.vls.update",
-				"title": "Update VLS",
+				"title": "How to Update VLS",
 				"category": "V"
 			},
 			{
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.vls.openOutput",
+				"title": "Open V Language Server Output",
 				"category": "V"
 			}
 		],
