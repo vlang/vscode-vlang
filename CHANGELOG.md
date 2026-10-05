@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build accepted installations in private, versioned directories, verify them
   before switching settings, and preserve existing installations on failure.
 - Add working install/update commands with progress, cancellation, and revision
-  checks; external VLS builds with unknown revisions can opt into managed copies.
+  checks.
 - Build managed V with the installed V when there is one, as `v up` does, and fall
   back to the full bootstrap if that fails.
 - Add `v.tools.updateChannel` to track the latest V release instead of master;
@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require VLS `4f668aa` or newer and a V compiler with V3 semantic query support.
+  Reject older and unversioned external VLS binaries; verified managed installs
+  establish the minimum source revision without network access during startup.
 - Migrate formatting to Oxfmt and linting to Oxlint with type-aware rules; update
   editor recommendations and enforce formatting in CI.
 - Update development dependencies, TypeScript to 7, and the language client to
@@ -50,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installations. Remove unused helpers, duplicate file watcher, and empty inlay
   hint provider.
 - Stop installing the C/C++ extension automatically; manual debugger setups remain supported.
-- Add extension-host checks with an isolated LSP fixture and optional real VLS runs.
+- Run isolated fixture and current real-VLS extension-host checks on Linux and macOS.
 
 ## 0.2.1
 

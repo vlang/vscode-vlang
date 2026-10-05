@@ -59,12 +59,13 @@ function handle(message) {
 				completionProvider: {},
 				hoverProvider: true,
 				definitionProvider: true,
-				renameProvider: true,
+				renameProvider: { prepareProvider: true },
+				inlayHintProvider: true,
 				documentFormattingProvider: true,
 				codeLensProvider: {},
 				executeCommandProvider: { commands: ["vls.runFile", "vls.runTests"] },
 			},
-			serverInfo: { name: "fake-vls" },
+			serverInfo: { name: "vls", version: "0.0.2" },
 		})
 		return
 	}
@@ -117,6 +118,13 @@ function handle(message) {
 					},
 				],
 			},
+		})
+		return
+	}
+	if (method === "textDocument/prepareRename") {
+		response(id, {
+			range: { start: { line: 2, character: 20 }, end: { line: 2, character: 23 } },
+			placeholder: "add",
 		})
 		return
 	}

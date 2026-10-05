@@ -74,6 +74,89 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 	}
 }
 
+async function runCurrentVlsFeatureChecks(workspace: string): Promise<void> {
+	const directory = vscode.Uri.file(path.join(workspace, "current-vls"))
+	await vscode.workspace.fs.createDirectory(directory)
+	await vscode.workspace.fs.writeFile(
+		vscode.Uri.joinPath(directory, "v.mod"),
+		Buffer.from("Module { name: 'current_vls_host_test' }\n"),
+	)
+	const moduleDirectory = vscode.Uri.joinPath(directory, "textx")
+	await vscode.workspace.fs.createDirectory(moduleDirectory)
+	await vscode.workspace.fs.writeFile(
+		vscode.Uri.joinPath(moduleDirectory, "textx.v"),
+		Buffer.from("module textx\n\npub fn answer() int { return 7 }\n"),
+	)
+	const uri = vscode.Uri.joinPath(directory, "main.v")
+	await vscode.workspace.fs.writeFile(uri, Buffer.from("module main\n\nfn main() {\n\ttex\n}\n"))
+	const document = await vscode.workspace.openTextDocument(uri)
+	const editor = await vscode.window.showTextDocument(document)
+	const imported = await waitFor(async () => {
+		const result = await vscode.commands.executeCommand<vscode.CompletionList>(
+			"vscode.executeCompletionItemProvider",
+			uri,
+			new vscode.Position(3, 4),
+		)
+		return result?.items.find((item) => {
+			const label = typeof item.label === "string" ? item.label : item.label.label
+			return (
+				label === "textx" &&
+				item.additionalTextEdits?.some((edit) => /import textx\b/.test(edit.newText))
+			)
+		})
+	}, "current VLS auto-import completion")
+	assert.equal(imported.kind, vscode.CompletionItemKind.Module)
+	const importEdit = new vscode.WorkspaceEdit()
+	importEdit.set(uri, [
+		...(imported.additionalTextEdits ?? []),
+		vscode.TextEdit.replace(new vscode.Range(3, 1, 3, 4), "textx.answer()"),
+	])
+	assert.equal(await vscode.workspace.applyEdit(importEdit), true)
+	assert.match(document.getText(), /import textx\b/)
+	assert.match(document.getText(), /textx\.answer\(\)/)
+	assert.equal(await document.save(), true)
+	assert.equal(await taskExit("v.run"), 0)
+	console.log("Real VLS auto-import edits applied and the resulting program ran")
+
+	assert.equal(
+		await editor.edit((edit) =>
+			edit.replace(
+				new vscode.Range(
+					document.positionAt(0),
+					document.positionAt(document.getText().length),
+				),
+				"module main\n\nfn main() {\n\tscore := 7\n\tprintln(score)\n}\n",
+			),
+		),
+		true,
+	)
+	async function scoreHint(type: string): Promise<vscode.InlayHint> {
+		return waitFor(async () => {
+			const hints = await vscode.commands.executeCommand<vscode.InlayHint[]>(
+				"vscode.executeInlayHintProvider",
+				uri,
+				new vscode.Range(0, 0, document.lineCount, 0),
+			)
+			return hints?.find((hint) => {
+				const label =
+					typeof hint.label === "string"
+						? hint.label
+						: hint.label.map((part) => part.value).join("")
+				return hint.position.line === 3 && new RegExp(`\\b${type}\\b`).test(label)
+			})
+		}, `current VLS ${type} hint for the unsaved score buffer`)
+	}
+	assert.equal((await scoreHint("int")).kind, vscode.InlayHintKind.Type)
+	assert.equal((await scoreHint("int")).kind, vscode.InlayHintKind.Type)
+	assert.equal(
+		await editor.edit((edit) => edit.replace(new vscode.Range(3, 10, 3, 11), "'siete'")),
+		true,
+	)
+	assert.equal(document.isDirty, true)
+	assert.equal((await scoreHint("string")).kind, vscode.InlayHintKind.Type)
+	console.log("Real VLS inlay hints repeat and refresh after an unsaved type change")
+}
+
 export async function run(): Promise<void> {
 	const workspace = process.env.TEST_WORKSPACE
 	assert.ok(workspace)
@@ -203,7 +286,6 @@ export async function run(): Promise<void> {
 		)
 		console.log(`Real VLS definition: ${definitions.length} results`)
 	}
-	let realRenameMissesTest = false
 	const rename = await vscode.commands.executeCommand<vscode.WorkspaceEdit>(
 		"vscode.executeDocumentRenameProvider",
 		main.uri,
@@ -222,7 +304,24 @@ export async function run(): Promise<void> {
 			"real VLS rename missed the add declaration in helper.v",
 		)
 		assert.ok(rename?.get(main.uri).length, "real VLS rename missed the main.v reference")
-		realRenameMissesTest = !rename?.get(testDocument.uri).length
+		assert.ok(
+			rename?.get(testDocument.uri).length,
+			"current VLS rename must include the add reference in main_test.v",
+		)
+		let conflicting: vscode.WorkspaceEdit | undefined
+		try {
+			conflicting = await vscode.commands.executeCommand<vscode.WorkspaceEdit>(
+				"vscode.executeDocumentRenameProvider",
+				main.uri,
+				position,
+				"main",
+			)
+		} catch (error) {
+			assert.match(String(error), /cannot rename|redefin|conflict|cannot safely/i)
+		}
+		assert.ok(!conflicting?.size, "current VLS must refuse a rename colliding with main")
+		assert.match(main.getText(), /println\(add\(1, 2\)\)/)
+		console.log("Real VLS three-file rename and collision refusal passed")
 	}
 	if (!fakeVls) {
 		const editor = await vscode.window.showTextDocument(main)
@@ -247,6 +346,7 @@ export async function run(): Promise<void> {
 	)
 
 	if (!fakeVls) {
+		await runCurrentVlsFeatureChecks(workspace)
 		const outlineDirectory = vscode.Uri.file(path.join(workspace, "outline"))
 		await vscode.workspace.fs.createDirectory(outlineDirectory)
 		const outlineUri = vscode.Uri.joinPath(outlineDirectory, "main.v")
@@ -310,11 +410,6 @@ export async function run(): Promise<void> {
 		assert.equal(main.isDirty, true)
 		assert.ok(main.getText().startsWith("module main"))
 		await runIssue523Checks(workspace, fakeVls)
-		assert.equal(
-			realRenameMissesTest,
-			false,
-			"real VLS rename missed the add reference in main_test.v",
-		)
 		console.log("Real VLS and V compiler smoke test passed")
 		return
 	}
@@ -472,6 +567,29 @@ export async function run(): Promise<void> {
 			: undefined
 	}, "VLS recovery after invalid command")
 	console.log("VLS failure recovery passed")
+	const manifestPath = process.env.TEST_VLS_MANIFEST
+	assert.ok(manifestPath, "fixture host must provide managed VLS metadata")
+	const currentManifest = fs.readFileSync(manifestPath, "utf8")
+	const previousManifest = JSON.parse(currentManifest) as Record<string, unknown>
+	previousManifest.revision = "436058d058b2ae9cb17d329d7b7f73ec129b2b8a"
+	delete previousManifest.vlsBaseline
+	fs.writeFileSync(manifestPath, JSON.stringify(previousManifest))
+	const spawnsBeforeRejection = serverEvents().filter((event) => event.event === "spawn").length
+	await vscode.commands.executeCommand("v.vls.restart")
+	await new Promise((resolve) => setTimeout(resolve, 750))
+	assert.equal(
+		serverEvents().filter((event) => event.event === "spawn").length,
+		spawnsBeforeRejection,
+		"a VLS installation older than the supported baseline must not start",
+	)
+	assert.equal(currentVlsSettings(serverEvents()), undefined)
+	fs.writeFileSync(manifestPath, currentManifest)
+	await vscode.commands.executeCommand("v.vls.restart")
+	await waitFor(
+		() => currentVlsSettings(serverEvents()),
+		"supported VLS restored after rejection",
+	)
+	console.log("Unsupported VLS is rejected and the supported installation restarts")
 
 	const dirty = await vscode.window.showTextDocument(main)
 	await dirty.edit((edit) => edit.insert(new vscode.Position(0, 0), "\n"))

@@ -23,6 +23,7 @@ export interface ProvisioningHost {
 		latest: string,
 	): Promise<"current" | "outdated" | "unknown">
 	choose(offer: ToolOffer): Promise<boolean>
+	validateCompiler(executable: string): Promise<void>
 	install(tool: ToolName, revision: string, compiler?: string): Promise<string>
 	use(tool: ToolName, executable: string, previous: InstalledTool): Promise<void>
 }
@@ -59,6 +60,7 @@ export class ToolProvisioner {
 						"VLS needs V to build. Install V first, then run V: Install or Update VLS.",
 					)
 			}
+			await this.host.validateCompiler(compiler)
 		}
 		const executable = await this.host.install(tool, latestRevision, compiler)
 		await this.host.use(tool, executable, installed)

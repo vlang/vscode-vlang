@@ -8,6 +8,7 @@ package-lock.json
 # Source and build outputs
 src/
 build/
+*.v
 *.vsix
 
 # TypeScript build artifacts

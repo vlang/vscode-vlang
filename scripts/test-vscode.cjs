@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict")
+const { createHash } = require("node:crypto")
 const fs = require("node:fs")
 const os = require("node:os")
 const path = require("node:path")
@@ -62,10 +63,45 @@ async function main() {
 	const workspace = path.join(temporaryDirectory, "workspace")
 	const fakeVls = !process.env.VLS_BINARY
 	const eventsPath = path.join(temporaryDirectory, "vls-events.jsonl")
+	const extensionsDirectory = path.join(temporaryDirectory, "extensions")
+	const userDataDirectory = path.join(temporaryDirectory, "user-data")
+	const minimumVlsRevision = "4f668aa04e2568eb7ffdc6a02198ef14cec3e12a"
+	const vlsRevision = process.env.VLS_REVISION || minimumVlsRevision
+	assert.match(vlsRevision, /^[a-f\d]{40}$/, "VLS_REVISION must be a full source commit")
+	// Each host run owns its installation and metadata. Copy the fixture's Node
+	// executable too, so production provenance checks never trust a system binary.
+	const vlsDirectory = path.join(
+		userDataDirectory,
+		"User",
+		"globalStorage",
+		"vlanguage.vscode-vlang",
+		"tools",
+		`vls-${vlsRevision}-integration`,
+	)
+	const managedVls = path.join(vlsDirectory, process.platform === "win32" ? "vls.exe" : "vls")
+	const vlsManifest = path.join(vlsDirectory, ".vscode-vlang-installation.json")
+	fs.mkdirSync(vlsDirectory, { recursive: true })
+	fs.copyFileSync(
+		fakeVls ? process.execPath : resolveExecutable(process.env.VLS_BINARY),
+		managedVls,
+	)
+	fs.chmodSync(managedVls, 0o755)
+	fs.writeFileSync(
+		vlsManifest,
+		JSON.stringify({
+			schemaVersion: 1,
+			tool: "vls",
+			revision: vlsRevision,
+			vlsBaseline: minimumVlsRevision,
+			executable: path.basename(managedVls),
+			sha256: createHash("sha256").update(fs.readFileSync(managedVls)).digest("hex"),
+			installedAt: new Date().toISOString(),
+		}),
+	)
 	fs.mkdirSync(path.join(workspace, ".vscode"), { recursive: true })
 	const settings = {
 		"v.executablePath": vBinary,
-		"v.vls.command": fakeVls ? process.execPath : resolveExecutable(process.env.VLS_BINARY),
+		"v.vls.command": managedVls,
 		"v.vls.args": fakeVls ? [path.join(root, "scripts", "fixtures", "fake-vls.cjs")] : [],
 		"v.vls.diagnostics": false,
 	}
@@ -94,8 +130,6 @@ async function main() {
 	)
 
 	try {
-		const extensionsDirectory = path.join(temporaryDirectory, "extensions")
-		const userDataDirectory = path.join(temporaryDirectory, "user-data")
 		fs.mkdirSync(path.join(userDataDirectory, "User"), { recursive: true })
 		fs.writeFileSync(
 			path.join(userDataDirectory, "User", "settings.json"),
@@ -148,6 +182,7 @@ async function main() {
 				TEST_WORKSPACE: workspace,
 				TEST_FAKE_VLS: fakeVls ? "1" : "",
 				TEST_VLS_EVENTS: eventsPath,
+				TEST_VLS_MANIFEST: vlsManifest,
 				TEST_LEGACY_SETTINGS: process.env.TEST_LEGACY_SETTINGS || "",
 			},
 			launchArgs: [

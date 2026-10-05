@@ -2,6 +2,7 @@ import * as assert from "node:assert/strict"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
+import { createHash } from "node:crypto"
 import { afterEach, beforeEach, describe, it } from "node:test"
 import { ToolManager } from "../toolManager"
 import { resetVscode, setSetting, state, Uri } from "./fixtures/vscode"
@@ -105,6 +106,39 @@ describe("ToolManager VS Code adapter", () => {
 			assert.ok(
 				!state.information.some((message) => message.includes("up to date with upstream")),
 			)
+		} finally {
+			owner.dispose()
+		}
+	})
+
+	it("offers to rebuild an unstamped managed VLS even when its revision is current", async () => {
+		const ownerContext = context()
+		const directory = path.join(ownerContext.globalStorageUri.fsPath, "tools", "vls-unstamped")
+		fs.mkdirSync(directory, { recursive: true })
+		const binary = path.join(directory, "vls")
+		const content = "#!/usr/bin/env node\nconsole.log('old installation')\n"
+		fs.writeFileSync(binary, content)
+		fs.chmodSync(binary, 0o755)
+		fs.writeFileSync(
+			path.join(directory, ".vscode-vlang-installation.json"),
+			JSON.stringify({
+				schemaVersion: 1,
+				tool: "vls",
+				revision: latest,
+				executable: "vls",
+				sha256: createHash("sha256").update(content).digest("hex"),
+				installedAt: new Date().toISOString(),
+			}),
+		)
+		setSetting("v.vls.command", binary)
+		const owner = manager(ownerContext)
+		try {
+			await owner.check(true, "vls")
+			assert.ok(state.information.some((message) => message.includes("cannot be verified")))
+			assert.ok(
+				!state.information.some((message) => message.includes("up to date with upstream")),
+			)
+			assert.equal(fs.readFileSync(binary, "utf8"), content)
 		} finally {
 			owner.dispose()
 		}

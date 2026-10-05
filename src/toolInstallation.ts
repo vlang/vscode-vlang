@@ -4,6 +4,7 @@ import { createReadStream, promises as fs } from "fs"
 import * as path from "path"
 import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
 import { findInPath } from "./vCommand"
+import { MIN_VLS_REVISION, requireCurrentVCompiler, VLS_SUPPORT_BASELINE } from "./toolSupport"
 
 export type ToolName = "v" | "vls"
 
@@ -43,6 +44,8 @@ export interface ManagedToolInstallation {
 	directory: string
 	sha256: string
 	installedAt: string
+	/** Set only after verifying the checked-out VLS contains the supported upstream baseline. */
+	vlsBaseline?: string
 }
 
 const manifestName = ".vscode-vlang-installation.json"
@@ -225,7 +228,12 @@ function hasInitializeResponse(output: string): boolean {
 				message.id === 1 &&
 				!message.error &&
 				isObject(message.result) &&
-				isObject(message.result.capabilities)
+				isObject(message.result.capabilities) &&
+				message.result.capabilities.hoverProvider === true &&
+				message.result.capabilities.definitionProvider === true &&
+				isObject(message.result.capabilities.completionProvider) &&
+				isObject(message.result.capabilities.renameProvider) &&
+				message.result.capabilities.renameProvider.prepareProvider === true
 			) {
 				return true
 			}
@@ -322,6 +330,28 @@ export async function installTool(
 		if (checkedOut.stdout.trim().toLowerCase() !== revision.toLowerCase()) {
 			throw new Error("Downloaded source does not match the requested revision.")
 		}
+		if (tool === "vls") {
+			if (revision.toLowerCase() !== MIN_VLS_REVISION) {
+				// Only the small VLS repository needs history, to prove the source
+				// includes the compiler checks and rename validation we require.
+				await git(["fetch", "--unshallow", "https://github.com/vlang/vls.git", revision])
+				try {
+					await git(["merge-base", "--is-ancestor", MIN_VLS_REVISION, "HEAD"])
+				} catch {
+					checkCancelled(options.signal)
+					throw new Error(
+						`VLS source must include ${MIN_VLS_REVISION.slice(0, 7)} or newer. Run V: Install or Update VLS to select current upstream source.`,
+					)
+				}
+			}
+			options.onProgress?.("Checking V3 compiler support…")
+			await requireCurrentVCompiler(compiler!, {
+				signal: options.signal,
+				run,
+				env,
+				directory: path.join(directory, ".tmp"),
+			})
+		}
 		const executable = path.join(directory, tool + (platform === "win32" ? ".exe" : ""))
 		options.onProgress?.(`Building ${tool === "v" ? "V" : "VLS"}…`)
 		const reportsRevision = async (): Promise<boolean> => {
@@ -365,8 +395,8 @@ export async function installTool(
 			} else {
 				await execute(make, [], { timeoutMs: 15 * 60 * 1000 })
 			}
-			// VLS uses -line-info, which recent V versions implement in a separate
-			// compatibility compiler. Keep its runtime and cache in this candidate.
+			// Current VLS asks V3 first and keeps V1 for unanswered queries, such
+			// as incomplete source. Retain that fallback's private runtime/cache.
 			const compatibilityInstaller = path.join(
 				directory,
 				"cmd",
@@ -389,7 +419,9 @@ export async function installTool(
 				await execute(compatibilityMake, ["v1"], { timeoutMs: 15 * 60 * 1000 })
 			}
 		} else {
-			await execute(compiler!, ["-o", executable, "."], { timeoutMs: 15 * 60 * 1000 })
+			await execute(compiler!, ["-new-compiler", "-o", executable, "."], {
+				timeoutMs: 15 * 60 * 1000,
+			})
 		}
 		if (!(await fs.lstat(executable)).isFile()) {
 			throw new Error("The build did not produce a regular executable file.")
@@ -424,7 +456,9 @@ export async function installTool(
 				env: { ...env, VLS_V_COMMAND: compiler },
 			})
 			if (!hasInitializeResponse(probe.stdout)) {
-				throw new Error("The built VLS did not respond to an LSP initialize request.")
+				throw new Error(
+					"The built VLS did not provide the required LSP initialize capabilities.",
+				)
 			}
 		}
 		const installation: ManagedToolInstallation = {
@@ -434,6 +468,7 @@ export async function installTool(
 			directory,
 			sha256: await executableHash(executable),
 			installedAt: new Date().toISOString(),
+			...(tool === "vls" ? { vlsBaseline: VLS_SUPPORT_BASELINE } : {}),
 		}
 		checkCancelled(options.signal)
 		await fs.writeFile(
@@ -513,6 +548,9 @@ export async function readManagedToolInstallation(
 			directory,
 			sha256: manifest.sha256,
 			installedAt: manifest.installedAt,
+			...(typeof manifest.vlsBaseline === "string"
+				? { vlsBaseline: manifest.vlsBaseline }
+				: {}),
 		}
 	} catch {
 		return undefined

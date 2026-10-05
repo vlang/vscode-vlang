@@ -31,6 +31,9 @@ function hostFixture() {
 			offers.push(offer)
 			return accepted
 		},
+		async validateCompiler(executable) {
+			calls.push(`validate:${executable}`)
+		},
 		async install(tool, revision, compiler) {
 			calls.push(`install:${tool}:${revision}:${compiler ?? ""}`)
 			if (failInstall) throw new Error("build failed")
@@ -127,8 +130,26 @@ describe("tool provisioning decisions", () => {
 		)
 		assert.ok(
 			fixture.calls.indexOf("use:v:/managed/v") <
+				fixture.calls.indexOf("validate:/managed/v"),
+		)
+		assert.ok(
+			fixture.calls.indexOf("validate:/managed/v") <
 				fixture.calls.indexOf("install:vls:vls-revision:/managed/v"),
 		)
+	})
+
+	it("refuses an unsupported configured V before building or selecting VLS", async () => {
+		const fixture = hostFixture()
+		fixture.tools.v.executable = "/old/v"
+		fixture.host.validateCompiler = async (executable) => {
+			assert.equal(executable, "/old/v")
+			throw new Error("Update V: the current VLS requires V3 compiler answers.")
+		}
+		await assert.rejects(new ToolProvisioner(fixture.host).check("vls", false), /Update V/)
+		assert.ok(
+			!fixture.calls.some((call) => call.startsWith("install:") || call.startsWith("use:")),
+		)
+		assert.equal(fixture.tools.v.executable, "/old/v")
 	})
 
 	it("aborts VLS installation when missing V is declined", async () => {

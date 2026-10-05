@@ -44,7 +44,16 @@ jobs:
         run: npm run test:grammar
 
   extension-host:
-    runs-on: ubuntu-latest
+    name: Extension host (${{ matrix.os }}, ${{ matrix.server }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        server: [fixture, real]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -55,16 +64,32 @@ jobs:
       - name: Build V compiler
         run: |
           git init "$RUNNER_TEMP/v"
-          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 3005dc383743bb2e2b3642f44307b6e75e7b37e3
+          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 01eb66904707b68fca95091ba820672b2a2611eb
           git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
           # Keep the bootstrap compatible with the pinned V source. A newer vc
           # can reject code that this compiler revision still accepts.
           git init "$RUNNER_TEMP/v/vc"
-          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 08ee621c4d106318467bb1b316a0e592fca4bc83
+          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 475a2bd7ec4bed7061721816afb46580c4fe0a5b
           git -C "$RUNNER_TEMP/v/vc" checkout --detach FETCH_HEAD
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
+          make -C "$RUNNER_TEMP/v" v1
+      - name: Build current VLS
+        if: matrix.server == 'real'
+        run: |
+          git init "$RUNNER_TEMP/vls"
+          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/vlang/vls.git 4f668aa04e2568eb7ffdc6a02198ef14cec3e12a
+          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
+          cd "$RUNNER_TEMP/vls"
+          "$RUNNER_TEMP/v/v" -new-compiler .
       - name: Run VS Code integration tests
         env:
           V_BINARY: ${{ runner.temp }}/v/v
-        run: xvfb-run -a npm run test:vscode
+          VLS_BINARY: ${{ matrix.server == 'real' && format('{0}/vls/vls', runner.temp) || '' }}
+          VLS_REVISION: 4f668aa04e2568eb7ffdc6a02198ef14cec3e12a
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a npm run test:vscode
+          else
+            npm run test:vscode
+          fi

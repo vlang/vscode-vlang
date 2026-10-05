@@ -10,6 +10,8 @@ import { vlsOutputChannel } from "./logger"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
+import { requireCurrentVCompiler, UnsupportedVCompilerError } from "./toolSupport"
+import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
 
 const serverSettings = [
 	"v.vls.enable",
@@ -52,13 +54,17 @@ export class VlsManager implements vscode.Disposable {
 	private clientDisposables: vscode.Disposable[] = []
 	private pending: Promise<void> = Promise.resolve()
 	private disposed = false
+	private readonly abort = new AbortController()
 	private updatingConfiguration = false
 	private recoveryTimer: ReturnType<typeof setTimeout> | undefined
 	private crashTimes: number[] = []
 	private readonly status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 9)
 	private readonly subscriptions: vscode.Disposable[]
 
-	constructor(private readonly tasks: VTaskManager) {
+	constructor(
+		private readonly tasks: VTaskManager,
+		private readonly storageRoot: string,
+	) {
 		this.status.name = "V Language Server"
 		this.status.command = "v.vls.openOutput"
 		this.subscriptions = [
@@ -128,6 +134,32 @@ export class VlsManager implements vscode.Disposable {
 				const message = error instanceof Error ? error.message : String(error)
 				this.setStatus("Error", message)
 				vlsOutputChannel.error(message)
+				if (error instanceof UnsupportedVlsError) {
+					this.status.command = "v.vls.update"
+					void vscode.window
+						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
+						.then((action) => {
+							if (action === "Install or Update VLS")
+								void vscode.commands.executeCommand("v.vls.update")
+							else if (action === "Show Output") vlsOutputChannel.show()
+						})
+					return
+				}
+				if (error instanceof UnsupportedVCompilerError) {
+					this.status.command = "v.install"
+					void vscode.window
+						.showErrorMessage(`VLS: ${message}`, "Install or Update V", "Open Settings")
+						.then((action) => {
+							if (action === "Install or Update V")
+								void vscode.commands.executeCommand("v.install")
+							else if (action === "Open Settings")
+								void vscode.commands.executeCommand(
+									"workbench.action.openSettings",
+									"v.tools.updateChannel",
+								)
+						})
+					return
+				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
 					.then((action) => {
@@ -163,7 +195,12 @@ export class VlsManager implements vscode.Disposable {
 			return
 		}
 		const args = migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder?.uri)
-		const env = { ...process.env, VLS_V_COMMAND: vCommandForServer(folder) }
+		await requireSupportedVls(command, this.storageRoot)
+		const compiler = vCommandForServer(folder)
+		if (!compiler) throw new UnsupportedVCompilerError("The V compiler was not found.")
+		await requireCurrentVCompiler(compiler, { signal: this.abort.signal })
+		if (this.disposed) return
+		const env = { ...process.env, VLS_V_COMMAND: compiler }
 		const options: LanguageClientOptions = {
 			documentSelector: [{ scheme: "file", language: "v" }],
 			outputChannel: vlsOutputChannel,
@@ -263,6 +300,7 @@ export class VlsManager implements vscode.Disposable {
 
 	shutdown(): Promise<void> {
 		this.disposed = true
+		this.abort.abort()
 		this.cancelRecovery()
 		this.pending = this.pending.then(() => this.stopClient())
 		return this.pending

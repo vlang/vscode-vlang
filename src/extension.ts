@@ -12,7 +12,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
 	const tasks = registerVTasks(context)
 	registerCommands(context)
-	const languageServer = new VlsManager(tasks)
+	const languageServer = new VlsManager(tasks, context.globalStorageUri.fsPath)
 	server = languageServer
 	tools = new ToolManager(context, (update) => languageServer.updateConfiguration(update))
 	context.subscriptions.push(server, tools)

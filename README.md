@@ -23,6 +23,11 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ### V Language Server
 
+Version 0.3.0 requires VLS
+[`4f668aa`](https://github.com/vlang/vls/commit/4f668aa04e2568eb7ffdc6a02198ef14cec3e12a)
+or newer, including the V3 query and rename validation changes. Older servers
+are unsupported. Install it with `V: Install or Update VLS`.
+
 When V or [VLS](https://github.com/vlang/vls) is missing, the extension offers to
 install it. It also checks upstream revisions at most once a day on activation
 and offers updates. Nothing is installed or updated without accepting the prompt.
@@ -33,20 +38,25 @@ Accepted installations build the latest official `master` revision from source;
 they require Git, GNU make, a shell and a C compiler. On Windows, GNU make
 (`make`, `gmake`, or MSYS2's `mingw32-make`) and a POSIX shell (`sh`, such as
 Git Bash or MSYS2's shell) must be on the extension host's PATH. Recent V versions
-also build the compatibility compiler used by VLS for navigation and completion.
-VLS also requires V; if V is missing, a second prompt offers to install it first.
+also build the compatibility compiler that VLS retains as a fallback. VLS uses
+V3 first for compiler queries and requires V3 semantic validation for rename.
+The extension tests the selected V compiler before installing or starting VLS;
+an incompatible compiler produces an update instruction. If V is missing, a
+second prompt offers to install it first.
 Each build uses a new directory in the extension's global storage. After verifying
 the executable, the extension selects it in settings and restarts VLS. Existing
 installations are preserved; failed or cancelled builds do not replace their paths.
 These managed tools are available to this extension, not added to your shell PATH.
 
-Existing tools in PATH and custom `v.executablePath` / `v.vls.command` settings
-are supported. VLS does not report a reliable build revision, so the freshness of
-external VLS binaries is unknown. In that case the extension offers a managed copy
-without claiming the current one is outdated; dismissing that offer suppresses it
-until the configured installation changes or you check manually. Managed builds
-record their source revision and executable hash so future updates can be checked.
-Unavailable update checks are logged and do not prevent existing tools from running.
+V compilers in PATH and custom `v.executablePath` settings remain supported.
+VLS reports the same version for older and newer builds, so external binaries
+cannot establish the required source revision. Only managed VLS installations
+verified by this extension can start. Existing external copies and older managed
+copies must be replaced through `V: Install or Update VLS`; their files are preserved.
+Managed builds verify source ancestry against the minimum revision, record their
+executable hash, and reject replaced binaries. Startup needs no network access.
+Unavailable update checks are logged and do not prevent a supported installation
+from running. Formatting and tasks remain available without a supported VLS.
 
 The status bar shows whether VLS is starting, active, stopped, disabled, missing,
 or in error. Click it to open the server log or install a missing server.
@@ -60,8 +70,8 @@ the server problem and use `V: Restart VLS` to try again.
 The available VLS settings are:
 
 - `v.vls.enable`: enable or disable VLS
-- `v.vls.command`: path or command name for the VLS executable; supports `~`,
-  `${env:NAME}`, and `${workspaceFolder}`
+- `v.vls.command`: path to a verified managed VLS executable, selected by the
+  install/update command; supports `~`, `${env:NAME}`, and `${workspaceFolder}`
 - `v.vls.args`: additional command-line arguments
 - `v.vls.inlayHints.enabled`: enable or disable inlay hints
 - `v.vls.diagnostics`: enable or disable live diagnostics
@@ -72,8 +82,9 @@ The available VLS settings are:
 - `v.tools.checkForUpdates`: enable automatic update checks (default: true).
   Missing tools still prompt for installation; manual checks remain available.
 - `v.tools.updateChannel`: track the latest V `master` commit (default) or the
-  latest published V `release`. VLS always tracks master and usually needs a V
-  newer than the latest release.
+  latest published V `release`. VLS always tracks master and requires a compiler
+  that passes its V3 query checks. Use master if the latest release lacks them;
+  a release compiler can still be used for standalone tasks and formatting.
 
 Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
@@ -162,9 +173,11 @@ After `npm run package`, set
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
 
-The real-server suite currently catches an upstream VLS limitation: workspace
-rename can omit references in `_test.v` files. The deterministic LSP fixture
-checks the extension's client wiring independently of server implementation gaps.
+CI runs the deterministic fixture and the pinned current VLS on Linux and macOS.
+The fixture checks configuration, recovery, and refusal to start unsupported
+installations. Real-server checks cover compiler queries, auto-imports, inlay
+hints, rename across source and test files, and refusal of conflicting renames.
+Both use isolated managed installations and leave existing tools untouched.
 
 ## License
 

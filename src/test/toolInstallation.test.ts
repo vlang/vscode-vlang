@@ -11,6 +11,7 @@ import {
 	type ToolProcessOptions,
 	type ToolProcessRunner,
 } from "../toolInstallation"
+import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "../toolSupport"
 
 const revision = "0123456789abcdef0123456789abcdef01234567"
 
@@ -30,6 +31,9 @@ function fakeBuild(
 		if (command === "git") {
 			return { stdout: args.includes("rev-parse") ? `${revision}\n` : "", stderr: "" }
 		}
+		if (args.includes("-line-info")) {
+			return { stdout: `${args.at(-1)}:9:3\n`, stderr: "" }
+		}
 		const executable = path.join(options.cwd, tool + (platform === "win32" ? ".exe" : ""))
 		if (command !== executable) {
 			await fs.writeFile(executable, "built executable")
@@ -38,7 +42,18 @@ function fakeBuild(
 		if (tool === "v") {
 			return { stdout: `V 0.5.2 ${revision.slice(0, 7)}\n`, stderr: "" }
 		}
-		const response = JSON.stringify({ jsonrpc: "2.0", id: 1, result: { capabilities: {} } })
+		const response = JSON.stringify({
+			jsonrpc: "2.0",
+			id: 1,
+			result: {
+				capabilities: {
+					hoverProvider: true,
+					definitionProvider: true,
+					completionProvider: {},
+					renameProvider: { prepareProvider: true },
+				},
+			},
+		})
 		return {
 			stdout: `Content-Length: ${Buffer.byteLength(response)}\r\n\r\n${response}`,
 			stderr: "",
@@ -250,19 +265,41 @@ describe("managed tool installations", () => {
 			const installed = await installTool("vls", revision, root, compiler, {
 				run: fakeBuild("vls", calls),
 			})
-			const buildCall = calls.find((call) => call.command === compiler)
-			assert.deepStrictEqual(buildCall?.args, ["-o", installed.executable, "."])
+			const buildCall = calls.find(
+				(call) => call.command === compiler && call.args.includes("-o"),
+			)
+			assert.deepStrictEqual(buildCall?.args, [
+				"-new-compiler",
+				"-o",
+				installed.executable,
+				".",
+			])
 			const probe = calls.find((call) => call.command === installed.executable)
 			assert.ok(probe?.options.input?.includes('"method":"initialize"'))
 			assert.ok(probe?.options.input?.includes('"method":"shutdown"'))
 			assert.strictEqual(probe?.options.env?.VLS_V_COMMAND, compiler)
+			assert.equal(installed.vlsBaseline, VLS_SUPPORT_BASELINE)
+			assert.ok(
+				calls.some(
+					(call) =>
+						call.command === "git" &&
+						call.args.includes("merge-base") &&
+						call.args.includes(MIN_VLS_REVISION),
+				),
+			)
 			assert.ok(await readManagedToolInstallation(installed.executable, "vls", root))
 		})
 	})
 
 	it("rejects VLS builds which do not complete LSP initialization", async () => {
 		await withTemporaryRoot(async (root) => {
+			const unsupported = JSON.stringify({
+				jsonrpc: "2.0",
+				id: 1,
+				result: { capabilities: {} },
+			})
 			for (const response of [
+				`Content-Length: ${Buffer.byteLength(unsupported)}\r\n\r\n${unsupported}`,
 				"",
 				"Content-Length: 123\r\n\r\n{}",
 				"Content-Length: 2\r\n\r\n{}",
@@ -276,10 +313,47 @@ describe("managed tool installations", () => {
 								? { stdout: response, stderr: "" }
 								: build(command, args, options),
 					}),
-					/initialize request/,
+					/initialize capabilities/,
 				)
 			}
 			assert.deepStrictEqual(await fs.readdir(path.join(root, "tools")), [])
+		})
+	})
+
+	it("rejects VLS source that does not contain the current supported baseline", async () => {
+		await withTemporaryRoot(async (root) => {
+			const calls: ProcessCall[] = []
+			const build = fakeBuild("vls", calls)
+			await assert.rejects(
+				installTool("vls", revision, root, "/configured/v", {
+					run: async (command, args, options) => {
+						if (args.includes("merge-base")) throw new Error("not an ancestor")
+						return build(command, args, options)
+					},
+				}),
+				/VLS source must include 4f668aa/,
+			)
+			assert.ok(calls.every((call) => call.command === "git"))
+			assert.deepEqual(await fs.readdir(path.join(root, "tools")), [])
+		})
+	})
+
+	it("rejects unsupported V before compiling VLS and removes only its candidate", async () => {
+		await withTemporaryRoot(async (root) => {
+			const calls: ProcessCall[] = []
+			const build = fakeBuild("vls", calls)
+			await assert.rejects(
+				installTool("vls", revision, root, "/old/v", {
+					run: async (command, args, options) => {
+						if (args.includes("-line-info"))
+							throw new Error("unknown option `-vls-mode`")
+						return build(command, args, options)
+					},
+				}),
+				/Install or Update V using the master channel/,
+			)
+			assert.ok(!calls.some((call) => call.args.includes("-o")))
+			assert.deepEqual(await fs.readdir(path.join(root, "tools")), [])
 		})
 	})
 

@@ -6,6 +6,7 @@ import { installTool, readManagedToolInstallation, ToolName } from "./toolInstal
 import { InstalledTool, ToolOffer, ToolProvisioner } from "./toolProvisioning"
 import { getLatestRelease, getLatestRevision, getUpdateStatus, readVRevision } from "./toolVersions"
 import { resolvedCommand } from "./vCommand"
+import { requireCurrentVCompiler, VLS_SUPPORT_BASELINE } from "./toolSupport"
 
 const day = 24 * 60 * 60 * 1000
 
@@ -96,6 +97,8 @@ export class ToolManager implements vscode.Disposable {
 			status: (tool, revision, latest) =>
 				getUpdateStatus(tool, revision, latest, this.abort.signal),
 			choose: (offer) => this.choose(offer),
+			validateCompiler: (executable) =>
+				requireCurrentVCompiler(executable, { signal: this.abort.signal }),
 			install: (tool, revision, compiler) => this.install(tool, revision, compiler),
 			use: (tool, executable, previous) => this.use(tool, executable, previous),
 		})
@@ -206,8 +209,12 @@ export class ToolManager implements vscode.Disposable {
 					this.context.globalStorageUri.fsPath,
 				)
 			: undefined
+		const managedRevision =
+			tool === "vls" && managed?.vlsBaseline !== VLS_SUPPORT_BASELINE
+				? undefined
+				: managed?.revision
 		const revision =
-			managed?.revision ??
+			managedRevision ??
 			(tool === "v" && executable
 				? await readVRevision(executable, this.abort.signal)
 				: undefined)
