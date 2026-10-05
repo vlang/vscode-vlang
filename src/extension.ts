@@ -14,7 +14,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	registerCommands(context)
 	const languageServer = new VlsManager(tasks, context.globalStorageUri.fsPath)
 	server = languageServer
-	tools = new ToolManager(context, (update) => languageServer.updateConfiguration(update))
+	tools = new ToolManager(
+		context,
+		(update) => languageServer.updateConfiguration(update),
+		() => languageServer.rejectedUnsupported(),
+	)
 	context.subscriptions.push(server, tools)
 	void tools.check().catch((error: unknown) => outputChannel.error(String(error)))
 	await server.restart()

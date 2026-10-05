@@ -13,6 +13,7 @@ function hostFixture() {
 	let accepted = true
 	let state: "current" | "outdated" | "unknown" = "outdated"
 	let failInstall = false
+	let upstreamVersion: string | undefined
 	const host: ProvisioningHost = {
 		async inspect(tool) {
 			calls.push(`inspect:${tool}`)
@@ -22,12 +23,18 @@ function hostFixture() {
 			calls.push(`latest:${tool}`)
 			return `${tool}-revision`
 		},
+		async latestVersion(tool, revision) {
+			calls.push(`latestVersion:${tool}:${revision}`)
+			return upstreamVersion
+		},
 		async status(tool, revision, latest) {
 			calls.push(`status:${tool}:${revision}:${latest}`)
 			return state
 		},
 		async choose(offer) {
-			calls.push(`choose:${offer.tool}:${offer.reason}`)
+			calls.push(
+				`choose:${offer.tool}:${offer.reason}${offer.dependency ? ":dependency" : ""}`,
+			)
 			offers.push(offer)
 			return accepted
 		},
@@ -55,6 +62,9 @@ function hostFixture() {
 		},
 		failInstall() {
 			failInstall = true
+		},
+		upstreamVersion(value: string | undefined) {
+			upstreamVersion = value
 		},
 	}
 }
@@ -122,8 +132,11 @@ describe("tool provisioning decisions", () => {
 		const fixture = hostFixture()
 		assert.equal(await new ToolProvisioner(fixture.host).check("vls", false), "installed")
 		assert.deepEqual(
-			fixture.offers.map((offer) => offer.tool),
-			["vls", "v"],
+			fixture.offers.map((offer) => [offer.tool, offer.dependency ?? false]),
+			[
+				["vls", false],
+				["v", true],
+			],
 		)
 		assert.ok(
 			fixture.calls.indexOf("use:v:/managed/v") <
@@ -148,6 +161,33 @@ describe("tool provisioning decisions", () => {
 		}
 		assert.equal(await new ToolProvisioner(fixture.host).check("vls", true), "supported")
 		assert.deepEqual(fixture.calls, ["inspect:vls"])
+	})
+
+	it("offers a manual update only when upstream declares a newer VLS version", async () => {
+		for (const [upstream, expected] of [
+			[undefined, "supported"],
+			["0.0.3", "latestVersion"],
+			["0.0.3-beta", "latestVersion"],
+			["0.0.4", "installed"],
+		] as const) {
+			const fixture = hostFixture()
+			fixture.tools.v.executable = "/v"
+			fixture.tools.vls = {
+				executable: "/external/vls",
+				supportedVersion: "0.0.3",
+				configuration: "external",
+			}
+			fixture.upstreamVersion(upstream)
+			const provisioner = new ToolProvisioner(fixture.host)
+			assert.equal(await provisioner.check("vls", true, true), expected)
+			if (expected === "installed") {
+				assert.equal(fixture.offers[0]?.reason, "outdated")
+				assert.equal(fixture.offers[0]?.latestVersion, "0.0.4")
+				assert.ok(fixture.calls.includes("install:vls:vls-revision:/v"))
+			} else {
+				assert.deepEqual(fixture.offers, [])
+			}
+		}
 	})
 
 	it("keeps a supported version whose custom revision is unavailable upstream", async () => {

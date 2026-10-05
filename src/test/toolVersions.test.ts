@@ -6,9 +6,11 @@ import * as path from "path"
 import { describe, it } from "node:test"
 import {
 	classifyCompareResponse,
+	compareVersions,
 	getLatestRelease,
 	getLatestRevision,
 	getUpdateStatus,
+	getUpstreamVlsVersion,
 	isSupportedVlsVersion,
 	MIN_VLS_REVISION,
 	parseVlsIdentity,
@@ -67,6 +69,59 @@ describe("tool revision checks", () => {
 		]) {
 			assert.equal(isSupportedVlsVersion(version), false, version)
 		}
+	})
+
+	it("orders versions by semantic version precedence", () => {
+		const ordered = [
+			"0.0.3-alpha",
+			"0.0.3-alpha.1",
+			"0.0.3-alpha.beta",
+			"0.0.3-beta.2",
+			"0.0.3-beta.11",
+			"0.0.3",
+			"0.0.4",
+			"0.1.0",
+		]
+		for (let index = 1; index < ordered.length; index++) {
+			assert.equal(compareVersions(ordered[index - 1]!, ordered[index]!), -1)
+			assert.equal(compareVersions(ordered[index]!, ordered[index - 1]!), 1)
+		}
+		assert.equal(compareVersions("0.0.3+build.1", "0.0.3"), 0)
+		assert.equal(compareVersions("0.0.3", "master"), undefined)
+	})
+
+	it("reads the version constant upstream VLS declares in its source", async () => {
+		const urls: string[] = []
+		const source =
+			(text: string, status = 200) =>
+			async (url: string) => {
+				urls.push(url)
+				return new Response(text, { status })
+			}
+		assert.equal(
+			await getUpstreamVlsVersion(
+				latest,
+				undefined,
+				source(
+					"const vls_version = '0.0.3'\n\nserver_info: ServerInfo{\n\tname: 'vls'\n\tversion: vls_version\n}",
+				),
+			),
+			"0.0.3",
+		)
+		assert.deepEqual(urls, [`https://raw.githubusercontent.com/vlang/vls/${latest}/main.v`])
+		// Sources before the constant (VLS 0.0.2) only had a literal in ServerInfo.
+		assert.equal(
+			await getUpstreamVlsVersion(
+				latest,
+				undefined,
+				source("server_info: ServerInfo{\n\tname: 'vls'\n\tversion: '0.0.2'\n}"),
+			),
+			undefined,
+		)
+		assert.equal(await getUpstreamVlsVersion(latest, undefined, source("", 404)), undefined)
+		await assert.rejects(getUpstreamVlsVersion(latest, undefined, source("", 503)), /HTTP 503/)
+		assert.equal(await getUpstreamVlsVersion("abc1234", undefined, source("")), undefined)
+		assert.equal(urls.length, 4)
 	})
 
 	it("reads only explicit VLS version or source revision output", () => {

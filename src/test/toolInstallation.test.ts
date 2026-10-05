@@ -5,6 +5,8 @@ import * as path from "path"
 import { describe, it } from "node:test"
 import {
 	installTool,
+	removeInterruptedInstallations,
+	removeManagedInstallation,
 	readManagedToolInstallation,
 	runToolProcess,
 	type ToolName,
@@ -30,6 +32,9 @@ function fakeBuild(
 		calls.push({ command, args, options })
 		if (command === "git") {
 			return { stdout: args.includes("rev-parse") ? `${revision}\n` : "", stderr: "" }
+		}
+		if (args.join(" ") === "-new-compiler version") {
+			return { stdout: "V 0.5.2 a69faf8\n", stderr: "" }
 		}
 		const executable = path.join(options.cwd, tool + (platform === "win32" ? ".exe" : ""))
 		if (command !== executable) {
@@ -331,7 +336,9 @@ describe("managed tool installations", () => {
 				}),
 				/VLS source must include 4f668aa/,
 			)
-			assert.ok(calls.every((call) => call.command === "git"))
+			assert.ok(
+				calls.every((call) => call.command === "git" || call.args.includes("version")),
+			)
 			assert.deepEqual(await fs.readdir(path.join(root, "tools")), [])
 		})
 	})
@@ -343,7 +350,8 @@ describe("managed tool installations", () => {
 			await assert.rejects(
 				installTool("vls", revision, root, "/old/v", {
 					run: async (command, args, options) => {
-						if (command === "/old/v") throw new Error("VLS build failed")
+						if (command === "/old/v" && args.includes("-o"))
+							throw new Error("VLS build failed")
 						return build(command, args, options)
 					},
 				}),
@@ -455,6 +463,8 @@ describe("managed tool installations", () => {
 				if (available.length === 0) {
 					await assert.rejects(installing, /MSYS2.*mingw32-make.*sh.*PATH/)
 					assert.ok(!calls.some((call) => call.args[0] === "v1"))
+					// Missing prerequisites are reported before the long build starts.
+					assert.ok(!calls.some((call) => call.command === "cmd.exe"))
 					assert.deepStrictEqual(await fs.readdir(path.join(root, "tools")), [])
 				} else {
 					const installed = await installing
@@ -543,6 +553,100 @@ describe("managed tool installations", () => {
 			)
 			await new Promise((resolve) => setTimeout(resolve, 500))
 			await assert.rejects(fs.stat(marker), { code: "ENOENT" })
+		})
+	})
+
+	it("rejects a compiler without -new-compiler before downloading VLS", async () => {
+		await withTemporaryRoot(async (root) => {
+			const calls: ProcessCall[] = []
+			const build = fakeBuild("vls", calls)
+			await assert.rejects(
+				installTool("vls", revision, root, "/release/v", {
+					run: async (command, args, options) => {
+						if (args.includes("-new-compiler") && args.includes("version")) {
+							calls.push({ command, args, options })
+							throw new Error("Unknown argument `-new-compiler`")
+						}
+						return build(command, args, options)
+					},
+				}),
+				/supports -new-compiler.*\/release\/v.*updateChannel/,
+			)
+			assert.deepStrictEqual(
+				calls.map((call) => call.args),
+				[["-new-compiler", "version"]],
+			)
+			assert.deepStrictEqual(await fs.readdir(path.join(root, "tools")), [])
+		})
+	})
+
+	it("removes a replaced installation only inside managed storage", async () => {
+		await withTemporaryRoot(async (root) => {
+			const tools = path.join(root, "tools")
+			const replaced = path.join(tools, "v-aaaaaa")
+			await fs.mkdir(path.join(replaced, "vlib"), { recursive: true })
+			await fs.writeFile(path.join(replaced, "v"), "compiler")
+			const outside = path.join(root, "v-bbbbbb")
+			await fs.mkdir(outside)
+			assert.strictEqual(await removeManagedInstallation(root, replaced), true)
+			assert.strictEqual(await removeManagedInstallation(root, outside), true)
+			assert.strictEqual(await removeManagedInstallation(root, replaced), true)
+			assert.deepStrictEqual(await fs.readdir(tools), [])
+			assert.ok((await fs.stat(outside)).isDirectory())
+		})
+	})
+
+	it("keeps a replaced installation it cannot move, for a later retry", async (t) => {
+		if (process.platform === "win32" || process.getuid?.() === 0)
+			return t.skip("needs POSIX permissions that apply to this user")
+		await withTemporaryRoot(async (root) => {
+			const tools = path.join(root, "tools")
+			const replaced = path.join(tools, "vls-aaaaaa")
+			await fs.mkdir(replaced, { recursive: true })
+			await fs.writeFile(path.join(replaced, "vls"), "server")
+			// Like a running executable on Windows, the directory cannot be renamed.
+			await fs.chmod(tools, 0o555)
+			try {
+				assert.strictEqual(await removeManagedInstallation(root, replaced), false)
+				assert.strictEqual(await fs.readFile(path.join(replaced, "vls"), "utf8"), "server")
+			} finally {
+				await fs.chmod(tools, 0o755)
+			}
+			assert.strictEqual(await removeManagedInstallation(root, replaced), true)
+		})
+	})
+
+	it("removes only interrupted builds and leftovers of removals", async () => {
+		await withTemporaryRoot(async (root) => {
+			const tools = path.join(root, "tools")
+			const now = Date.now()
+			const create = async (name: string, ageMs: number, finished: boolean) => {
+				const directory = path.join(tools, name)
+				await fs.mkdir(directory, { recursive: true })
+				if (finished)
+					await fs.writeFile(
+						path.join(directory, ".vscode-vlang-installation.json"),
+						"{}",
+					)
+				const time = new Date(now - ageMs)
+				await fs.utimes(directory, time, time)
+				return directory
+			}
+			const hour = 60 * 60 * 1000
+			const finished = await create("v-aaaaaa", 30 * 24 * hour, true)
+			const building = await create("vls-bbbbbb", 2 * hour, false)
+			const interrupted = await create("vls-cccccc", 25 * hour, false)
+			const unrelated = await create("vls-unrelated", 30 * 24 * hour, false)
+			await create(".removing-v-dddddd", 0, false)
+			assert.deepStrictEqual(await removeInterruptedInstallations(root, now), [interrupted])
+			assert.deepStrictEqual(
+				(await fs.readdir(tools)).sort(),
+				[finished, building, unrelated].map((d) => path.basename(d)).sort(),
+			)
+			assert.deepStrictEqual(
+				await removeInterruptedInstallations(path.join(root, "missing")),
+				[],
+			)
 		})
 	})
 })

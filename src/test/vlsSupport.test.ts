@@ -5,7 +5,11 @@ import * as os from "node:os"
 import * as path from "node:path"
 import { describe, it } from "node:test"
 import { MIN_VLS_REVISION, VLS_SUPPORT_BASELINE } from "../toolVersions"
-import { requireSupportedVls, UnsupportedVlsError } from "../vlsSupport"
+import {
+	requireSupportedVls,
+	UnsupportedVlsError,
+	VlsVerificationUnavailableError,
+} from "../vlsSupport"
 
 async function withInstallation(
 	run: (root: string, executable: string, manifest: Record<string, unknown>) => Promise<void>,
@@ -150,7 +154,7 @@ describe("supported VLS installations", () => {
 	it("requires proof of source ancestry for a different reported commit", async () => {
 		const revision = "a".repeat(40)
 		for (const supported of [true, false]) {
-			const pending = requireSupportedVls("/external/vls", "/managed/storage", {
+			const pending = requireSupportedVls(`/external/vls-${supported}`, "/managed/storage", {
 				readIdentity: async () => ({ revision }),
 				fetcher: async (url) => {
 					assert.equal(
@@ -169,6 +173,22 @@ describe("supported VLS installations", () => {
 			if (supported) assert.deepEqual(await pending, { revision })
 			else await assert.rejects(pending, UnsupportedVlsError)
 		}
+	})
+
+	it("reports an unavailable ancestry check instead of an unsupported server", async () => {
+		const revision = "c".repeat(40)
+		const pending = requireSupportedVls("/offline/vls", "/managed/storage", {
+			readIdentity: async () => ({ revision }),
+			fetcher: async () => {
+				throw new TypeError("fetch failed")
+			},
+		})
+		await assert.rejects(pending, (error: unknown) => {
+			assert.ok(error instanceof VlsVerificationUnavailableError)
+			assert.ok(!(error instanceof UnsupportedVlsError))
+			assert.match(error.message, /Could not verify that VLS ccccccc.*fetch failed/)
+			return true
+		})
 	})
 
 	it("does not prompt to update a supported external replacement merely because its managed hash changed", async () => {

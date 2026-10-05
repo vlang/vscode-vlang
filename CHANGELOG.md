@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Offer to install missing V and VLS tools and check for upstream updates daily.
-- Build accepted installations in private, versioned directories, verify them
-  before switching settings, and preserve existing installations on failure.
+- Build accepted installations in private, versioned directories and verify them
+  before selecting them. The selection stays out of synced settings, failed builds
+  keep the previous one, and an update deletes the build it replaces; other
+  windows still using it ask to reload.
 - Add working install/update commands with progress, cancellation, and revision
   checks.
 - Build managed V with the installed V when there is one, as `v up` does, and fall
@@ -24,7 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Find MSYS2's `mingw32-make` as well as `make` and `gmake` when preparing VLS
-  compiler compatibility on Windows, and explain missing build prerequisites.
+  compiler compatibility on Windows, and explain missing build prerequisites
+  before building V.
+- Check that V accepts `-new-compiler` before downloading and building VLS.
+- Explain when a manual tool request waits for an unanswered prompt or a running
+  installation.
+- Retry update checks that could not reach GitHub, remember declined missing-tool
+  prompts, and keep tool check state bounded.
+- Report an unreachable VLS ancestry check as unavailable instead of unsupported.
+- Let `V: Install or Update VLS` update a VLS that reports only its version when
+  upstream declares a newer one.
+- Show a single startup notification for an unsupported VLS, and say when it is
+  older than 0.0.3 or does not report its version.
 - Recreate VLS on restart and configuration changes, recover after missing binaries,
   and restore feature settings after server restarts.
 - Recover from failed VLS transports using a fresh client, with a bounded retry limit.

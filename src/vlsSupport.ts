@@ -19,6 +19,16 @@ export class UnsupportedVlsError extends Error {
 	}
 }
 
+/** Support could not be established either way, typically because GitHub is unreachable. */
+export class VlsVerificationUnavailableError extends Error {
+	constructor(revision: string, cause: unknown) {
+		super(
+			`Could not verify that VLS ${revision.slice(0, 7)} includes ${MIN_VLS_REVISION.slice(0, 7)}: ${cause instanceof Error ? cause.message : String(cause)} Run V: Restart VLS when GitHub is reachable, or use V: Install or Update VLS.`,
+			{ cause },
+		)
+	}
+}
+
 export interface VlsSupportOptions extends VlsVersionOptions {
 	signal?: AbortSignal
 	fetcher?: GitHubFetch
@@ -47,9 +57,14 @@ export async function requireSupportedVls(
 	if (identity && isSupportedVlsVersion(identity.version)) return identity
 	// Unstamped managed metadata still proves which intact binary was built.
 	const revision = installation?.revision ?? identity?.revision
-	if (await isSupportedVlsRevision(executable, revision, signal, fetcher)) {
-		return { ...identity, revision }
+	let supported: boolean
+	try {
+		supported = await isSupportedVlsRevision(executable, revision, signal, fetcher)
+	} catch (error) {
+		signal?.throwIfAborted()
+		throw new VlsVerificationUnavailableError(revision!, error)
 	}
+	if (supported) return { ...identity, revision }
 	signal?.throwIfAborted()
 	throw new UnsupportedVlsError()
 }

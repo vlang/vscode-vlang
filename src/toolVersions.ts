@@ -19,7 +19,7 @@ export interface VlsIdentity {
 export type GitHubFetch = (
 	url: string,
 	options: RequestInit,
-) => Promise<Pick<Response, "ok" | "status" | "json">>
+) => Promise<Pick<Response, "ok" | "status" | "json" | "text">>
 
 const executeFile = promisify(execFile)
 const abbreviatedRevision = /^[a-f0-9]{7,40}$/i
@@ -219,21 +219,67 @@ async function expandGitRevision(
 const semanticVersion =
 	/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?(?:\+([\da-z-]+(?:\.[\da-z-]+)*))?$/i
 
+function parseVersion(version: string): { core: number[]; prerelease?: string[] } | undefined {
+	const match = semanticVersion.exec(version)
+	if (!match) return undefined
+	const core = match.slice(1, 4).map(Number)
+	if (!core.every(Number.isSafeInteger)) return undefined
+	const prerelease = match[4]?.split(".")
+	if (prerelease?.some((part) => /^0\d+$/.test(part))) return undefined
+	return { core, prerelease }
+}
+
+/** Semantic version precedence, or undefined when either version is invalid. */
+export function compareVersions(first: string, second: string): number | undefined {
+	const a = parseVersion(first)
+	const b = parseVersion(second)
+	if (!a || !b) return undefined
+	for (let index = 0; index < 3; index++) {
+		const difference = a.core[index]! - b.core[index]!
+		if (difference !== 0) return Math.sign(difference)
+	}
+	if (!a.prerelease || !b.prerelease) return a.prerelease ? -1 : b.prerelease ? 1 : 0
+	for (let index = 0; ; index++) {
+		const left = a.prerelease[index]
+		const right = b.prerelease[index]
+		if (left === undefined) return right === undefined ? 0 : -1
+		if (right === undefined) return 1
+		if (left === right) continue
+		const leftNumber = /^\d+$/.test(left)
+		const rightNumber = /^\d+$/.test(right)
+		if (leftNumber && rightNumber) return Math.sign(Number(left) - Number(right))
+		if (leftNumber !== rightNumber) return leftNumber ? -1 : 1
+		return left < right ? -1 : 1
+	}
+}
+
 /** Compare semantic versions numerically; a prerelease of the minimum is older. */
 export function isSupportedVlsVersion(version: string | undefined): boolean {
-	if (!version) return false
-	const match = semanticVersion.exec(version)
-	if (!match) return false
-	const numbers = match.slice(1, 4).map(Number)
-	if (!numbers.every(Number.isSafeInteger)) return false
-	const prerelease = match[4]
-	if (prerelease?.split(".").some((part) => /^0\d+$/.test(part))) return false
-	const minimum = MIN_VLS_VERSION.split(".").map(Number)
-	for (let index = 0; index < numbers.length; index++) {
-		if (numbers[index]! > minimum[index]!) return true
-		if (numbers[index]! < minimum[index]!) return false
-	}
-	return !prerelease
+	return version !== undefined && (compareVersions(version, MIN_VLS_VERSION) ?? -1) >= 0
+}
+
+// VLS has no release metadata. Its source declares the version that `vls --version`
+// and `initialize` report.
+const declaredVlsVersion = /^const\s+vls_version\s*=\s*'([^'\n]+)'/m
+
+/** The version upstream VLS reports at a revision, if its source still declares one. */
+export async function getUpstreamVlsVersion(
+	revision: string,
+	signal?: AbortSignal,
+	fetcher: GitHubFetch = fetch,
+): Promise<string | undefined> {
+	if (!fullRevision.test(revision)) return undefined
+	const timeout = AbortSignal.timeout(10_000)
+	const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout
+	requestSignal.throwIfAborted()
+	const response = await fetcher(
+		`https://raw.githubusercontent.com/vlang/vls/${revision.toLowerCase()}/main.v`,
+		{ headers: { "User-Agent": "vscode-vlang" }, signal: requestSignal },
+	)
+	if (response.status === 404) return undefined
+	if (!response.ok) throw new GitHubHttpError(response.status, "vls")
+	const version = declaredVlsVersion.exec(await response.text())?.[1]
+	return version !== undefined && compareVersions(version, version) === 0 ? version : undefined
 }
 
 /** Only explicitly labelled VLS output can identify the server executable. */
@@ -342,7 +388,10 @@ export async function readVlsIdentity(
 	return full ? { ...identity, revision: full } : identity
 }
 
-/** A reported source revision is supported only if it includes the minimum commit. */
+/**
+ * A reported source revision is supported only if it includes the minimum commit.
+ * Throws when neither local Git history nor GitHub can answer.
+ */
 export async function isSupportedVlsRevision(
 	executable: string,
 	revision: string | undefined,
@@ -373,12 +422,8 @@ export async function isSupportedVlsRevision(
 	} catch {
 		if (signal?.aborted) return false
 	}
-	try {
-		// compare minimum...candidate reports "outdated" only for a strict descendant.
-		return (
-			(await getUpdateStatus("vls", MIN_VLS_REVISION, full, signal, fetcher)) === "outdated"
-		)
-	} catch {
-		return false
-	}
+	if (signal?.aborted) return false
+	// compare minimum...candidate reports "outdated" only for a strict descendant.
+	// An unavailable comparison (offline, rate limited) throws: it proves nothing.
+	return (await getUpdateStatus("vls", MIN_VLS_REVISION, full, signal, fetcher)) === "outdated"
 }

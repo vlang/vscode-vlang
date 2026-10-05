@@ -108,7 +108,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "",
-					"description": "VLS executable, including external installations. Requires VLS 0.0.3 or newer, or a reported source commit containing 4f668aa. Supports ~, ${env:NAME}, and ${workspaceFolder}."
+					"description": "VLS executable, including external installations. Empty uses the VLS this extension installed on this machine, then `vls` in PATH. Requires VLS 0.0.3 or newer, or a reported source commit containing 4f668aa. Supports ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.args": {
 					"scope": "resource",
@@ -123,7 +123,7 @@
 					"scope": "resource",
 					"type": "string",
 					"default": "v",
-					"description": "V compiler for tasks and formatting; VLS uses the active or first workspace folder at startup. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
+					"description": "V compiler for tasks and formatting; VLS uses the active or first workspace folder at startup. The default `v` uses the V this extension installed on this machine, then PATH. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
 				},
 				"v.vls.enable": {
 					"type": "boolean",
@@ -150,7 +150,7 @@
 					"type": "boolean",
 					"default": true,
 					"scope": "application",
-					"description": "Check official V and VLS upstream revisions at most once a day and offer updates. Missing tools still prompt for installation. No installation or update runs without confirmation."
+					"description": "Check official V and VLS upstream revisions at most once a day and offer updates. Missing tools prompt for installation once per configuration. No installation or update runs without confirmation."
 				},
 				"v.tools.updateChannel": {
 					"type": "string",

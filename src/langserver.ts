@@ -7,9 +7,11 @@ import {
 	State,
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
+import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
+import type { ToolName } from "./toolInstallation"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
 
 const serverSettings = [
@@ -55,6 +57,10 @@ export class VlsManager implements vscode.Disposable {
 	private disposed = false
 	private readonly abort = new AbortController()
 	private updatingConfiguration = false
+	private unsupported = false
+	/** Managed builds the running server uses; another window may replace them. */
+	private runningManaged: { tool: ToolName; executable: string }[] = []
+	private notifiedReplacement = false
 	private recoveryTimer: ReturnType<typeof setTimeout> | undefined
 	private crashTimes: number[] = []
 	private readonly status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 9)
@@ -70,6 +76,9 @@ export class VlsManager implements vscode.Disposable {
 			this.status,
 			vscode.commands.registerCommand("v.vls.restart", () => this.restart()),
 			vscode.commands.registerCommand("v.vls.openOutput", () => vlsOutputChannel.show()),
+			vscode.window.onDidChangeWindowState((state) => {
+				if (state.focused) this.checkReplacedTools()
+			}),
 			vscode.workspace.onDidChangeConfiguration((event) => {
 				if (
 					!this.updatingConfiguration &&
@@ -79,6 +88,21 @@ export class VlsManager implements vscode.Disposable {
 				}
 			}),
 		]
+	}
+
+	/** Whether the latest start rejected the configured VLS as unsupported. */
+	async rejectedUnsupported(): Promise<boolean> {
+		// A server that never answers `initialize` must not hold back other checks.
+		let timer: ReturnType<typeof setTimeout> | undefined
+		const timeout = new Promise<void>((resolve) => {
+			timer = setTimeout(resolve, 30_000)
+		})
+		try {
+			await Promise.race([this.pending, timeout])
+		} finally {
+			clearTimeout(timer)
+		}
+		return this.unsupported
 	}
 
 	restart(): Promise<void> {
@@ -112,6 +136,7 @@ export class VlsManager implements vscode.Disposable {
 			try {
 				await this.stopClient()
 				if (this.disposed) return
+				this.unsupported = false
 				if (!vscode.workspace.getConfiguration("v.vls").get<boolean>("enable", true)) {
 					this.setStatus("Disabled")
 					return
@@ -134,6 +159,7 @@ export class VlsManager implements vscode.Disposable {
 				this.setStatus("Error", message)
 				vlsOutputChannel.error(message)
 				if (error instanceof UnsupportedVlsError) {
+					this.unsupported = true
 					this.status.command = "v.vls.update"
 					void vscode.window
 						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
@@ -169,7 +195,7 @@ export class VlsManager implements vscode.Disposable {
 				: undefined) ?? vscode.workspace.workspaceFolders?.[0]
 		const setting =
 			migratedSetting("v.vls", "command", "vls", "command", "", folder?.uri).trim() || "vls"
-		const command = resolvedCommand(setting, folder?.uri.fsPath)
+		const command = resolvedCommand(effectiveToolSetting("vls", setting), folder?.uri.fsPath)
 		if (!command) {
 			this.setStatus(
 				"Not installed",
@@ -181,7 +207,17 @@ export class VlsManager implements vscode.Disposable {
 		const args = migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder?.uri)
 		await requireSupportedVls(command, this.storageRoot, { args, signal: this.abort.signal })
 		if (this.disposed) return
-		const env = { ...process.env, VLS_V_COMMAND: vCommandForServer(folder) }
+		const vCommand = vCommandForServer(folder)
+		const env = { ...process.env, VLS_V_COMMAND: vCommand }
+		this.runningManaged = (
+			[
+				["vls", command],
+				["v", vCommand],
+			] as const
+		).flatMap(([tool, executable]) =>
+			executable && managedToolExecutable(tool) === executable ? [{ tool, executable }] : [],
+		)
+		this.notifiedReplacement = false
 		const options: LanguageClientOptions = {
 			documentSelector: [{ scheme: "file", language: "v" }],
 			outputChannel: vlsOutputChannel,
@@ -270,6 +306,29 @@ export class VlsManager implements vscode.Disposable {
 		} catch (error) {
 			vlsOutputChannel.warn(`VLS shutdown: ${String(error)}`)
 		}
+		this.runningManaged = []
+	}
+
+	/**
+	 * Updating V or VLS in another window replaces the build this server was started
+	 * with, and deletes the old one. The server keeps it until this window reloads.
+	 */
+	private checkReplacedTools(): void {
+		if (this.disposed || this.notifiedReplacement || !this.client) return
+		const replaced = this.runningManaged.filter(
+			({ tool, executable }) => managedToolExecutable(tool) !== executable,
+		)
+		if (replaced.length === 0) return
+		this.notifiedReplacement = true
+		const names = replaced.map(({ tool }) => tool.toUpperCase()).join(" and ")
+		void vscode.window
+			.showInformationMessage(
+				`${names} ${replaced.length > 1 ? "were" : "was"} updated. Reload the window to apply the changes.`,
+				"Reload Window",
+			)
+			.then((action) => {
+				if (action) void vscode.commands.executeCommand("workbench.action.reloadWindow")
+			})
 	}
 
 	private setStatus(state: string, detail?: string): void {

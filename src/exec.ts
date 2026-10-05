@@ -2,6 +2,7 @@ import { execFile } from "child_process"
 import * as path from "path"
 import { promisify } from "util"
 import { Uri, window, workspace } from "vscode"
+import { effectiveToolSetting } from "./managedTools"
 import { processLaunchCommand } from "./processExecution"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
@@ -22,7 +23,7 @@ export async function executeV(
 	const uri = resource ?? window.activeTextEditor?.document.uri
 	const folder = uri ? workspace.getWorkspaceFolder(uri) : workspace.workspaceFolders?.[0]
 	const setting = migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri)
-	const command = resolvedCommand(setting, folder?.uri.fsPath)
+	const command = resolvedCommand(effectiveToolSetting("v", setting), folder?.uri.fsPath)
 	if (!command) throw new Error(`V compiler not found: ${setting}. Set v.executablePath.`)
 	const launch = processLaunchCommand(command, args)
 	const execution = executeFile(launch.command, launch.args, {

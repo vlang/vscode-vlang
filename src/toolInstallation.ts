@@ -1,6 +1,6 @@
 import { spawn } from "child_process"
 import { createHash } from "crypto"
-import { createReadStream, promises as fs } from "fs"
+import { createReadStream, type Dirent, promises as fs } from "fs"
 import * as path from "path"
 import { processLaunchCommand, processTreeKillCommand } from "./processExecution"
 import { findInPath } from "./vCommand"
@@ -322,6 +322,25 @@ export async function installTool(
 				"protocol.ext.allow=never",
 				...args,
 			])
+		if (tool === "vls") {
+			// `v help` does not list -new-compiler. Releases up to 0.5.2 reject it while
+			// parsing arguments, before running `version`, so this fails fast for them.
+			options.onProgress?.("Checking the V compiler…")
+			let supportsNewCompiler = false
+			try {
+				const probe = await execute(compiler!, ["-new-compiler", "version"], {
+					timeoutMs: 15_000,
+				})
+				supportsNewCompiler = /^V \d+\.\d+/m.test(probe.stdout)
+			} catch {
+				checkCancelled(options.signal)
+			}
+			if (!supportsNewCompiler) {
+				throw new Error(
+					`VLS must be built with a V compiler that supports -new-compiler (current V master), but ${compiler} does not. If v.tools.updateChannel is "release", set it to "master" and run V: Install or Update V.`,
+				)
+			}
+		}
 		options.onProgress?.(`Downloading ${tool === "v" ? "V" : "VLS"} source…`)
 		await git(["init", "--template=", "."])
 		await git(["fetch", "--depth=1", `https://github.com/vlang/${tool}.git`, revision])
@@ -358,6 +377,23 @@ export async function installTool(
 			const make = ["freebsd", "openbsd", "netbsd", "sunos"].includes(platform)
 				? "gmake"
 				: "make"
+			// Current VLS asks V3 first and keeps V1 for unanswered queries, such
+			// as incomplete source. Retain that fallback's private runtime/cache.
+			// Resolve its prerequisites now, before the long build.
+			const compatibilityInstaller = path.join(
+				directory,
+				"cmd",
+				"tools",
+				"install_v1_fallback.sh",
+			)
+			const compatibilityMake = (await fs.stat(compatibilityInstaller).then(
+				(stat) => stat.isFile(),
+				() => false,
+			))
+				? platform === "win32"
+					? windowsMakeCommand(options.findExecutable ?? findInPath)
+					: make
+				: undefined
 			// An installed V builds the new one much faster than bootstrapping from
 			// vc/v.c with the system C compiler, as `v up` does. The result finds its
 			// vlib and tcc next to itself, so it is fetched alongside.
@@ -388,27 +424,10 @@ export async function installTool(
 			} else {
 				await execute(make, [], { timeoutMs: 15 * 60 * 1000 })
 			}
-			// Current VLS asks V3 first and keeps V1 for unanswered queries, such
-			// as incomplete source. Retain that fallback's private runtime/cache.
-			const compatibilityInstaller = path.join(
-				directory,
-				"cmd",
-				"tools",
-				"install_v1_fallback.sh",
-			)
-			if (
-				await fs.stat(compatibilityInstaller).then(
-					(stat) => stat.isFile(),
-					() => false,
-				)
-			) {
+			if (compatibilityMake) {
 				options.onProgress?.(
 					"Preparing V language server compatibility (requires GNU make and a shell)…",
 				)
-				const compatibilityMake =
-					platform === "win32"
-						? windowsMakeCommand(options.findExecutable ?? findInPath)
-						: make
 				await execute(compatibilityMake, ["v1"], { timeoutMs: 15 * 60 * 1000 })
 			}
 		} else {
@@ -548,4 +567,79 @@ export async function readManagedToolInstallation(
 	} catch {
 		return undefined
 	}
+}
+
+// mkdtemp appends six alphanumeric characters to the tool prefix.
+const installationDirectoryName = /^(?:v|vls)-[A-Za-z\d]{6}$/
+const removalPrefix = ".removing-"
+// Builds touch their directory within each bounded step, so older ones were interrupted.
+const interruptedInstallationAge = 24 * 60 * 60 * 1000
+
+function managedInstallationDirectory(storageRoot: string, directory: string): boolean {
+	const resolved = path.resolve(directory)
+	return (
+		path.dirname(resolved) === path.join(path.resolve(storageRoot), "tools") &&
+		installationDirectoryName.test(path.basename(resolved))
+	)
+}
+
+/**
+ * Delete a managed installation that is no longer selected. Returns false when it
+ * is still in use: Windows refuses to rename a directory whose executable is
+ * running, so the installation is never deleted partially and can be retried.
+ */
+export async function removeManagedInstallation(
+	storageRoot: string,
+	directory: string,
+): Promise<boolean> {
+	if (!managedInstallationDirectory(storageRoot, directory)) return true
+	const resolved = path.resolve(directory)
+	const removal = path.join(path.dirname(resolved), removalPrefix + path.basename(resolved))
+	try {
+		if ((await fs.lstat(resolved)).isSymbolicLink()) return true
+		await fs.rename(resolved, removal)
+	} catch (error) {
+		return (error as NodeJS.ErrnoException).code === "ENOENT"
+	}
+	await fs.rm(removal, { recursive: true, force: true }).catch(() => undefined)
+	return true
+}
+
+/** Delete builds interrupted before they finished, and leftovers of removals. */
+export async function removeInterruptedInstallations(
+	storageRoot: string,
+	now = Date.now(),
+): Promise<string[]> {
+	const toolsDirectory = path.join(path.resolve(storageRoot), "tools")
+	let entries: Dirent[]
+	try {
+		if ((await fs.lstat(toolsDirectory)).isSymbolicLink()) return []
+		entries = await fs.readdir(toolsDirectory, { withFileTypes: true })
+	} catch {
+		return []
+	}
+	const removed: string[] = []
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue
+		const directory = path.join(toolsDirectory, entry.name)
+		if (entry.name.startsWith(removalPrefix)) {
+			await fs.rm(directory, { recursive: true, force: true }).catch(() => undefined)
+			continue
+		}
+		if (!installationDirectoryName.test(entry.name)) continue
+		try {
+			if (
+				(await fs.lstat(path.join(directory, manifestName)).then(
+					() => true,
+					() => false,
+				)) ||
+				now - (await fs.stat(directory)).mtimeMs < interruptedInstallationAge
+			)
+				continue
+		} catch {
+			continue
+		}
+		if (await removeManagedInstallation(storageRoot, directory)) removed.push(directory)
+	}
+	return removed
 }

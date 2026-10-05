@@ -41,23 +41,38 @@ they require Git, GNU make, a shell and a C compiler. On Windows, GNU make
 Git Bash or MSYS2's shell) must be on the extension host's PATH. Recent V versions
 also build the compatibility compiler that VLS retains as a fallback. VLS uses
 V3 first for compiler queries and requires V3 semantic validation for rename.
-Use a recent V master compiler for those semantic features. The extension does
-not enforce a V compiler revision or run compiler compatibility queries.
+Use a recent V master compiler for those semantic features. Before building
+VLS, the extension checks that V accepts `-new-compiler`; releases up to 0.5.2
+do not, so it stops with an explanation instead of failing during the build.
 If V is missing, a second prompt offers to install it first.
 Each build uses a new directory in the extension's global storage. After verifying
-the executable, the extension selects it in settings and restarts VLS. Existing
-installations are preserved; failed or cancelled builds do not replace their paths.
+the executable, the extension selects it for this machine and restarts VLS. The
+selection is kept in the extension's state, not in settings, so Settings Sync never
+shares machine-specific paths. Managed tools are used while `v.executablePath` is
+`v` and `v.vls.command` is empty, their defaults; accepting an installation while
+either names another executable resets it to the default. Set an explicit path to
+use a different executable. Accepting an update deletes the managed build it
+replaces. If that build is still running elsewhere (Windows cannot delete a
+running executable), it is deleted on the next activation or installation. Other
+open windows keep using the replaced build in VLS and ask you to reload them.
+Builds interrupted more than a day ago are removed.
+Failed or cancelled builds do not change the selection.
 These managed tools are available to this extension, not added to your shell PATH.
 
 V and VLS in PATH and custom executable paths remain supported. The extension
 reads external VLS identity with `vls --version`; VLS 0.0.3 and
-newer can start without installation metadata. A reported source commit can
-also establish support through the minimum revision's Git ancestry.
+newer can start without installation metadata. Such a server cannot be compared
+with upstream by commit, so update checks leave it alone; `V: Install or Update
+VLS` offers the upstream build only when upstream declares a newer VLS version.
+A reported source commit can also establish support through the minimum
+revision's Git ancestry.
 Managed builds verify source ancestry and record their executable hash. If a
 binary changes, the extension discards stale metadata and validates its reported
-identity. Unavailable update checks are logged and do not prevent a
-supported installation from running. Formatting and tasks remain available
-without a supported VLS.
+identity. Unavailable update checks are logged, retried on the next activation,
+and do not prevent a supported installation from running. When only GitHub can
+confirm a reported VLS commit and it cannot be reached, VLS reports that the check
+is unavailable rather than calling the server unsupported. Formatting and tasks
+remain available without a supported VLS.
 
 The status bar shows whether VLS is starting, active, stopped, disabled, missing,
 or in error. Click it to open the server log or install a missing server.
@@ -81,7 +96,8 @@ The available VLS settings are:
 - `v.executablePath`: V compiler used by VLS and tasks; supports absolute
   paths, `~`, `${env:NAME}`, and `${workspaceFolder}`
 - `v.tools.checkForUpdates`: enable automatic update checks (default: true).
-  Missing tools still prompt for installation; manual checks remain available.
+  A missing tool prompts for installation once per configuration; manual checks
+  always prompt.
 - `v.tools.updateChannel`: track the latest V `master` commit (default) or the
   latest published V `release`. VLS always tracks master. Use a recent V master
   compiler for current VLS semantic features.

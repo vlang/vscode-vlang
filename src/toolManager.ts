@@ -1,23 +1,45 @@
 import * as vscode from "vscode"
 import { createHash } from "crypto"
+import * as path from "path"
 import { outputChannel } from "./logger"
+import {
+	automaticCommand,
+	effectiveToolSetting,
+	initializeManagedTools,
+	isAutomaticCommand,
+	managedToolKey,
+} from "./managedTools"
 import { migratedSetting } from "./settings"
-import { installTool, readManagedToolInstallation, ToolName } from "./toolInstallation"
+import {
+	installTool,
+	removeInterruptedInstallations,
+	removeManagedInstallation,
+	readManagedToolInstallation,
+	ToolName,
+} from "./toolInstallation"
 import { InstalledTool, ToolOffer, ToolProvisioner } from "./toolProvisioning"
 import {
 	getLatestRelease,
 	getLatestRevision,
+	getUpstreamVlsVersion,
 	getUpdateStatus,
 	isSupportedVlsRevision,
 	isSupportedVlsVersion,
 	MIN_VLS_REVISION,
+	MIN_VLS_VERSION,
 	readVlsIdentity,
 	readVRevision,
 	VLS_SUPPORT_BASELINE,
+	type VlsIdentity,
 } from "./toolVersions"
 import { resolvedCommand } from "./vCommand"
 
 const day = 24 * 60 * 60 * 1000
+const lastChecksKey = "tools.lastUpdateChecks"
+const dismissalsKey = "tools.dismissedOffers"
+// Replaced managed installations not yet deleted.
+const retiredKey = "tools.retired"
+const retainedDismissals = 50
 
 /** VLS publishes no regular releases, so only V can follow its release tags. */
 function followsRelease(tool: ToolName): boolean {
@@ -93,16 +115,26 @@ export class ToolManager implements vscode.Disposable {
 	private resource: vscode.Uri | undefined
 	private manualCheck = false
 	private userChoseInstall = false
+	/** What a pending check waits for, so a manual request can explain its delay. */
+	private waiting: "prompt" | "install" | undefined
+	private cleaning: Promise<void> = Promise.resolve()
 	private readonly revisions = new Map<ToolName, Promise<string>>()
 	private readonly releaseTags = new Map<ToolName, string>()
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly configure: (update: () => Promise<void>) => Promise<void>,
+		/** Whether the language server already reported the configured VLS as unsupported. */
+		private readonly vlsRejected: () => Promise<boolean> = () => Promise.resolve(false),
 	) {
+		initializeManagedTools(context.globalState)
 		this.provisioner = new ToolProvisioner({
 			inspect: (tool) => this.inspect(tool),
 			latest: (tool) => this.latest(tool),
+			latestVersion: (tool, revision) =>
+				tool === "vls"
+					? getUpstreamVlsVersion(revision, this.abort.signal)
+					: Promise.resolve(undefined),
 			status: (tool, revision, latest) =>
 				getUpdateStatus(tool, revision, latest, this.abort.signal),
 			choose: (offer) => this.choose(offer),
@@ -117,6 +149,7 @@ export class ToolManager implements vscode.Disposable {
 				void this.check()
 			}),
 		]
+		void this.cleanUp()
 	}
 
 	check(manual = false, only?: ToolName): Promise<void> {
@@ -128,8 +161,16 @@ export class ToolManager implements vscode.Disposable {
 				)
 			return Promise.resolve()
 		}
-		if (this.pending)
-			return manual ? this.pending.then(() => this.check(manual, only)) : this.pending
+		if (this.pending) {
+			if (!manual) return this.pending
+			if (this.waiting)
+				void vscode.window.showInformationMessage(
+					this.waiting === "prompt"
+						? "Another V tools notification is waiting for your answer; it may be in the Notifications Center. This request runs after you respond to it."
+						: "A V tool installation is in progress. This request runs when it finishes.",
+				)
+			return this.pending.then(() => this.check(manual, only))
+		}
 		this.manualCheck = manual
 		this.resource =
 			(vscode.window.activeTextEditor
@@ -155,28 +196,32 @@ export class ToolManager implements vscode.Disposable {
 			if (this.abort.signal.aborted) return
 			this.userChoseInstall = false
 			const configuration = configurationFor(tool, this.resource)
-			const identity = createHash("sha256")
+			const identity = `${tool}.${createHash("sha256")
 				.update(JSON.stringify(configuration))
 				.update(followsRelease(tool) ? "release" : "master")
-				.update(resolvedCommand(configuration.command, this.resource?.fsPath) ?? "missing")
-				.digest("hex")
-			const key = `tools.lastUpdateCheck.${tool}.${identity}`
+				.update(this.executableFor(tool, configuration) ?? "missing")
+				.digest("hex")}`
 			const checkUpdates =
 				manual ||
 				(vscode.workspace
 					.getConfiguration("v.tools")
 					.get<boolean>("checkForUpdates", true) &&
-					Date.now() - this.context.globalState.get<number>(key, 0) >= day)
+					Date.now() - (this.lastChecks()[identity] ?? 0) >= day)
+			// An unavailable check (offline, rate limited) is retried on the next activation.
+			let completed = false
 			try {
 				// Missing-tool prompts are independent of update checks and network availability.
-				const result = await this.provisioner.check(tool, checkUpdates)
+				const result = await this.provisioner.check(tool, checkUpdates, manual)
+				completed = true
 				results.push(`${tool.toUpperCase()}: ${result}`)
 			} catch (error) {
 				if (
 					this.abort.signal.aborted ||
 					(error instanceof Error && error.name === "AbortError")
-				)
+				) {
+					completed = true
 					continue
+				}
 				outputChannel.error(`${tool.toUpperCase()}: ${String(error)}`)
 				if (manual || this.userChoseInstall)
 					void vscode.window
@@ -188,7 +233,7 @@ export class ToolManager implements vscode.Disposable {
 							if (action) outputChannel.show()
 						})
 			} finally {
-				if (checkUpdates) await this.context.globalState.update(key, Date.now())
+				if (checkUpdates && completed) await this.recordCheck(identity)
 			}
 		}
 		if (
@@ -204,6 +249,11 @@ export class ToolManager implements vscode.Disposable {
 					: `${tools.map((tool) => tool.toUpperCase()).join(" and ")} are up to date with upstream.`,
 			)
 		}
+		if (manual && results.includes("VLS: latestVersion")) {
+			void vscode.window.showInformationMessage(
+				"The installed VLS reports the latest upstream version. It does not report its build commit, so newer commits with the same version cannot be detected.",
+			)
+		}
 		if (manual && results.some((result) => result === "VLS: supported")) {
 			void vscode.window.showInformationMessage(
 				"The installed VLS version is supported. Its build revision is unavailable for comparison with upstream.",
@@ -211,9 +261,41 @@ export class ToolManager implements vscode.Disposable {
 		}
 	}
 
+	private lastChecks(): Record<string, number> {
+		return this.context.globalState.get<Record<string, number>>(lastChecksKey, {})
+	}
+
+	/** Entries older than a day no longer suppress a check, so they are dropped. */
+	private async recordCheck(identity: string): Promise<void> {
+		const now = Date.now()
+		const checks = Object.fromEntries(
+			Object.entries(this.lastChecks()).filter(([, time]) => now - time < day),
+		)
+		checks[identity] = now
+		await this.context.globalState.update(lastChecksKey, checks)
+	}
+
+	private dismissals(): Record<string, number> {
+		return this.context.globalState.get<Record<string, number>>(dismissalsKey, {})
+	}
+
+	private async dismiss(identity: string): Promise<void> {
+		const entries = Object.entries({ ...this.dismissals(), [identity]: Date.now() })
+			.sort(([, first], [, second]) => second - first)
+			.slice(0, retainedDismissals)
+		await this.context.globalState.update(dismissalsKey, Object.fromEntries(entries))
+	}
+
+	private executableFor(tool: ToolName, configuration: ToolConfiguration): string | undefined {
+		return resolvedCommand(
+			effectiveToolSetting(tool, configuration.command),
+			this.resource?.fsPath,
+		)
+	}
+
 	private async inspect(tool: ToolName): Promise<InstalledTool> {
 		const configuration = configurationFor(tool, this.resource)
-		const executable = resolvedCommand(configuration.command, this.resource?.fsPath)
+		const executable = this.executableFor(tool, configuration)
 		const managed = executable
 			? await readManagedToolInstallation(
 					executable,
@@ -221,21 +303,24 @@ export class ToolManager implements vscode.Disposable {
 					this.context.globalStorageUri.fsPath,
 				)
 			: undefined
-		const supportedManagedRevision =
+		let vlsIdentity: VlsIdentity | undefined
+		const readIdentity = async (file: string): Promise<VlsIdentity | undefined> =>
+			(vlsIdentity ??= await readVlsIdentity(file, this.abort.signal, {
+				args: configuration.args,
+			}))
+		// The same order as server startup: stamped metadata, then the reported
+		// version, and the commit ancestry only when neither proves support.
+		let managedRevision: string | undefined
+		if (
 			managed &&
 			(tool !== "vls" ||
 				managed.vlsBaseline === VLS_SUPPORT_BASELINE ||
 				managed.revision === MIN_VLS_REVISION ||
-				(await isSupportedVlsRevision(
-					managed.executable,
-					managed.revision,
-					this.abort.signal,
-				)))
-		const managedRevision = supportedManagedRevision ? managed?.revision : undefined
-		const vlsIdentity =
-			tool === "vls" && executable && !managedRevision
-				? await readVlsIdentity(executable, this.abort.signal, { args: configuration.args })
-				: undefined
+				isSupportedVlsVersion((await readIdentity(managed.executable))?.version) ||
+				(await this.supportedVlsRevision(managed.executable, managed.revision)))
+		)
+			managedRevision = managed.revision
+		if (tool === "vls" && executable && !managedRevision) await readIdentity(executable)
 		const revision =
 			managedRevision ??
 			vlsIdentity?.revision ??
@@ -249,6 +334,17 @@ export class ToolManager implements vscode.Disposable {
 				? vlsIdentity?.version
 				: undefined,
 			configuration: JSON.stringify(configuration),
+		}
+	}
+
+	/** An unavailable ancestry check leaves the build unverified instead of failing. */
+	private async supportedVlsRevision(executable: string, revision: string): Promise<boolean> {
+		try {
+			return await isSupportedVlsRevision(executable, revision, this.abort.signal)
+		} catch (error) {
+			this.abort.signal.throwIfAborted()
+			outputChannel.warn(`VLS: ${String(error)}`)
+			return false
 		}
 	}
 
@@ -268,45 +364,71 @@ export class ToolManager implements vscode.Disposable {
 
 	private async choose(offer: ToolOffer): Promise<boolean> {
 		if (this.abort.signal.aborted) return false
-		const identity = `${offer.installed.configuration}:${offer.installed.executable ?? ""}:${offer.installed.revision ?? ""}`
-		const dismissalKey = `tools.dismissedUnknown.${offer.tool}.${createHash("sha256").update(identity).digest("hex")}`
+		const identity = `${offer.tool}.${offer.reason}.${createHash("sha256")
+			.update(
+				`${offer.installed.configuration}:${offer.installed.executable ?? ""}:${offer.installed.revision ?? ""}`,
+			)
+			.digest("hex")}`
+		// Updates are offered again daily; the other offers stay dismissed for this
+		// configuration until it changes or the user runs a command.
+		// A dependency of a tool the user just accepted is always asked for.
+		const dismissible = offer.reason !== "outdated" && !offer.dependency
+		if (dismissible && !this.manualCheck && this.dismissals()[identity] !== undefined)
+			return false
+		// The server's startup error already offers this installation; one notification
+		// is enough. Manual requests, and the button in that error, still prompt.
 		if (
-			offer.reason === "unknown" &&
 			!this.manualCheck &&
-			this.context.globalState.get<boolean>(dismissalKey, false)
+			offer.tool === "vls" &&
+			offer.reason !== "missing" &&
+			(await this.vlsRejected())
 		)
 			return false
+		if (this.abort.signal.aborted) return false
 		const name = offer.tool.toUpperCase()
 		const label = offer.reason === "outdated" ? "Update and Use" : "Install and Use"
 		const release = followsRelease(offer.tool)
 		const tag = this.releaseTags.get(offer.tool)
 		const reason =
 			offer.reason === "missing"
-				? `${name} was not found.`
+				? offer.dependency
+					? `${name} was not found, and VLS needs it to build.`
+					: `${name} was not found.`
 				: offer.reason === "outdated"
 					? release && tag
 						? `${name} ${tag} is available.`
-						: `A newer ${name} revision is available (${offer.latestRevision?.slice(0, 8)}).`
-					: `The installed ${name} revision cannot be verified.`
+						: offer.latestVersion
+							? `${name} ${offer.latestVersion} is available (installed: ${offer.installed.supportedVersion}).`
+							: `A newer ${name} revision is available (${offer.latestRevision?.slice(0, 8)}).`
+					: offer.tool === "vls" &&
+						  !offer.installed.supportedVersion &&
+						  !offer.installed.revision
+						? `The installed VLS is older than ${MIN_VLS_VERSION} or does not report its version.`
+						: `The installed ${name} revision cannot be verified.`
 		const target = release
 			? tag
 				? `${name} ${tag}`
 				: `the latest ${name} release`
 			: `the latest upstream ${name}`
-		const action = await vscode.window.showInformationMessage(
-			`${reason} Build ${target} in extension storage and use it here? Requires Git, GNU make, a shell and a C compiler${offer.tool === "vls" ? " plus V; VLS arguments will be reset" : ""}. Existing installations are kept.`,
-			label,
-			"Open Settings",
-			"Later",
-		)
+		this.waiting = "prompt"
+		let action: string | undefined
+		try {
+			action = await vscode.window.showInformationMessage(
+				`${reason} Build ${target} in extension storage and use it? Requires Git, GNU make, a shell and a C compiler${offer.tool === "vls" ? " plus V; VLS arguments will be reset" : ""}. The previous managed installation is kept.`,
+				label,
+				"Open Settings",
+				"Later",
+			)
+		} finally {
+			this.waiting = undefined
+		}
 		if (action === "Open Settings") {
 			void vscode.commands.executeCommand(
 				"workbench.action.openSettings",
 				offer.tool === "v" ? "v.executablePath" : "@ext:vlanguage.vscode-vlang",
 			)
 		}
-		if (offer.reason === "unknown" && action !== label)
-			await this.context.globalState.update(dismissalKey, true)
+		if (dismissible && action !== label) await this.dismiss(identity)
 		const accepted = action === label && !this.abort.signal.aborted
 		if (accepted) this.userChoseInstall = true
 		return accepted
@@ -320,6 +442,7 @@ export class ToolManager implements vscode.Disposable {
 				cancellable: true,
 			},
 			async (progress, token) => {
+				this.waiting = "install"
 				const controller = new AbortController()
 				const cancel = () => controller.abort()
 				this.abort.signal.addEventListener("abort", cancel, { once: true })
@@ -340,6 +463,7 @@ export class ToolManager implements vscode.Disposable {
 					)
 					return installation.executable
 				} finally {
+					this.waiting = undefined
 					subscription.dispose()
 					this.abort.signal.removeEventListener("abort", cancel)
 				}
@@ -351,47 +475,110 @@ export class ToolManager implements vscode.Disposable {
 		if (this.abort.signal.aborted) return
 		const selected = JSON.parse(previous.configuration) as ToolConfiguration
 		const resource = selected.resource ? vscode.Uri.parse(selected.resource) : undefined
-		if (JSON.stringify(configurationFor(tool, resource)) !== previous.configuration) {
-			throw new Error(
-				`Settings changed during installation. The new executable is at ${executable}; select it in settings when ready.`,
-			)
-		}
-		const configuration = vscode.workspace.getConfiguration(
-			tool === "v" ? "v" : "v.vls",
-			resource,
-		)
-		// Both updates target the effective scope, including legacy workspace settings.
-		await this.configure(async () => {
-			if (this.abort.signal.aborted) return
+		const ensureUnchanged = (): void => {
 			if (JSON.stringify(configurationFor(tool, resource)) !== previous.configuration) {
 				throw new Error(
 					`Settings changed during installation. The new executable is at ${executable}; select it in settings when ready.`,
 				)
 			}
-			const argsInspection = configuration.inspect<string[]>("args")
-			const previousArgs =
-				selected.argsTarget === vscode.ConfigurationTarget.WorkspaceFolder
-					? argsInspection?.workspaceFolderValue
-					: selected.argsTarget === vscode.ConfigurationTarget.Workspace
-						? argsInspection?.workspaceValue
-						: argsInspection?.globalValue
-			const resetArgs = tool === "vls" && selected.args.length > 0
-			if (resetArgs) await configuration.update("args", [], selected.argsTarget)
+		}
+		ensureUnchanged()
+		const configuration = vscode.workspace.getConfiguration(
+			tool === "v" ? "v" : "v.vls",
+			resource,
+		)
+		// All updates target the effective scope, including legacy workspace settings.
+		await this.configure(async () => {
+			if (this.abort.signal.aborted) return
+			ensureUnchanged()
+			const restores: (() => Thenable<void>)[] = []
+			const update = async (key: string, value: unknown): Promise<void> => {
+				const inspection = configuration.inspect(key)
+				const previousValue =
+					selected.target === vscode.ConfigurationTarget.WorkspaceFolder
+						? inspection?.workspaceFolderValue
+						: selected.target === vscode.ConfigurationTarget.Workspace
+							? inspection?.workspaceValue
+							: inspection?.globalValue
+				await configuration.update(key, value, selected.target)
+				restores.unshift(() => configuration.update(key, previousValue, selected.target))
+			}
 			try {
+				if (tool === "vls" && selected.args.length > 0) await update("args", [])
+				// An explicit path would shadow the managed executable. The automatic
+				// value stays valid on machines that receive it through Settings Sync.
+				if (!isAutomaticCommand(tool, selected.command))
+					await update(
+						tool === "v" ? "executablePath" : "command",
+						automaticCommand(tool),
+					)
 				this.abort.signal.throwIfAborted()
-				await configuration.update(
-					tool === "v" ? "executablePath" : "command",
-					executable,
-					selected.target,
-				)
+				const replaced = this.context.globalState.get<unknown>(managedToolKey(tool))
+				await this.context.globalState.update(managedToolKey(tool), executable)
+				// The replaced build is deleted below, or later if it is still in use.
+				if (typeof replaced === "string" && replaced !== executable)
+					await this.context.globalState.update(retiredKey, [
+						...this.retired(),
+						path.dirname(replaced),
+					])
 			} catch (error) {
-				if (resetArgs) await configuration.update("args", previousArgs, selected.argsTarget)
+				for (const restore of restores) await restore()
 				throw error
 			}
 		})
 		if (this.abort.signal.aborted) return
 		outputChannel.info(`Using ${tool.toUpperCase()} at ${executable}`)
 		void vscode.window.showInformationMessage(`${tool.toUpperCase()} installed and configured.`)
+		void this.cleanUp()
+	}
+
+	private retired(): string[] {
+		const value = this.context.globalState.get<unknown>(retiredKey, [])
+		return Array.isArray(value)
+			? value.filter((entry): entry is string => typeof entry === "string")
+			: []
+	}
+
+	/** One cleanup at a time; a request during a running one runs after it. */
+	private cleanUp(): Promise<void> {
+		this.cleaning = this.cleaning.then(() => this.cleanUpOnce())
+		return this.cleaning
+	}
+
+	/**
+	 * Delete replaced managed builds. One that another process still runs, which
+	 * Windows does not allow to delete, stays marked and is retried on the next
+	 * activation or installation.
+	 */
+	private async cleanUpOnce(): Promise<void> {
+		try {
+			await this.removeReplacedInstallations()
+		} catch (error) {
+			outputChannel.warn(`Could not remove replaced installations: ${String(error)}`)
+		}
+	}
+
+	private async removeReplacedInstallations(): Promise<void> {
+		const storage = this.context.globalStorageUri.fsPath
+		const selected = new Set(
+			(["v", "vls"] as const).flatMap((tool) => {
+				const value = this.context.globalState.get<unknown>(managedToolKey(tool))
+				return typeof value === "string" ? [path.dirname(value)] : []
+			}),
+		)
+		const initial = new Set(this.retired())
+		const remaining: string[] = []
+		for (const directory of initial) {
+			if (selected.has(directory)) continue
+			if (await removeManagedInstallation(storage, directory))
+				outputChannel.info(`Removed replaced installation ${directory}`)
+			else remaining.push(directory)
+		}
+		// Installations retired while this cleanup ran stay marked for the next one.
+		const retiredMeanwhile = this.retired().filter((directory) => !initial.has(directory))
+		await this.context.globalState.update(retiredKey, [...remaining, ...retiredMeanwhile])
+		for (const directory of await removeInterruptedInstallations(storage))
+			outputChannel.info(`Removed interrupted installation ${directory}`)
 	}
 
 	dispose(): void {

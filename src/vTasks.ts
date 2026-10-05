@@ -12,6 +12,7 @@ import {
 	workspaceTaskSpec,
 } from "./taskSpec"
 import { configuredCommand, resolvedCommand, serverCommand } from "./vCommand"
+import { effectiveToolSetting } from "./managedTools"
 import { CoverageDecorationController } from "./coverageDecoration"
 import { coverageArgsForRun } from "./coverageProfile"
 import {
@@ -148,7 +149,10 @@ class VProcessTerminal implements vscode.Pseudoterminal {
 }
 
 function vCommandSetting(folder?: vscode.WorkspaceFolder): string {
-	return migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri)
+	return effectiveToolSetting(
+		"v",
+		migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri),
+	)
 }
 
 function configuredVCommand(folder?: vscode.WorkspaceFolder): string {
