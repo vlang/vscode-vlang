@@ -34,9 +34,6 @@
 			"include": "#builtin-fix"
 		},
 		{
-			"include": "#escaped-fix"
-		},
-		{
 			"include": "#operators"
 		},
 		{
@@ -86,6 +83,10 @@
 		},
 		{
 			"include": "#variable-assign"
+		},
+		{
+			"match": "[a-zA-Z_]\\w*",
+			"name": "variable.other.v"
 		},
 		{
 			"include": "#function-decl"

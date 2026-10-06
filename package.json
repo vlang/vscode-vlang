@@ -34,7 +34,8 @@
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
-		"test:grammar": "vscode-tmgrammar-test source.v -g syntaxes/v.tmLanguage.json  syntaxes/tests/*.v"
+		"test:grammar": "vscode-tmgrammar-test source.v -g syntaxes/v.tmLanguage.json  syntaxes/tests/*.v",
+		"test:grammar:check": "node scripts/check-grammar.js"
 	},
 	"keywords": [
 		"V",

@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   24-digit literal exceeded Oniguruma's retry limit and was left unhighlighted.
   Each pattern is now linear: `[0-9](?:_?[0-9])*` rather than
   `(?:(?:[0-9]+)(?:_?))+`.
+- The grammar included `#escaped-fix`, which was never defined. A TextMate engine
+  silently ignores an include that does not resolve, so the pattern was intended to
+  do something and did nothing, and nothing caught it. The include is removed.
+- A CI step now checks the grammar's pattern references. It walks every `include`
+  in the grammar and fails if any does not resolve to a defined pattern, and also
+  reports patterns that are defined but never included. The check runs before the
+  grammar tests, so a broken include is caught before the tests run.
 
 ## 0.2.1
 

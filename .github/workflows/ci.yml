@@ -40,5 +40,7 @@ jobs:
           node-version: "24"
       - name: Install dependencies
         run: npm ci
+      - name: Check grammar pattern references
+        run: npm run test:grammar:check
       - name: Run grammar tests
         run: npm run test:grammar
