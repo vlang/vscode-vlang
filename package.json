@@ -7,7 +7,7 @@
 	"version": "0.2.1",
 	"license": "GPL-2.0-only",
 	"engines": {
-		"vscode": "^1.105.0"
+		"vscode": "^1.140.0"
 	},
 	"extensionPack": [
 		"ms-vscode.cpptools"
@@ -279,20 +279,21 @@
 	],
 	"main": "./out/extension.js",
 	"dependencies": {
-		"vscode-languageclient": "10.1.0"
+		"vscode-languageclient": "10.1.2"
 	},
 	"devDependencies": {
+		"@eslint/js": "^10.0.1",
 		"@types/node": "24",
-		"@types/vscode": "1.105.0",
-		"@typescript-eslint/eslint-plugin": "^8.46",
-		"@typescript-eslint/parser": "^8.46",
+		"@types/vscode": "1.140.0",
+		"@typescript-eslint/eslint-plugin": "^8.71.1",
+		"@typescript-eslint/parser": "^8.71.1",
 		"@vscode/test-electron": "^3.1.0",
-		"@vscode/vsce": "^3.6.2",
-		"esbuild": "^0.25.10",
-		"eslint": "^9.37.0",
-		"globals": "^15.9.0",
-		"markdownlint-cli": "^0.45.0",
-		"prettier": "^3.6.2",
+		"@vscode/vsce": "^4.0.0",
+		"esbuild": "^0.28.2",
+		"eslint": "^10.12.0",
+		"globals": "^17.13.0",
+		"markdownlint-cli": "^0.49.1",
+		"prettier": "^3.9.9",
 		"typescript": "^5.9.3",
 		"vscode-tmgrammar-test": "~0.1.3"
 	}
