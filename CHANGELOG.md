@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behind without a failure.
 - A test pins the `documentSelector` to the documents VLS can answer for, so
   neither `untitled` nor an unsupported language id is changed without a reason.
+- Bumped dependencies. `vscode-languageclient` 10.1.0 to 10.1.2, `@types/vscode`
+  1.105.0 to 1.140.0, `esbuild` 0.25.10 to 0.28.2, `eslint` 9.37.0 to 10.12.0,
+  `@typescript-eslint` 8.46 to 8.71.1, `@vscode/vsce` 3.6.2 to 4.0.0, `prettier`
+  3.6.2 to 3.9.9, `markdownlint-cli` 0.45.0 to 0.49.1 and `globals` 15.9.0 to
+  17.13.0. `@types/vscode` 1.140.0 requires `engines.vscode` `^1.140.0`, so the
+  minimum VS Code version rises with it.
+- Added `@eslint/js` as an explicit dev dependency. ESLint 10 no longer bundles
+  it, and `eslint.config.mjs` imports it.
 
 ## 0.2.1
 
