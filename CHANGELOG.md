@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- The test suite passes on Windows. Three tests asserted POSIX path separators
+  and CI ran only on `ubuntu-latest`, so the failures were invisible. The
+  fixtures now resolve through the platform, and the LCOV test looks its key up
+  with `canonicalFilePath`, which lowercases on Windows because that filesystem
+  is case-insensitive.
+
+### Changed
+
+- CI runs on `windows-latest` as well as `ubuntu-latest`, for the build, lint and
+  grammar jobs. A single operating system hid the failures above.
+
 ## 0.2.1
 
 _23 September 2026_

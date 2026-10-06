@@ -32,6 +32,16 @@ import {
 	processTreeKillCommand,
 } from "../processExecution"
 
+/** A platform-native absolute path from POSIX-shaped segments.
+ *
+ * Fixtures read better written `/project/cmd/app/main.v`, but the code under test
+ * mixes `path.resolve`, which produces a drive-lettered absolute path on Windows,
+ * with `path.normalize`, which does not. Passing a raw `/project` into both meant
+ * three of these tests passed on Linux and failed on Windows, which CI could not
+ * see because it only ran on `ubuntu-latest`.
+ */
+const fixture = (...segments: string[]): string => path.resolve(...segments)
+
 describe("VLS VS Code extension", () => {
 	it("contributes build, run, and test commands and tasks", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
@@ -139,6 +149,7 @@ describe("VLS VS Code extension", () => {
 	})
 
 	it("parses and merges covered and uncovered LCOV lines", () => {
+		const base = fixture("workspace")
 		const profile = parseLcovProfile(
 			[
 				"TN:",
@@ -151,13 +162,19 @@ describe("VLS VS Code extension", () => {
 				"DA:12,0",
 				"end_of_record",
 			].join("\n"),
-			"/workspace",
+			base,
 		)
 
-		assert.deepStrictEqual(profile.get(path.normalize("/workspace/src/example.v")), {
-			covered: [3, 8],
-			uncovered: [12],
-		})
+		// The profile is keyed by `canonicalFilePath`, which lowercases on Windows
+		// because that filesystem is case-insensitive. Looking a key up any other way
+		// finds nothing there, which is what made this test fail on Windows only.
+		assert.deepStrictEqual(
+			profile.get(canonicalFilePath(path.join(base, "src", "example.v"))),
+			{
+				covered: [3, 8],
+				uncovered: [12],
+			},
+		)
 	})
 
 	it("streams LCOV while filtering files before retaining line data", async () => {
@@ -403,44 +420,46 @@ describe("VLS VS Code extension", () => {
 	})
 
 	it("limits standalone CodeLens saves to the target module tree", () => {
-		const target = "/project/module/main.v"
+		const target = fixture("project", "module", "main.v")
 		const dirtyVDocument = (filePath: string) => ({ filePath, languageId: "v", isDirty: true })
 
 		assert.ok(
-			shouldSaveTaskDocument(target, undefined, dirtyVDocument("/project/module/sibling.v")),
+			shouldSaveTaskDocument(target, undefined, dirtyVDocument(fixture("project", "module", "sibling.v"))),
 		)
 		assert.ok(
 			shouldSaveTaskDocument(
 				target,
 				undefined,
-				dirtyVDocument("/project/module/lib/imported.v"),
+				dirtyVDocument(fixture("project", "module", "lib", "imported.v")),
 			),
 		)
 		assert.ok(
-			!shouldSaveTaskDocument(target, undefined, dirtyVDocument("/project/other/dirty.v")),
+			!shouldSaveTaskDocument(target, undefined, dirtyVDocument(fixture("project", "other", "dirty.v"))),
 		)
 	})
 
 	it("uses the nearest V project root for standalone saves and coverage", () => {
-		const target = "/project/cmd/app/main.v"
+		const target = fixture("project", "cmd", "app", "main.v")
+		// The v.mod probe is a stand-in for the filesystem, so it has to be handed the
+		// same spelling the walk produces. On Windows those differ: `path.normalize`
+		// leaves `/project/v.mod` as `\project\v.mod` while `path.dirname` on a
+		// POSIX-shaped input still returns forward slashes.
+		const vmod = fixture("project", "v.mod")
 		const vmodExists = (filePath: string) => {
-			return filePath === path.normalize("/project/v.mod")
+			return filePath === vmod
 		}
 		const projectRoot = standaloneTaskScope(target, vmodExists)
 		const dirtyImport = {
-			filePath: "/project/lib/foo/foo.v",
+			filePath: fixture("project", "lib", "foo", "foo.v"),
 			languageId: "v",
 			isDirty: true,
 		}
 
-		assert.strictEqual(projectRoot, path.normalize("/project"))
+		assert.strictEqual(projectRoot, fixture("project"))
 		assert.strictEqual(taskCoverageRoot(target, undefined, vmodExists), projectRoot)
-		assert.strictEqual(taskWorkingDirectory(target), path.normalize("/project/cmd/app"))
+		assert.strictEqual(taskWorkingDirectory(target), fixture("project", "cmd", "app"))
 		assert.ok(shouldSaveTaskDocument(target, projectRoot, dirtyImport))
-		assert.strictEqual(
-			standaloneTaskScope(target, () => false),
-			path.normalize("/project/cmd/app"),
-		)
+		assert.strictEqual(standaloneTaskScope(target, () => false), fixture("project", "cmd", "app"))
 	})
 
 	it("runs active V scripts directly", () => {
@@ -457,9 +476,10 @@ describe("VLS VS Code extension", () => {
 	})
 
 	it("runs nested modules from the problem matcher base", () => {
-		const filePath = path.join("/workspace", "cmd", "app", "main.v")
-		const workingDirectory = taskWorkingDirectory(filePath, "/workspace")
-		assert.strictEqual(workingDirectory, "/workspace")
+		const base = fixture("workspace")
+		const filePath = path.join(base, "cmd", "app", "main.v")
+		const workingDirectory = taskWorkingDirectory(filePath, base)
+		assert.strictEqual(workingDirectory, base)
 		assert.deepStrictEqual(codeLensTaskSpec("vls.runFile", filePath, "", workingDirectory), {
 			action: "run",
 			args: ["-nocolor", "run", path.join("cmd", "app")],
@@ -468,10 +488,13 @@ describe("VLS VS Code extension", () => {
 	})
 
 	it("scopes and preserves the configured server compiler", () => {
-		const configured = path.join("${workspaceFolder}", "bin", "v")
+		// The template keeps a forward slash so the placeholder is the only thing that
+		// decides the spelling; `path.join` would bake in the host separator and the
+		// two sides would then differ on Windows for no reason.
+		const configured = "${workspaceFolder}/bin/v"
 		assert.strictEqual(
-			serverCommand(configured, "/workspace"),
-			path.join("/workspace", "bin", "v"),
+			path.normalize(serverCommand(configured, "/workspace") ?? ""),
+			path.normalize(path.join("/workspace", "bin", "v")),
 		)
 		const missing = path.join("/missing", "custom-v")
 		assert.strictEqual(serverCommand(missing, "/workspace"), missing)
