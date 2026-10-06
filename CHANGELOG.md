@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the grammar and fails if any does not resolve to a defined pattern, and also
   reports patterns that are defined but never included. The check runs before the
   grammar tests, so a broken include is caught before the tests run.
+- The grammar check is written as a V script rather than a Node script, so it runs
+  with the same compiler the extension is built for and needs no separate runtime.
+  The CI job installs V before running it.
 
 ## 0.2.1
 

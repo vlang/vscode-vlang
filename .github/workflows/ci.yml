@@ -40,6 +40,12 @@ jobs:
           node-version: "24"
       - name: Install dependencies
         run: npm ci
+      - name: Install V
+        run: |
+          git clone --depth=1 https://github.com/vlang/v /tmp/v
+          cd /tmp/v
+          make
+          sudo ./v symlink
       - name: Check grammar pattern references
         run: npm run test:grammar:check
       - name: Run grammar tests

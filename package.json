@@ -35,7 +35,7 @@
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
 		"test:grammar": "vscode-tmgrammar-test source.v -g syntaxes/v.tmLanguage.json  syntaxes/tests/*.v",
-		"test:grammar:check": "node scripts/check-grammar.js"
+		"test:grammar:check": "v run scripts/check-grammar.vsh"
 	},
 	"keywords": [
 		"V",
