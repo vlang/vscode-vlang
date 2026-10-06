@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- The numeric patterns in the grammar no longer backtrack exponentially. The
+  float, exponential, integer, hex, octal and binary patterns all nested an
+  unbounded `+` inside another unbounded `+`, so a digit run that was not
+  followed by `.digits` made the engine try every way of splitting it. A
+  24-digit literal exceeded Oniguruma's retry limit and was left unhighlighted.
+  Each pattern is now linear: `[0-9](?:_?[0-9])*` rather than
+  `(?:(?:[0-9]+)(?:_?))+`.
+
 ## 0.2.1
 
 _23 September 2026_
