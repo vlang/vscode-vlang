@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI runs on `windows-latest` as well as `ubuntu-latest`, for the build, lint and
   grammar jobs. A single operating system hid the failures above.
+- `V: Open V Language Server Output` is now declared in the manifest. It was
+  registered but unreachable, so it did not appear in the Command Palette and
+  could not be bound to a key.
+- The six settings from the former VLS extension are now declared, with a
+  deprecation message naming their replacement. `migratedSetting` keeps honouring
+  them, but a user who had set one was told "Unknown Configuration Setting" with
+  no hint about what to move to.
+- Two tests now check whole lists instead of a chosen few: every command
+  registered in `src/` must be declared in `contributes.commands`, and every
+  legacy setting honoured in code must be declared and say what replaced it. Both
+  read the ids out of the source, so a new one cannot be registered and left
+  behind without a failure.
 
 ## 0.2.1
 

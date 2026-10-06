@@ -42,6 +42,32 @@ import {
  */
 const fixture = (...segments: string[]): string => path.resolve(...segments)
 
+const repositoryRoot = path.resolve(__dirname, "..", "..")
+
+function readManifest(): Record<string, any> {
+	return JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"))
+}
+
+/** Every `commands.registerCommand("<id>")` in `src/`.
+ *
+ * Reading the ids out of the source rather than listing them is the point: a test
+ * that names the commands someone remembered cannot notice a new one being
+ * registered and left undeclared.
+ */
+function registeredCommands(): Set<string> {
+	const registered = new Set<string>()
+	for (const file of fs.readdirSync(path.join(repositoryRoot, "src"), { encoding: "utf8" })) {
+		if (!file.endsWith(".ts")) {
+			continue
+		}
+		const contents = fs.readFileSync(path.join(repositoryRoot, "src", file), "utf8")
+		for (const match of contents.matchAll(/registerCommand\("([^"]+)"/g)) {
+			registered.add(match[1])
+		}
+	}
+	return registered
+}
+
 describe("VLS VS Code extension", () => {
 	it("contributes build, run, and test commands and tasks", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
@@ -61,6 +87,60 @@ describe("VLS VS Code extension", () => {
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
 			true,
 		)
+	})
+
+	it("declares every registered command, and no command it does not register", () => {
+		const declared = new Set<string>(
+			readManifest().contributes.commands.map((entry: { command: string }) => entry.command),
+		)
+		const registered = registeredCommands()
+		assert.ok(registered.size > 0, "no registered commands were found in src/")
+
+		// `v.vls.openOutput` was registered but never declared, so it did not appear
+		// in the Command Palette and could not be bound to a key.
+		const undeclared = [...registered].filter((command) => !declared.has(command))
+		assert.deepStrictEqual(undeclared, [], `commands not in contributes.commands: ${undeclared}`)
+		// A declared command that nothing registers is a palette entry that silently
+		// fails, which is the same class of bug from the other direction.
+		const unused = [...declared].filter((command) => !registered.has(command))
+		assert.deepStrictEqual(unused, [], `commands declared but never registered: ${unused}`)
+	})
+
+	it("declares every legacy setting the code still honours, with its replacement", () => {
+		const properties = readManifest().contributes.configuration.properties
+		const declared = new Set<string>(Object.keys(properties))
+
+		// `migratedSetting` falls back to a `vls.*` key whenever the matching `v.*`
+		// key is unset, so those keys keep working. They were never in the manifest,
+		// so a user who set one was told "Unknown Configuration Setting" with no hint
+		// about what to move to.
+		const honoured = new Set<string>()
+		for (const file of fs.readdirSync(path.join(repositoryRoot, "src"), { encoding: "utf8" })) {
+			if (!file.endsWith(".ts")) {
+				continue
+			}
+			const contents = fs.readFileSync(path.join(repositoryRoot, "src", file), "utf8")
+			for (const match of contents.matchAll(
+				/migratedSetting\(\s*"[^"]+",\s*"[^"]+",\s*"vls",\s*"([^"]+)"/g,
+			)) {
+				honoured.add(`vls.${match[1]}`)
+			}
+		}
+		assert.ok(honoured.size > 0, "no legacy settings were found in src/")
+
+		const undeclared = [...honoured].filter((key) => !declared.has(key))
+		assert.deepStrictEqual(
+			undeclared,
+			[],
+			`legacy settings honoured in code but missing from the manifest: ${undeclared}`,
+		)
+		// A deprecated setting that names no replacement leaves the user no next step.
+		for (const key of honoured) {
+			assert.ok(
+				properties[key].markdownDeprecationMessage,
+				`${key} is deprecated but does not say what replaced it`,
+			)
+		}
 	})
 
 	it("shows the notices of V in task output as information", () => {

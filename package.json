@@ -136,6 +136,47 @@
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"vls.command": {
+					"type": "string",
+					"default": "",
+					"deprecationMessage": "Renamed to v.vls.command.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.vls.command`."
+				},
+				"vls.args": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"deprecationMessage": "Renamed to v.vls.args.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.vls.args`."
+				},
+				"vls.vCommand": {
+					"type": "string",
+					"default": "",
+					"scope": "resource",
+					"deprecationMessage": "Renamed to v.executablePath.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.executablePath`."
+				},
+				"vls.inlayHints.enabled": {
+					"type": "boolean",
+					"default": true,
+					"deprecationMessage": "Renamed to v.vls.inlayHints.enabled.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.vls.inlayHints.enabled`."
+				},
+				"vls.diagnostics.enabled": {
+					"type": "boolean",
+					"default": true,
+					"deprecationMessage": "Renamed to v.vls.diagnostics.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.vls.diagnostics`."
+				},
+				"vls.coverage.enabled": {
+					"type": "boolean",
+					"default": true,
+					"scope": "resource",
+					"deprecationMessage": "Renamed to v.vls.coverage.enabled.",
+					"markdownDeprecationMessage": "**Deprecated:** renamed to `v.vls.coverage.enabled`."
 				}
 			}
 		},
@@ -243,6 +284,11 @@
 			{
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.vls.openOutput",
+				"title": "Open V Language Server Output",
 				"category": "V"
 			}
 		],
