@@ -2,7 +2,7 @@ import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 
-function isExecutable(filePath: string): boolean {
+export function isExecutable(filePath: string): boolean {
 	try {
 		if (!fs.statSync(filePath).isFile()) {
 			return false

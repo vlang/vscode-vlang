@@ -1,38 +1,43 @@
-import { execFile as _execFile } from "child_process"
+import { execFile } from "child_process"
+import * as path from "path"
 import { promisify } from "util"
-import { Terminal, window, workspace } from "vscode"
+import { Uri, window, workspace } from "vscode"
+import { effectiveToolSetting } from "./managedTools"
+import { processLaunchCommand } from "./processExecution"
 import { migratedSetting } from "./settings"
-import { configuredCommand, resolvedCommand } from "./vCommand"
+import { resolvedCommand } from "./vCommand"
 
-let vRunTerm: Terminal | null = null
+const executeFile = promisify(execFile)
 
-const execFile = promisify(_execFile)
+interface VExecutionOptions {
+	input?: string
+	cwd?: string
+}
 
-// Get V executable command.
-export function getVExecCommand(): string {
-	const folder = window.activeTextEditor
-		? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
-		: workspace.workspaceFolders?.[0]
+/** Execute the configured compiler without interpolating source paths into a shell. */
+export async function executeV(
+	args: string[],
+	resource?: Uri,
+	options: VExecutionOptions = {},
+): Promise<string> {
+	const uri = resource ?? window.activeTextEditor?.document.uri
+	const folder = uri ? workspace.getWorkspaceFolder(uri) : workspace.workspaceFolders?.[0]
 	const setting = migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri)
-	return resolvedCommand(setting, folder?.uri.fsPath) ?? configuredCommand(setting, folder?.uri.fsPath)
-}
-
-function terminalCommand(value: string): string {
-	if (process.platform === "win32") return `"${value.replace(/"/g, "\\\"")}"`
-	return `'${value.replace(/'/g, "'\"'\"'")}'`
-}
-
-export function execVInTerminal(args: string[]): void {
-	const vexec = getVExecCommand()
-	const cmd = `${terminalCommand(vexec)} ${args.join(" ")}`
-
-	if (!vRunTerm) vRunTerm = window.createTerminal("V")
-
-	vRunTerm.show()
-	vRunTerm.sendText(cmd)
-}
-
-export async function execVInTerminalOnBG(args: string[], cwd = "/"): Promise<void> {
-	const vexec = getVExecCommand()
-	await execFile(vexec, args, { cwd })
+	const command = resolvedCommand(effectiveToolSetting("v", setting), folder?.uri.fsPath)
+	if (!command) throw new Error(`V compiler not found: ${setting}. Set v.executablePath.`)
+	const launch = processLaunchCommand(command, args)
+	const execution = executeFile(launch.command, launch.args, {
+		cwd:
+			options.cwd ??
+			folder?.uri.fsPath ??
+			(uri?.scheme === "file" ? path.dirname(uri.fsPath) : undefined),
+		windowsVerbatimArguments: launch.windowsVerbatimArguments,
+		timeout: 30_000,
+		maxBuffer: 4 * 1024 * 1024,
+	})
+	// A formatter can reject input before consuming it. Its exit status reports the error.
+	execution.child.stdin?.on("error", () => undefined)
+	execution.child.stdin?.end(options.input)
+	const result = await execution
+	return result.stdout
 }

@@ -10,6 +10,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+      - name: Validate GitHub Actions workflows
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml .github/workflows/docs_ci.yml
       - name: Install dependencies
         run: npm ci
       - name: Run tests
@@ -28,8 +30,8 @@ jobs:
           node-version: "24"
       - name: Install dependencies
         run: npm ci
-      - name: Run eslint
-        run: npm run lint
+      - name: Check formatting and Markdown
+        run: npm run fmt:check && npm run lint:md
 
   grammar-tests:
     runs-on: ubuntu-latest
@@ -42,3 +44,58 @@ jobs:
         run: npm ci
       - name: Run grammar tests
         run: npm run test:grammar
+
+  extension-host:
+    name: Extension host (${{ matrix.os }}, ${{ matrix.server }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        server: [fixture, real]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build V compiler
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+        run: |
+          git init "$RUNNER_TEMP/v"
+          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 01eb66904707b68fca95091ba820672b2a2611eb
+          git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
+          # Keep the bootstrap compatible with the pinned V source. A newer vc
+          # can reject code that this compiler revision still accepts.
+          git init "$RUNNER_TEMP/v/vc"
+          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 475a2bd7ec4bed7061721816afb46580c4fe0a5b
+          git -C "$RUNNER_TEMP/v/vc" checkout --detach FETCH_HEAD
+          make -C "$RUNNER_TEMP/v" latest_tcc
+          make -C "$RUNNER_TEMP/v" local=1
+          make -C "$RUNNER_TEMP/v" v1
+      - name: Build VLS with version reporting
+        if: matrix.server == 'real'
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+        run: |
+          git init "$RUNNER_TEMP/vls"
+          # Pin the CLI version follow-up on top of current upstream VLS so the
+          # real host exercises an external executable without managed metadata.
+          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
+          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
+          cd "$RUNNER_TEMP/vls"
+          "$RUNNER_TEMP/v/v" -new-compiler .
+      - name: Run VS Code integration tests
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+          V_BINARY: ${{ runner.temp }}/v/v
+          VLS_BINARY: ${{ matrix.server == 'real' && format('{0}/vls/vls', runner.temp) || '' }}
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a npm run test:vscode
+          else
+            npm run test:vscode
+          fi

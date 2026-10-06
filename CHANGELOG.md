@@ -5,18 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.3.0
+
+### Added
+
+- Offer to install missing V and VLS tools and check for upstream updates daily.
+- Build accepted installations in private, versioned directories and verify them
+  before selecting them. The selection stays out of synced settings, failed builds
+  keep the previous one, and an update deletes the build it replaces; other
+  windows still using it ask to reload.
+- Add working install/update commands with progress, cancellation, and revision
+  checks.
+- Build managed V with the installed V when there is one, as `v up` does, and fall
+  back to the full bootstrap if that fails.
+- Add `v.tools.updateChannel` to track the latest V release instead of master;
+  VLS keeps tracking master.
+- Show the V logo as the file icon for `.v`, `.vsh`, `.vh`, `.vv` and `v.mod` files
+  in icon themes without their own V icon.
+
+### Fixed
+
+- Find MSYS2's `mingw32-make` as well as `make` and `gmake` when preparing VLS
+  compiler compatibility on Windows, and explain missing build prerequisites
+  before building V.
+- Check that V accepts `-new-compiler` before downloading and building VLS.
+- Explain when a manual tool request waits for an unanswered prompt or a running
+  installation.
+- Retry update checks that could not reach GitHub, remember declined missing-tool
+  prompts, and keep tool check state bounded.
+- Let `V: Install or Update VLS` update a VLS that reports only its version when
+  upstream declares a newer one.
+- Show a single startup notification for an unsupported VLS, and say when it is
+  older than 0.0.3 or does not report its version.
+- Recreate VLS on restart and configuration changes, recover after missing binaries,
+  and restore feature settings after server restarts.
+- Recover from failed VLS transports using a fresh client, with a bounded retry limit.
+- Send settings after each serialized VLS startup without racing notifications
+  against the previous client's shutdown.
+- Show the compiler version and actionable startup errors with VLS status and logs.
+- Build optimized modules through tasks without interpolating paths into a shell.
+- Format unsaved buffers with undo support and protection against concurrent edits.
+- Preserve project-local imports when formatting unsaved buffers, and use the
+  correct compiler settings for files outside workspace folders.
+- Avoid exponential backtracking and missing highlighting for long numeric literals.
+- Identify V builds from a git clone by their full revision, so update checks no
+  longer report them as unverifiable because GitHub cannot resolve `v version`'s
+  abbreviated hash.
 
 ### Changed
 
-- Bumped dependencies. `vscode-languageclient` 10.1.0 to 10.1.2, `@types/vscode`
-  1.105.0 to 1.140.0, `esbuild` 0.25.10 to 0.28.2, `eslint` 9.37.0 to 10.12.0,
-  `@typescript-eslint` 8.46 to 8.71.1, `@vscode/vsce` 3.6.2 to 4.0.0, `prettier`
-  3.6.2 to 3.9.9, `markdownlint-cli` 0.45.0 to 0.49.1 and `globals` 15.9.0 to
-  17.13.0. `@types/vscode` 1.140.0 requires `engines.vscode` `^1.140.0`, so the
-  minimum VS Code version rises with it.
-- Added `@eslint/js` as an explicit dev dependency. ESLint 10 no longer bundles
-  it, and `eslint.config.mjs` imports it.
+- Require VS Code 1.140.0 and target its API types, incorporating the upstream
+  dependency update while retaining extension version 0.3.0.
+- Require VLS 0.0.3 or newer, as reported by `vls --version`.
+  Accept external installations that report a supported version or commit and
+  offer installation or update for older or unverifiable servers. Do not enforce
+  a V compiler revision or run compiler compatibility queries.
+- Migrate formatting to Oxfmt and linting to Oxlint with type-aware rules; update
+  editor recommendations and enforce formatting in CI. Use Oxfmt 0.72.0 and
+  Oxlint 1.87.0.
+- Update development dependencies, TypeScript to 7, and the language client to
+  10.1.2. Override the Markdown CLI's pinned js-yaml with the patched 5.4.2 line.
+- Replace the unsafe V installer and placeholder VLS update command with managed
+  installations. Remove unused helpers, duplicate file watcher, and empty inlay
+  hint provider.
+- Stop installing the C/C++ extension automatically; manual debugger setups remain supported.
+- Run isolated fixture and current real-VLS extension-host checks on Linux and macOS.
 
 ## 0.2.1
 

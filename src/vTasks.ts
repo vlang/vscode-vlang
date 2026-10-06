@@ -1,6 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from "child_process"
 import * as vscode from "vscode"
 import {
+	activeBuildTaskSpec,
 	activeRunTaskSpec,
 	codeLensTaskSpec,
 	shouldSaveTaskDocument,
@@ -11,6 +12,7 @@ import {
 	workspaceTaskSpec,
 } from "./taskSpec"
 import { configuredCommand, resolvedCommand, serverCommand } from "./vCommand"
+import { effectiveToolSetting } from "./managedTools"
 import { CoverageDecorationController } from "./coverageDecoration"
 import { coverageArgsForRun } from "./coverageProfile"
 import {
@@ -147,7 +149,10 @@ class VProcessTerminal implements vscode.Pseudoterminal {
 }
 
 function vCommandSetting(folder?: vscode.WorkspaceFolder): string {
-	return migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri)
+	return effectiveToolSetting(
+		"v",
+		migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri),
+	)
 }
 
 function configuredVCommand(folder?: vscode.WorkspaceFolder): string {
@@ -166,7 +171,7 @@ async function showMissingVCompiler(folder?: vscode.WorkspaceFolder): Promise<vo
 	const configured = vCommandSetting(folder).trim()
 	const message = configured
 		? `The configured V compiler was not found or is not executable: ${configured}`
-		: "V compiler not found. Set \"v.executablePath\" or add \"v\" to PATH."
+		: 'V compiler not found. Set "v.executablePath" or add "v" to PATH.'
 	const selection = await vscode.window.showErrorMessage(message, "Open Settings")
 	if (selection === "Open Settings") {
 		await vscode.commands.executeCommand("workbench.action.openSettings", "v.executablePath")
@@ -225,7 +230,7 @@ function createVTask(
 		reveal: vscode.TaskRevealKind.Always,
 		showReuseMessage: true,
 	}
-	if (action === "build") {
+	if (action === "build" || action === "prod") {
 		task.group = vscode.TaskGroup.Build
 	} else if (action === "test") {
 		task.group = vscode.TaskGroup.Test
@@ -325,6 +330,12 @@ async function runPaletteTask(action: VTaskAction, manager: VTaskManager): Promi
 		return
 	}
 	const uri = activeFileUri()
+	if (action === "prod" && uri?.fsPath.endsWith(".vsh")) {
+		void vscode.window.showErrorMessage(
+			"V: Optimized builds require a V module. Use V: Run to execute a .vsh script.",
+		)
+		return
+	}
 	if (!(await saveTaskDocuments(workspaceTarget, uri?.fsPath))) {
 		vscode.window.showErrorMessage(
 			`V: ${taskActionTitle(action)} was cancelled because one or more V files were not saved.`,
@@ -336,9 +347,12 @@ async function runPaletteTask(action: VTaskAction, manager: VTaskManager): Promi
 	let target = workspaceTarget
 	let args = workspaceSpec.args
 	let name = workspaceSpec.name
-	if (action === "run" && uri) {
+	if ((action === "run" || action === "prod") && uri) {
 		target = targetForUri(uri)
-		const runSpec = activeRunTaskSpec(uri.fsPath, target.cwd)
+		const runSpec =
+			action === "prod"
+				? activeBuildTaskSpec(uri.fsPath, target.cwd)
+				: activeRunTaskSpec(uri.fsPath, target.cwd)
 		args = runSpec.args
 		name = runSpec.name
 	} else if (action === "test" && uri?.fsPath.endsWith("_test.v")) {
@@ -383,7 +397,7 @@ class VTaskProvider implements vscode.TaskProvider {
 	provideTasks(): vscode.Task[] {
 		const tasks: vscode.Task[] = []
 		for (const folder of vscode.workspace.workspaceFolders || []) {
-			for (const action of ["build", "run", "test"] as const) {
+			for (const action of ["build", "run", "test", "prod"] as const) {
 				tasks.push(createVTask(action, folderTarget(folder), this.coverage))
 			}
 		}
@@ -392,7 +406,7 @@ class VTaskProvider implements vscode.TaskProvider {
 
 	resolveTask(task: vscode.Task): vscode.Task | undefined {
 		const action: unknown = task.definition.action
-		if (action !== "build" && action !== "run" && action !== "test") {
+		if (action !== "build" && action !== "run" && action !== "test" && action !== "prod") {
 			return undefined
 		}
 		const folder = workspaceFolderForScope(task.scope) || vscode.workspace.workspaceFolders?.[0]
@@ -405,22 +419,37 @@ class VTaskProvider implements vscode.TaskProvider {
 
 export class VTaskManager implements vscode.Disposable {
 	private readonly activeExecutions = new Map<string, vscode.TaskExecution>()
+	private pendingExecution: Promise<void> = Promise.resolve()
+	private disposed = false
 
 	constructor(readonly coverage: CoverageDecorationController) {}
 
-	async executeVTask(
+	executeVTask(
 		task: vscode.Task,
 		folder: vscode.WorkspaceFolder | undefined,
 		executionKey: string,
 	): Promise<vscode.TaskExecution | undefined> {
-		if (!resolvedVCommand(folder)) {
-			await showMissingVCompiler(folder)
-			return undefined
-		}
-		this.activeExecutions.get(executionKey)?.terminate()
-		const execution = await vscode.tasks.executeTask(task)
-		this.activeExecutions.set(executionKey, execution)
-		return execution
+		const launch = this.pendingExecution.then(async () => {
+			if (this.disposed) return undefined
+			if (!resolvedVCommand(folder)) {
+				void showMissingVCompiler(folder)
+				return undefined
+			}
+			this.activeExecutions.get(executionKey)?.terminate()
+			const execution = await vscode.tasks.executeTask(task)
+			if (this.disposed) {
+				execution.terminate()
+				return undefined
+			}
+			this.activeExecutions.set(executionKey, execution)
+			return execution
+		})
+		// Serialize task starts so a second invocation sees and terminates the first.
+		this.pendingExecution = launch.then(
+			() => undefined,
+			() => undefined,
+		)
+		return launch
 	}
 
 	endExecution(execution: vscode.TaskExecution): void {
@@ -432,6 +461,7 @@ export class VTaskManager implements vscode.Disposable {
 	}
 
 	dispose(): void {
+		this.disposed = true
 		for (const execution of this.activeExecutions.values()) {
 			execution.terminate()
 		}
@@ -447,6 +477,7 @@ export function registerVTasks(context: vscode.ExtensionContext): VTaskManager {
 		vscode.commands.registerCommand("vls.build", () => runPaletteTask("build", manager)),
 		vscode.commands.registerCommand("vls.run", () => runPaletteTask("run", manager)),
 		vscode.commands.registerCommand("vls.test", () => runPaletteTask("test", manager)),
+		vscode.commands.registerCommand("v.prod", () => runPaletteTask("prod", manager)),
 		vscode.commands.registerCommand("vls.coverage.clear", () => coverage.clear()),
 		vscode.tasks.onDidEndTask((event) => {
 			manager.endExecution(event.execution)

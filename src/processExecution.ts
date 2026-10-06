@@ -11,21 +11,21 @@ function escapeWindowsCommand(value: string): string {
 }
 
 function escapeWindowsArgument(value: string): string {
-	let quoted = "\""
+	let quoted = '"'
 	let backslashes = 0
 	for (const character of value) {
 		if (character === "\\") {
 			backslashes++
 			continue
 		}
-		if (character === "\"") {
-			quoted += `${"\\".repeat(backslashes * 2 + 1)  }"`
+		if (character === '"') {
+			quoted += `${"\\".repeat(backslashes * 2 + 1)}"`
 		} else {
 			quoted += "\\".repeat(backslashes) + character
 		}
 		backslashes = 0
 	}
-	quoted += `${"\\".repeat(backslashes * 2)  }"`
+	quoted += `${"\\".repeat(backslashes * 2)}"`
 	return quoted.replace(windowsCommandMetaCharacters, "^$1")
 }
 

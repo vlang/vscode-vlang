@@ -1,105 +1,86 @@
-import { vlsOutputChannel } from "logger"
-import { commands, ExtensionContext, window } from "vscode"
-import type { LanguageClient } from "vscode-languageclient/node"
-import { execVInTerminal, execVInTerminalOnBG } from "./exec"
+import * as path from "path"
+import {
+	commands,
+	ExtensionContext,
+	Range,
+	TextDocument,
+	window,
+	workspace,
+	WorkspaceEdit,
+} from "vscode"
+import { executeV } from "./exec"
+import { outputChannel } from "./logger"
 
-/** Run the active V module or script through the same task as `V: Run`. */
-export async function run(): Promise<void> {
+function activeVDocument(): TextDocument | undefined {
 	const document = window.activeTextEditor?.document
-	if (
-		!document ||
-		document.uri.scheme !== "file" ||
-		(document.languageId !== "v" && !document.fileName.endsWith(".vsh"))
-	) {
+	return document?.uri.scheme === "file" && document.languageId === "v" ? document : undefined
+}
+
+/** Kept as an alias for existing keybindings. */
+export async function run(): Promise<void> {
+	if (!activeVDocument()) {
 		void window.showErrorMessage("No active V file to run.")
 		return
 	}
-
 	await commands.executeCommand("vls.run")
 }
 
-/** Format the currently active V file in-place using `v fmt -w`. */
-export async function fmt(): Promise<void> {
-	const document = window.activeTextEditor?.document
+/** Format a snapshot, then apply an undoable edit without saving or overwriting newer text. */
+export async function fmt(): Promise<boolean> {
+	const document = activeVDocument()
 	if (!document) {
 		void window.showErrorMessage("No active V file to format.")
-		return
+		return false
 	}
-
-	await document.save()
-	await execVInTerminalOnBG(["fmt", "-w", document.fileName])
-}
-
-/** Build an optimized executable from the current file using `v -prod`. */
-export async function prod(): Promise<void> {
-	const document = window.activeTextEditor?.document
-	if (!document) {
-		void window.showErrorMessage("No active V file to build.")
-		return
-	}
-
-	await document.save()
-	const filePath = `"${document.fileName}"`
-	execVInTerminal(["-prod", filePath])
-}
-
-/** Show version information of the configured `v` executable. */
-export function ver(): void {
-	execVInTerminalOnBG(["-version"]).catch((err) => {
-		void window.showErrorMessage(`Failed to get V version: ${err}. Is V installed correctly?`)
-	})
-}
-
-export async function updateVls(client?: LanguageClient): Promise<void> {
-	// For now, show an informational message. If we had an update mechanism
-	// (download/install), it would be invoked here and possibly restart the client.
-	void window.showInformationMessage("Update VLS: not implemented.")
-	// If a client is provided, optionally restart to pick up a new binary.
-	if (client) {
-		try {
-			await client.stop()
-			await client.start()
-			void window.showInformationMessage("VLS has been restarted after update.")
-		} catch {
-			// ignore error details for now
-			void window.showErrorMessage("Failed to restart VLS after update.")
-		}
-	}
-}
-
-export async function restartVls(cli?: LanguageClient): Promise<void> {
-	if (!cli) {
-		void window.showErrorMessage("VLS client is not running.")
-		return
-	}
-
 	try {
-		await cli.restart()
-		void window.showInformationMessage("VLS restarted successfully.")
-	} catch {
-		void window.showErrorMessage("Failed to restart VLS.")
+		const version = document.version
+		const content = document.getText()
+		if (document.fileName.includes("_vfmt_off")) return true
+		// stdin keeps the buffer unsaved while resolving imports from its original directory.
+		// Preserve the formatter's opt-out from JSON migration for .vv fixtures.
+		const args = document.fileName.endsWith(".vv") ? ["fmt", "-no-migrate-json2"] : ["fmt"]
+		const formatted = await executeV(args, document.uri, {
+			input: content,
+			cwd: path.dirname(document.fileName),
+		})
+		if (document.isClosed || document.version !== version) {
+			void window.showWarningMessage(
+				"V: The document changed while formatting. Run Format again.",
+			)
+			return false
+		}
+		if (formatted === content) return true
+		const edit = new WorkspaceEdit()
+		edit.replace(
+			document.uri,
+			new Range(document.positionAt(0), document.positionAt(content.length)),
+			formatted,
+		)
+		return await workspace.applyEdit(edit)
+	} catch (error) {
+		outputChannel.error(String(error))
+		void window.showErrorMessage(`V format failed: ${String(error)}`)
+		return false
 	}
 }
 
-export function registerCommands(context: ExtensionContext): Promise<void> {
+export async function ver(): Promise<string | undefined> {
+	try {
+		const version = (await executeV(["version"])).trim()
+		outputChannel.info(version)
+		void window.showInformationMessage(version)
+		return version
+	} catch (error) {
+		outputChannel.error(String(error))
+		void window.showErrorMessage(`Failed to get V version: ${String(error)}`)
+		return undefined
+	}
+}
+
+export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand("v.run", run),
 		commands.registerCommand("v.fmt", fmt),
 		commands.registerCommand("v.ver", ver),
-		commands.registerCommand("v.prod", prod),
-	)
-	return Promise.resolve()
-}
-
-export function registerVlsCommands(
-	context: ExtensionContext,
-	getClient: () => LanguageClient | undefined,
-): void {
-	context.subscriptions.push(
-		commands.registerCommand("v.vls.update", () => updateVls(getClient())),
-		commands.registerCommand("v.vls.restart", () => restartVls(getClient())),
-		commands.registerCommand("v.vls.openOutput", () => {
-			vlsOutputChannel.show()
-		}),
 	)
 }
