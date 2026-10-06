@@ -299,6 +299,48 @@
 			{
 				"language": "v"
 			}
+		],
+		"walkthroughs": [
+			{
+				"id": "vWelcome",
+				"title": "Get Started with V",
+				"description": "Install V, build and run a project, run the checks that gate a change, and set up agents.",
+				"steps": [
+					{
+						"id": "installV",
+						"title": "Install V",
+						"description": "The extension needs the V compiler. Check whether you have it, and install it if you do not.",
+						"media": {
+							"markdown": "walkthrough/installV.md"
+						},
+						"completionEvents": [
+							"onCommand:v.ver"
+						]
+					},
+					{
+						"id": "buildRunTest",
+						"title": "Build, run, and test",
+						"description": "Build the workspace, run the open module or script, and run the tests with coverage.",
+						"media": {
+							"markdown": "walkthrough/buildRunTest.md"
+						},
+						"completionEvents": [
+							"onCommand:vls.build"
+						]
+					},
+					{
+						"id": "checkVetFmt",
+						"title": "Check, vet, and format",
+						"description": "Run the three gates that the rest of a change hangs on.",
+						"media": {
+							"markdown": "walkthrough/checkVetFmt.md"
+						},
+						"completionEvents": [
+							"onCommand:vls.check"
+						]
+					}
+				]
+			}
 		]
 	},
 	"activationEvents": [

@@ -81,6 +81,12 @@ Problems panel at the right line rather than only in the task output.
 
 ## Usage
 
+The first time you open a V file, the extension offers a three-step walkthrough:
+install V, build and run a project, and run the check, vet and format gates. Each
+step completes when you run the command it describes, so the walkthrough walks you
+through the extension's own commands rather than asking you to read this file
+first.
+
 First you will need to install [Visual Studio Code][vs-code] >= `1.105`.
 In the command palette (`Cmd+Shift+P`) select `Install Extensions` and choose `V`.
 Alternatively you can install the extension from the [Marketplace][market-ext-link].

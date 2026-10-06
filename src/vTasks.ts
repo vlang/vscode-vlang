@@ -490,7 +490,6 @@ export function registerVTasks(context: vscode.ExtensionContext): VTaskManager {
 		vscode.commands.registerCommand("vls.build", () => runPaletteTask("build", manager)),
 		vscode.commands.registerCommand("vls.run", () => runPaletteTask("run", manager)),
 		vscode.commands.registerCommand("vls.test", () => runPaletteTask("test", manager)),
-<<<<<<< HEAD
 		vscode.commands.registerCommand("v.prod", () => runPaletteTask("prod", manager)),
 		vscode.commands.registerCommand("vls.check", () => runPaletteTask("check", manager)),
 		vscode.commands.registerCommand("vls.vet", () => runPaletteTask("vet", manager)),
