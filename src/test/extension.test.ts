@@ -38,7 +38,23 @@ import {
 	processTreeKillCommand,
 } from "../processExecution"
 
+const repositoryRoot = path.resolve(__dirname, "..", "..")
+
 describe("VLS VS Code extension", () => {
+	it("exports an API other extensions can resolve the compiler through", () => {
+		// `golang.go` exports a small surface so other extensions can resolve the
+		// toolchain path. V has the same need, and the API is a thin wrapper over
+		// the resolution the tasks already do, so the export is what matters.
+		const source = fs.readFileSync(path.join(repositoryRoot, "src", "extension.ts"), "utf8")
+		assert.ok(
+			source.includes("export const api = createExtensionAPI()"),
+			"extension.ts does not export the API",
+		)
+		const api = fs.readFileSync(path.join(repositoryRoot, "src", "extensionAPI.ts"), "utf8")
+		assert.ok(api.includes("resolveV"), "the API does not expose resolveV")
+		assert.ok(api.includes("version: 1"), "the API does not declare its version")
+	})
+
 	it("contributes build, run, and test commands and tasks", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
 		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
