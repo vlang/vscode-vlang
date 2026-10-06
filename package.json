@@ -30,7 +30,7 @@
 		"lint:md": "markdownlint README.md",
 		"fmt": "prettier -w .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
+		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/mcp.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/mcp.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -49,6 +49,12 @@
 		"Programming Languages"
 	],
 	"contributes": {
+		"mcpServerDefinitionProviders": [
+			{
+				"id": "vCompiler",
+				"label": "V Compiler"
+			}
+		],
 		"snippets": [
 			{
 				"language": "v",
@@ -136,6 +142,24 @@
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"v.mcp.enable": {
+					"type": "boolean",
+					"default": true,
+					"scope": "resource",
+					"description": "Offer the V compiler to agents as an MCP server, giving them the compiler's own view of the project: declarations, references, diagnostics and standard library documentation. Needs a V that supports `v mcp`."
+				},
+				"v.mcp.readOnly": {
+					"type": "boolean",
+					"default": true,
+					"scope": "resource",
+					"description": "Start the V MCP server with --read-only, which registers no tool that writes a file. Turning this off also exposes v_rename_symbol, v_format and v_edit_replace. Note that v_edit_replace has no preview: it writes as soon as the range matches the text the agent passed back, so passing that text is what approves the edit."
+				},
+				"v.mcp.root": {
+					"type": "string",
+					"default": "",
+					"scope": "resource",
+					"description": "Directory the V MCP server resolves relative paths against. Empty means each workspace folder. Set it when the V project root differs from the folder you opened."
 				}
 			}
 		},

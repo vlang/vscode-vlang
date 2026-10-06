@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- The V compiler is offered to agents as an MCP server, one per workspace
+  folder. `v mcp serve` calls the parser, checker and formatter in process, so an
+  agent can ask what a file declares, what does not compile, where a symbol is
+  used, and what a standard library call takes, with answers that hold for code
+  that does not compile yet. It carries the standard library documentation too,
+  so an agent can look a signature up instead of guessing one.
+- `v.mcp.enable`, `v.mcp.readOnly` and `v.mcp.root` control the server. It starts
+  read-only by default, which registers no tool that writes a file.
 
 ## 0.2.1
 
