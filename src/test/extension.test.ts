@@ -89,6 +89,29 @@ describe("VLS VS Code extension", () => {
 		)
 	})
 
+	it("offers VLS the documents it can actually answer for", () => {
+		const source = fs.readFileSync(path.join(repositoryRoot, "src", "extension.ts"), "utf8")
+		const start = source.indexOf("documentSelector: [")
+		const block = source.slice(start, start + 400)
+		const selectors = [...block.matchAll(/scheme:\s*"([^"]+)",\s*language:\s*"([^"]+)"/g)].map(
+			(match) => `${match[1]}:${match[2]}`,
+		)
+		assert.deepStrictEqual(selectors, ["file:v", "untitled:v"])
+
+		// `contributes.languages` declares `v.mod` so it gets highlighting, but VLS
+		// guards every request with `path.ends_with('.v') || path.ends_with('.vsh')`,
+		// so adding it here would send requests it refuses.
+		const declared = readManifest().contributes.languages.map(
+			(entry: { id: string }) => entry.id,
+		)
+		assert.ok(declared.includes("v.mod"))
+		assert.ok(!selectors.includes("file:v.mod"))
+
+		// `untitled` is worth having because VLS trusts the text the client sends in
+		// didOpen instead of requiring the file on disk.
+		assert.ok(selectors.includes("untitled:v"))
+	})
+
 	it("declares every registered command, and no command it does not register", () => {
 		const declared = new Set<string>(
 			readManifest().contributes.commands.map((entry: { command: string }) => entry.command),

@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `V: Open V Language Server Output` is now declared in the manifest. It was
   registered but unreachable, so it did not appear in the Command Palette and
   could not be bound to a key.
+- Unsaved `.v` files now get VLS features. The selector covered only
+  `scheme: "file"`, and VLS reads the buffer text the client sends rather than
+  requiring the file on disk, so an `untitled` scratch file got no completion and
+  no diagnostics.
 - The six settings from the former VLS extension are now declared, with a
   deprecation message naming their replacement. `migratedSetting` keeps honouring
   them, but a user who had set one was told "Unknown Configuration Setting" with
@@ -31,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   legacy setting honoured in code must be declared and say what replaced it. Both
   read the ids out of the source, so a new one cannot be registered and left
   behind without a failure.
+- A test pins the `documentSelector` to the documents VLS can answer for, so
+  neither `untitled` nor an unsupported language id is changed without a reason.
 
 ## 0.2.1
 

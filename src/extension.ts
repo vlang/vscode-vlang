@@ -48,7 +48,17 @@ async function createAndStartClient(taskManager: ReturnType<typeof registerVTask
 	}
 
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: "file", language: "v" }],
+		// `untitled` is here because VLS reads the buffer text the client sends rather
+		// than requiring the file on disk, so an unsaved scratch file gets real
+		// completion and diagnostics instead of none.
+		//
+		// `v.mod` is deliberately absent. `contributes.languages` declares it so it
+		// gets highlighting, but VLS guards every request with `path.ends_with('.v')`
+		// or `.vsh`, so offering it would send requests it refuses.
+		documentSelector: [
+			{ scheme: "file", language: "v" },
+			{ scheme: "untitled", language: "v" },
+		],
 		outputChannel: vlsOutputChannel,
 		synchronize: {
 			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.v"),
