@@ -4,8 +4,7 @@ import * as vscode from "vscode"
 import { ConfigurationChangeEvent, ExtensionContext, WorkspaceFolder, workspace } from "vscode"
 import { log } from "./logger"
 import { describeServer, McpToolCatalog, mcpServerArgs, parseToolCatalog } from "./mcpProbe"
-import { migratedSetting } from "./settings"
-import { configuredCommand, resolvedCommand } from "./vCommand"
+import { vCommandFor } from "./vExecutable"
 
 const execFile = promisify(_execFile)
 
@@ -20,19 +19,6 @@ const probeTimeoutMs = 10_000
  * `v.executablePath` rarely changes while a window is open.
  */
 const catalogCache = new Map<string, Promise<McpToolCatalog | undefined>>()
-
-/** The `v` to use for a folder, resolved the same way VLS and the tasks resolve it. */
-export function vCommandFor(folder: WorkspaceFolder): string {
-	const configured = migratedSetting(
-		"v",
-		"executablePath",
-		"vls",
-		"vCommand",
-		"v",
-		folder.uri,
-	)
-	return resolvedCommand(configured, folder.uri.fsPath) ?? configuredCommand(configured, folder.uri.fsPath)
-}
 
 /** Ask a compiler for its MCP tool list.
  *
