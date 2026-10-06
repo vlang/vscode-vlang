@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- A debugger. V programs can now be launched under `gdb` from the Run and Debug
+  view, with breakpoints in V source resolving through the DWARF debug info the
+  compile step produces. The extension contributes a `type: "v"` debugger with a
+   default launch configuration, so no `launch.json` has to be written by hand.
 
 ## 0.2.1
 
