@@ -150,7 +150,7 @@ async function main() {
 					name: "vscode-vlang-test-runner",
 					publisher: "local",
 					version: "0.0.1",
-					engines: { vscode: "^1.105.0" },
+					engines: manifest.engines,
 					main: "./extension.js",
 				}),
 			)

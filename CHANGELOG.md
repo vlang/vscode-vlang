@@ -54,12 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require VS Code 1.140.0 and target its API types, incorporating the upstream
+  dependency update while retaining extension version 0.3.0.
 - Require VLS 0.0.3 or newer, as reported by `vls --version`.
   Accept external installations that report a supported version or commit and
   offer installation or update for older or unverifiable servers. Do not enforce
   a V compiler revision or run compiler compatibility queries.
 - Migrate formatting to Oxfmt and linting to Oxlint with type-aware rules; update
-  editor recommendations and enforce formatting in CI.
+  editor recommendations and enforce formatting in CI. Use Oxfmt 0.72.0 and
+  Oxlint 1.87.0.
 - Update development dependencies, TypeScript to 7, and the language client to
   10.1.2. Override the Markdown CLI's pinned js-yaml with the patched 5.4.2 line.
 - Replace the unsafe V installer and placeholder VLS update command with managed

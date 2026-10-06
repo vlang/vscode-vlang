@@ -133,7 +133,7 @@ item or run `V: Clear Test Coverage` to remove the highlights.
 
 ## Usage
 
-First you will need to install [Visual Studio Code][vs-code] >= `1.105`.
+First you will need to install [Visual Studio Code][vs-code] >= `1.140`.
 In the command palette (`Cmd+Shift+P`) select `Install Extensions` and choose `V`.
 Alternatively you can install the extension from the [Marketplace][market-ext-link].
 Now open any `.v`, `.vsh`, `.vh`, or `.vv` file in VS Code.
@@ -167,7 +167,7 @@ Development and CI use Node.js 24. Run `npm run fmt` to format with Oxfmt,
 `npm run fmt:check` to verify formatting, and `npm run lint` for Oxlint with
 type-aware TypeScript rules. The recommended Oxc editor extension provides both
 formatting and lint diagnostics. TypeScript checks continue to target the declared
-minimum VS Code API (1.105) and Node 24; their types are intentionally constrained
+minimum VS Code API (1.140) and Node 24; their types are intentionally constrained
 to those versions.
 
 Open the output console (`Cmd+Shift+U`) to see the debug output from the extension.
