@@ -56,7 +56,16 @@ describe("VLS VS Code extension", () => {
 			"run",
 			"test",
 			"prod",
+			"check",
+			"vet",
+			"fmt",
 		])
+		// Every enum entry needs a description, or a user picking one from a task
+		// picker sees a bare word with no idea what it runs.
+		assert.strictEqual(
+			taskDefinition.properties.action.enumDescriptions.length,
+			taskDefinition.properties.action.enum.length,
+		)
 		assert.ok(manifest.contributes.configuration.properties["v.executablePath"])
 		assert.strictEqual(
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
@@ -357,6 +366,24 @@ describe("VLS VS Code extension", () => {
 			action: "test",
 			args: ["-nocolor", "test", "."],
 			name: "Test",
+		})
+		// The three gates the rest of a change hangs on. `v -check` type-checks
+		// without producing a binary, `v vet -W` treats warnings as errors, and
+		// `v fmt -verify` reports whether the formatter would change anything.
+		assert.deepStrictEqual(workspaceTaskSpec("check"), {
+			action: "check",
+			args: ["-nocolor", "-check", "."],
+			name: "Check",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("vet"), {
+			action: "vet",
+			args: ["-nocolor", "vet", "-W", "."],
+			name: "Vet",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("fmt"), {
+			action: "fmt",
+			args: ["-nocolor", "fmt", "-verify", "."],
+			name: "Format Check",
 		})
 	})
 
