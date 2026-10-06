@@ -30,7 +30,7 @@
 		"lint:md": "markdownlint README.md",
 		"fmt": "prettier -w .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
+		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/debugCompile.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/debugCompile.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -274,6 +274,51 @@
 		"breakpoints": [
 			{
 				"language": "v"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "v",
+				"label": "V",
+				"configurationAttributes": {
+					"launch": {
+						"required": ["program"],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "The V source file to debug.",
+								"default": "${file}"
+							},
+							"args": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "Arguments passed to the program.",
+								"default": []
+							},
+							"stopAtEntry": {
+								"type": "boolean",
+								"description": "Break at the start of the program.",
+								"default": false
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory for the program. Defaults to the workspace folder.",
+								"default": "${workspaceFolder}"
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "v",
+						"request": "launch",
+						"name": "Debug V Program",
+						"program": "${file}",
+						"stopAtEntry": false
+					}
+				]
 			}
 		]
 	},

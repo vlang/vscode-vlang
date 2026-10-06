@@ -1,5 +1,6 @@
 import { registerCommands, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
+import { registerDebugger } from "./debugger"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
@@ -92,6 +93,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Offer a code action that generates a test skeleton. Registered here so it is
 	// available as soon as a V file is opened, without waiting for anything else.
 	registerCodeActions(context)
+	// Register the debugger so a V program can be launched under gdb. The compile
+	// step happens inside the factory, so no task needs to be defined first.
+	registerDebugger(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {

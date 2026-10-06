@@ -105,6 +105,16 @@ a local VS Code test build if `CODE_EXECUTABLE` is unset. Set `VLS_BINARY` and
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
 
+## Debugging
+
+V programs can be debugged from the Run and Debug view. The extension contributes
+a `type: "v"` debugger that compiles the program with `-g` and launches it under
+`gdb`, so breakpoints in V source resolve through the DWARF debug info.
+
+A default launch configuration is provided, so starting a debug session does not
+require writing a `launch.json` by hand. The `program` field is the V source file
+to debug; `args`, `stopAtEntry` and `cwd` are optional.
+
 ## License
 
 The extension is distributed under [GPL-2.0-only](./LICENSE) because its
