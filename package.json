@@ -30,7 +30,7 @@
 		"lint:md": "markdownlint README.md",
 		"fmt": "prettier -w .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
+		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/agent.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/agent.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -248,6 +248,21 @@
 			{
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.skills.install",
+				"title": "Install V Agent Skills",
+				"category": "V"
+			},
+			{
+				"command": "v.skills.status",
+				"title": "Show V Agent Skill Status",
+				"category": "V"
+			},
+			{
+				"command": "v.skills.update",
+				"title": "Update V Agent Skills",
 				"category": "V"
 			}
 		],
