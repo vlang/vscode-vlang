@@ -2,7 +2,12 @@ import * as assert from "assert"
 import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
-import { debugBinaryPath, debugCompileArgs } from "../debugCompile"
+import {
+	debugBinaryPath,
+	debugCompileArgs,
+	debugSessionArgs,
+	missingDebuggerMessage,
+} from "../debugCompile"
 
 describe("V debug compile", () => {
 	it("writes the debug binary to a temporary directory", () => {
@@ -32,5 +37,51 @@ describe("V debug compile", () => {
 		const first = debugBinaryPath("/w/app/src/main.v")
 		const second = debugBinaryPath("/w/app/src/main.v")
 		assert.notStrictEqual(first, second)
+	})
+
+	it("breaks on wmain for stopAtEntry on Windows", () => {
+		// V inlines `fn main` into the C entry point, which is `wmain` on
+		// Windows — there is no `main` symbol, and `break main` answers
+		// "Function main not defined". Verified against a `-g` build:
+		// `break wmain` stops at the first V statement.
+		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", true, "win32"), [
+			"--interpreter=mi2",
+			"--eval-command",
+			"break wmain",
+			"--",
+			"/tmp/v-debug-main",
+		])
+	})
+
+	it("breaks on main for stopAtEntry elsewhere", () => {
+		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", true, "linux"), [
+			"--interpreter=mi2",
+			"--eval-command",
+			"break main",
+			"--",
+			"/tmp/v-debug-main",
+		])
+	})
+
+	it("places the eval-command before the binary", () => {
+		// gdb treats everything after `--` as excess executable arguments,
+		// so an eval-command placed after the binary never runs.
+		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", false, "win32"), [
+			"--interpreter=mi2",
+			"--",
+			"/tmp/v-debug-main",
+		])
+	})
+
+	it("names a per-OS install route when gdb is missing", () => {
+		// A first debug session on default Windows or any macOS dies on a
+		// raw spawn error without this; the message must say what to do.
+		assert.ok(missingDebuggerMessage("win32").includes("MSYS2"))
+		assert.ok(missingDebuggerMessage("darwin").includes("brew install gdb"))
+		assert.ok(missingDebuggerMessage("linux").includes("apt install gdb"))
+		for (const platform of ["win32", "darwin", "linux"] as const) {
+			assert.ok(missingDebuggerMessage(platform).includes("gdb"))
+			assert.ok(missingDebuggerMessage(platform).includes("PATH"))
+		}
 	})
 })

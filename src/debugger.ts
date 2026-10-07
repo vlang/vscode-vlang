@@ -2,7 +2,13 @@ import { execFile as _execFile } from "child_process"
 import { promisify } from "util"
 import * as path from "path"
 import * as vscode from "vscode"
-import { debugBinaryPath, debugCompileArgs } from "./debugCompile"
+import {
+	debugBinaryPath,
+	debugCompileArgs,
+	debugSessionArgs,
+	missingDebuggerMessage,
+} from "./debugCompile"
+import { findInPath } from "./vCommand"
 import { vCommandFor } from "./vExecutable"
 
 const execFile = promisify(_execFile)
@@ -20,7 +26,6 @@ const compileTimeoutMs = 60_000
  * expects from an external program.
  */
 const debugAdapterCommand = "gdb"
-const debugAdapterArgs = ["--interpreter=mi2"]
 
 /** The shape of a V debug configuration.
  *
@@ -66,12 +71,14 @@ export class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescri
 		return vscode.window.withProgress(
 			{ location: vscode.ProgressLocation.Window, title: "Compiling V for debugging..." },
 			async () => {
-				const binary = await compileForDebug(vCommand, configuration.program, cwd)
-				const args = [...debugAdapterArgs, "--", binary]
-				if (configuration.stopAtEntry) {
-					args.push("--eval-command", "break main")
+				if (!findInPath(debugAdapterCommand)) {
+					throw new Error(missingDebuggerMessage())
 				}
-				return new vscode.DebugAdapterExecutable(debugAdapterCommand, args)
+				const binary = await compileForDebug(vCommand, configuration.program, cwd)
+				return new vscode.DebugAdapterExecutable(
+					debugAdapterCommand,
+					debugSessionArgs(binary, configuration.stopAtEntry ?? false),
+				)
 			},
 		)
 	}
