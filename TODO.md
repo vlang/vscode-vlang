@@ -19,7 +19,7 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       `vls.diagnostics.enabled`, `vls.coverage.enabled`) declared in
       `package.json` with `markdownDeprecationMessage` naming the `v.*`
       replacement. Pinned by `declares deprecated vls.* aliases for
-      migrated settings` (red before, green after). Declaration is
+migrated settings` (red before, green after). Declaration is
       display-only: `migratedSetting` inspects set values, not defaults,
       so migration behavior is unchanged.
 - [x] **D0-1 `stopAtEntry` semantics.** Done 2026-10-07 on this
@@ -32,14 +32,14 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       eval-command before `--`. Verified `break wmain` stops at the first
       V statement with V source shown. Follow-up found, not fixed here:
       file:line breakpoints fail on Windows/stabs (`No source file
-      named`, MI-proven), so user-set V breakpoints likely fail there —
+named`, MI-proven), so user-set V breakpoints likely fail there —
       needs the DWARF route or a GDB-version check as its own item.
 - [x] **D0-2 gdb-missing error path.** Done 2026-10-07 on this
       branch: the factory fails fast with `missingDebuggerMessage()` when
       `findInPath("gdb")` finds nothing — before the 60s compile — with a
       per-OS install route (MSYS2/MinGW on win32, brew+codesign on
       darwin, apt/dnf on linux). Pinned by `names a per-OS install route
-      when gdb is missing` (red before, green after). Full suite: 97
+when gdb is missing` (red before, green after). Full suite: 97
       tests, 86 pass, same 7 pre-existing Windows failures.
 - [x] **D0-3 Prove the free DAP column.** Done 2026-10-07, verdict:
       the column is empty — one root cause. `DebugAdapterExecutable`
@@ -108,6 +108,14 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       fix Windows/stabs file:line breakpoints (GDB-level, MI-proven) —
       that stays a separate defect. Keep (a) as the independence
       fallback.
+      Implemented 2026-10-07 on this branch: `resolveDebugConfiguration`
+      compiles, fail-fasts on missing gdb / missing cpptools (with
+      install action), and rewrites `type: "v"` to a generated
+      `cppdbg` config (`cppdbgLaunchConfig()`, tested); the raw-MI
+      adapter factory and `debugSessionArgs` are removed. Suite: 96
+      tests, 85 pass, same 7 pre-existing failures. Live-session proof
+      still deferred (no cpptools on this machine): install it, F5 on a
+      `-g` fixture, expect stop-at-entry + variables + call stack.
 - [ ] **D2-1 Attach + process picker** (`request: attach`,
       `processId: ${command:pickProcess}`). Needs D2-0.
 - [ ] **D2-2 Debug CodeLens over `fn main`.** Extend the existing
