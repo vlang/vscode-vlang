@@ -1,15 +1,17 @@
 import * as path from "path"
 import {
 	commands,
+	env,
 	ExtensionContext,
 	Range,
 	TextDocument,
+	Uri,
 	window,
 	workspace,
 	WorkspaceEdit,
 } from "vscode"
 import { executeV } from "./exec"
-import { outputChannel } from "./logger"
+import { outputChannel, vlsOutputChannel } from "./logger"
 
 function activeVDocument(): TextDocument | undefined {
 	const document = window.activeTextEditor?.document
@@ -82,5 +84,28 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand("v.run", run),
 		commands.registerCommand("v.fmt", fmt),
 		commands.registerCommand("v.ver", ver),
+	)
+}
+
+async function updateVls(): Promise<void> {
+	// Managed installation lives in the tool manager, which this activation
+	// does not construct. Point at the releases instead of failing silently.
+	const action = await window.showInformationMessage(
+		"Update VLS by installing the latest build, then set v.vls.command.",
+		"Open VLS releases",
+	)
+	if (action === "Open VLS releases") {
+		await env.openExternal(Uri.parse("https://github.com/vlang/vls/releases"))
+	}
+}
+
+/** Register the VLS lifecycle commands for a client owned elsewhere. */
+export function registerVlsCommands(context: ExtensionContext, restart: () => Promise<void>): void {
+	context.subscriptions.push(
+		commands.registerCommand("v.vls.restart", () => restart()),
+		commands.registerCommand("v.vls.update", () => updateVls()),
+		commands.registerCommand("v.vls.openOutput", () => {
+			vlsOutputChannel.show()
+		}),
 	)
 }

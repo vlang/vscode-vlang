@@ -1,0 +1,14 @@
+{
+	"useTabs": true,
+	"tabWidth": 4,
+	"semi": false,
+	"printWidth": 100,
+	"endOfLine": "auto",
+	"trailingComma": "all",
+	"overrides": [
+		{
+			"files": ["**/*.{yml,yaml}"],
+			"options": { "useTabs": false, "tabWidth": 2 }
+		}
+	]
+}

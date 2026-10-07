@@ -38,6 +38,22 @@ function featureEnabled(feature: "inlayHints.enabled" | "diagnostics"): boolean 
 	)
 }
 
+/** Whether the V language server is enabled in settings. */
+export function isVlsEnabled(): boolean {
+	return vscode.workspace.getConfiguration("v.vls").get<boolean>("enable", true)
+}
+
+/** Resolve the VLS executable the same way a server start does. */
+export function getVls(folder?: vscode.WorkspaceFolder): string {
+	const setting =
+		migratedSetting("v.vls", "command", "vls", "command", "", folder?.uri).trim() || "vls"
+	const resolved = resolvedCommand(effectiveToolSetting("vls", setting), folder?.uri.fsPath)
+	if (!resolved) {
+		throw new Error(`VLS not found: ${setting}. Set v.vls.command or install VLS.`)
+	}
+	return resolved
+}
+
 async function sendSettings(client: LanguageClient): Promise<void> {
 	await client.sendNotification("workspace/didChangeConfiguration", {
 		settings: {
