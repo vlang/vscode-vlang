@@ -23,65 +23,15 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ### V Language Server
 
-Version 0.3.0 requires VLS 0.0.3 or newer, as reported by `vls --version`, for
-its V3 query and rename validation changes. Older servers, and servers that do
-not report a version, are unsupported and offer `V: Install or Update VLS`.
-
-When V or [VLS](https://github.com/vlang/vls) is missing, the extension offers to
-install it. It also checks upstream revisions at most once a day on activation
-and offers updates. Nothing is installed or updated without accepting the prompt.
-Use `V: Check for Tool Updates` to check immediately, or `V: Install or Update V`
-and `V: Install or Update VLS` for one tool.
-
-Accepted installations build the latest official `master` revision from source;
-they require Git, GNU make, a shell and a C compiler. On Windows, GNU make
-(`make`, `gmake`, or MSYS2's `mingw32-make`) and a POSIX shell (`sh`, such as
-Git Bash or MSYS2's shell) must be on the extension host's PATH. Recent V versions
-also build the compatibility compiler that VLS retains as a fallback. VLS uses
-V3 first for compiler queries and requires V3 semantic validation for rename.
-Use a recent V master compiler for those semantic features. Before building
-VLS, the extension checks that V accepts `-new-compiler`; releases up to 0.5.2
-do not, so it stops with an explanation instead of failing during the build.
-If V is missing, a second prompt offers to install it first.
-Each build uses a new directory in the extension's global storage. After verifying
-the executable, the extension selects it for this machine and restarts VLS. The
-selection is kept in the extension's state, not in settings, so Settings Sync never
-shares machine-specific paths. Managed tools are used while `v.executablePath` is
-`v` and `v.vls.command` is empty, their defaults; accepting an installation while
-either names another executable resets it to the default. Set an explicit path to
-use a different executable. Accepting an update deletes the managed build it
-replaces. If that build is still running elsewhere (Windows cannot delete a
-running executable), it is deleted on the next activation or installation. Other
-open windows keep using the replaced build in VLS and ask you to reload them.
-Builds interrupted more than a day ago are removed.
-Failed or cancelled builds do not change the selection.
-These managed tools are available to this extension, not added to your shell PATH.
-
-V and VLS in PATH and custom executable paths remain supported. Managed and
-external VLS alike are checked with `vls --version`, which works offline.
-Managed builds also record their commit and executable hash, so update checks
-can compare them with upstream; a changed binary loses that metadata. An external
-VLS reports only its version and cannot be compared by commit, so update checks
-leave it alone; `V: Install or Update VLS` offers the upstream build only when
-upstream declares a newer VLS version. Unavailable update checks are logged,
-retried on the next activation, and do not prevent a supported installation from
-running. Formatting and tasks
-remain available without a supported VLS.
-
-The status bar shows whether VLS is starting, active, stopped, disabled, missing,
-or in error. Click it to open the server log or install a missing server.
-`V: Restart VLS` reloads the executable, arguments, compiler path, and feature
-settings, including after a failed startup.
-Changing a server setting automatically restarts VLS. Settings are also sent again
-after automatic crash recovery.
-Automatic recovery stops after five restart attempts within three minutes; fix
-the server problem and use `V: Restart VLS` to try again.
+Install [VLS](https://github.com/vlang/vls) and ensure the `vls`
+executable is in PATH. Alternatively, set `v.vls.command` to its
+absolute path. The extension starts VLS over stdio when a V workspace
+is opened.
 
 The available VLS settings are:
 
 - `v.vls.enable`: enable or disable VLS
-- `v.vls.command`: path to a supported VLS executable, including external
-  installations; supports `~`, `${env:NAME}`, and `${workspaceFolder}`
+- `v.vls.command`: path or command name for the VLS executable
 - `v.vls.args`: additional command-line arguments
 - `v.vls.inlayHints.enabled`: enable or disable inlay hints
 - `v.vls.diagnostics`: enable or disable live diagnostics
@@ -89,21 +39,10 @@ The available VLS settings are:
   covered and uncovered executable lines
 - `v.executablePath`: V compiler used by VLS and tasks; supports absolute
   paths, `~`, `${env:NAME}`, and `${workspaceFolder}`
-- `v.tools.checkForUpdates`: enable automatic update checks (default: true).
-  A missing tool prompts for installation once per configuration; manual checks
-  always prompt.
-- `v.tools.updateChannel`: track the latest V `master` commit (default) or the
-  latest published V `release`. VLS always tracks master. Use a recent V master
-  compiler for current VLS semantic features.
 
 Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
-
-VLS uses one compiler per server process, selected from the active workspace
-folder at startup or the first folder when no folder is active. Tasks and manual
-formatting use the compiler configured for their target folder. Workspaces that
-require different compiler versions should use separate VS Code windows.
 
 ### Build, run, and test
 
@@ -116,43 +55,35 @@ before running.
 `V: Run current file` uses the same run task. For a `.v` file, it runs the
 containing module; for a `.vsh` file, it runs the script.
 
-`V: Build optimized module` builds the active module with `v -prod`,
-using the same save checks and task output as the other build commands. The
-`prod` action is also available in `tasks.json`. Optimized builds reject `.vsh`
-scripts because V can execute their top-level code during compilation.
-
-`V: Format current file` formats the current editor buffer with `v fmt` and
-applies an undoable edit. It does not save the source file and refuses to replace
-text changed while the formatter was running. Standard editor formatting is
-provided by VLS when the server is available.
-
 VLS CodeLens actions such as `Run Main`, `Run File`, and `Run Test` use the
 same tasks. Test runs collect coverage by default. Covered executable lines
 are highlighted green and uncovered lines red. Click the coverage status
 item or run `V: Clear Test Coverage` to remove the highlights.
 
+To create a test file from a source file, run **V: Generate Test File**. It
+creates the `_test.v` file beside the source with one `test_` function per public
+function, each with a placeholder assertion to replace. It refuses to overwrite
+an existing test file.
+
 ## Usage
 
-First you will need to install [Visual Studio Code][vs-code] >= `1.140`.
+First you will need to install [Visual Studio Code][vs-code] >= `1.105`.
 In the command palette (`Cmd+Shift+P`) select `Install Extensions` and choose `V`.
 Alternatively you can install the extension from the [Marketplace][market-ext-link].
 Now open any `.v`, `.vsh`, `.vh`, or `.vv` file in VS Code.
 
-The extension does not install the C/C++ extension. Breakpoints remain available
-for users who configure a compatible debugger separately; no V debug adapter or
-automatic debug configuration is included.
+_Note_: It is recommended to turn `Auto Save` on
+in Visual Studio Code (`File -> Auto Save`) when using this extension.
 
 ## Commands
 
 - `V: Run current file`
 - `V: Format current file`
-- `V: Build optimized module`
+- `V: Build an optimized executable from current file`
+- `V: Generate Test File`
 - `V: Show V version`
-- `V: Install or Update V`
-- `V: Install or Update VLS`
-- `V: Check for Tool Updates`
+- `V: Update VLS`
 - `V: Restart VLS`
-- `V: Show Language Server Output`
 - `V: Build`, `V: Run`, and `V: Test`
 - `V: Clear Test Coverage`
 
@@ -160,35 +91,19 @@ You can access all of the above commands from the command palette (`Cmd+Shift+P`
 
 ## Debug the extension
 
-Clone this repository and run `npm ci` to install the locked dependencies.
+Clone this repository and run `npm install` to install the dependencies.
 Then press `F5` to open a new VS Code window with the extension loaded.
-
-Development and CI use Node.js 24. Run `npm run fmt` to format with Oxfmt,
-`npm run fmt:check` to verify formatting, and `npm run lint` for Oxlint with
-type-aware TypeScript rules. The recommended Oxc editor extension provides both
-formatting and lint diagnostics. TypeScript checks continue to target the declared
-minimum VS Code API (1.140) and Node 24; their types are intentionally constrained
-to those versions.
 
 Open the output console (`Cmd+Shift+U`) to see the debug output from the extension.
 
 Run `Cmd+Shift+P` and select `Preferences: Open User Settings` to update settings.
 
 Run `npm test` for logic checks and `npm run test:vscode` for an extension-host
-check. The latter uses a real V compiler from `V_BINARY` or PATH and a deterministic
-LSP fixture by default. Set `VLS_BINARY` to test a real VLS executable instead.
-It downloads a local VS Code test build if `CODE_EXECUTABLE` is unset. Tests use
-an isolated workspace, extensions directory, and user profile.
-After `npm run package`, set
+check. The latter uses `~/code/vls/vls` and `~/code/v/v` by default and downloads
+a local VS Code test build if `CODE_EXECUTABLE` is unset. Set `VLS_BINARY` and
+`V_BINARY` to use other binaries. After `npm run package`, set
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
-
-CI runs the deterministic fixture and the pinned current VLS on Linux and macOS.
-The fixture checks configuration, recovery, and refusal to start unsupported
-external versions. Real-server checks cover compiler queries, auto-imports, inlay
-hints, rename across source and test files, and refusal of conflicting renames.
-Both use external executables without installation metadata and leave existing
-tools untouched.
 
 ## License
 
