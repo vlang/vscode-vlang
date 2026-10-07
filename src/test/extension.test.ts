@@ -18,7 +18,7 @@ import {
 	taskWorkingDirectory,
 	workspaceTaskSpec,
 } from "../taskSpec"
-import { serverCommand } from "../vCommand"
+import { configuredCommand, expandConfiguredPath, serverCommand } from "../vCommand"
 import {
 	canonicalFilePath,
 	coverageArgsForRun,
@@ -499,5 +499,42 @@ describe("VLS VS Code extension", () => {
 		)
 		const missing = path.join("/missing", "custom-v")
 		assert.strictEqual(serverCommand(missing, "/workspace"), missing)
+	})
+
+	it("expands ~ in the configured VLS server command", () => {
+		// vlang/vls#484: `v.vls.command` set to `~/bin/vls` must resolve
+		// against the home directory. `langserver.ts` resolves the setting
+		// through `resolvedCommand` -> `configuredCommand`, so pinning the
+		// expansion here pins the server path too.
+		const home = os.homedir()
+		assert.strictEqual(
+			expandConfiguredPath(path.join("~", "bin", "vls")),
+			path.join(home, "bin", "vls"),
+		)
+		assert.strictEqual(
+			configuredCommand(path.join("~", "bin", "vls"), "/workspace"),
+			path.join(home, "bin", "vls"),
+		)
+	})
+
+	it("declares deprecated vls.* aliases for migrated settings", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const properties = manifest.contributes.configuration.properties
+		const aliases: Array<[string, string]> = [
+			["vls.command", "v.vls.command"],
+			["vls.args", "v.vls.args"],
+			["vls.vCommand", "v.executablePath"],
+			["vls.inlayHints.enabled", "v.vls.inlayHints.enabled"],
+			["vls.diagnostics.enabled", "v.vls.diagnostics"],
+			["vls.coverage.enabled", "v.vls.coverage.enabled"],
+		]
+		for (const [alias, replacement] of aliases) {
+			assert.ok(properties[alias], `missing declaration for ${alias}`)
+			assert.ok(
+				properties[alias].markdownDeprecationMessage?.includes(replacement),
+				`${alias} must name ${replacement}`,
+			)
+		}
 	})
 })
