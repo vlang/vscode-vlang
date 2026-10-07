@@ -137,6 +137,47 @@
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"vls.command": {
+					"type": "string",
+					"default": "",
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.command` instead.",
+					"description": "Deprecated alias of `v.vls.command`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.args": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.args` instead.",
+					"description": "Deprecated alias of `v.vls.args`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.vCommand": {
+					"scope": "resource",
+					"type": "string",
+					"default": "v",
+					"markdownDeprecationMessage": "Deprecated: use `v.executablePath` instead.",
+					"description": "Deprecated alias of `v.executablePath`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.inlayHints.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.inlayHints.enabled` instead.",
+					"description": "Deprecated alias of `v.vls.inlayHints.enabled`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.diagnostics.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.diagnostics` instead.",
+					"description": "Deprecated alias of `v.vls.diagnostics`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.coverage.enabled": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.coverage.enabled` instead.",
+					"description": "Deprecated alias of `v.vls.coverage.enabled`. Kept so settings from the former VLS extension keep working."
 				}
 			}
 		},
