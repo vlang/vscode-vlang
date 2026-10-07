@@ -18,6 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   view, with breakpoints in V source resolving through the DWARF debug info the
   compile step produces. The extension contributes a `type: "v"` debugger with a
    default launch configuration, so no `launch.json` has to be written by hand.
+- Deprecated `vls.*` settings declared in the manifest. Settings carried over
+  from the former VLS extension (`vls.command`, `vls.args`, `vls.vCommand`,
+  `vls.inlayHints.enabled`, `vls.diagnostics.enabled`, `vls.coverage.enabled`)
+  now show a deprecation message naming the `v.*` replacement instead of an
+  "Unknown Configuration Setting" warning. Migration behavior is unchanged.
+
+### Fixed
+
+- Debugger `stopAtEntry` on Windows. The entry breakpoint targeted a `main`
+  symbol that does not exist (V inlines `fn main` into `wmain`), and the
+  `--eval-command` was placed after `-- <binary>` where gdb ignores it, so
+  the option silently did nothing. It now breaks on `wmain` on Windows
+  (`main` elsewhere) with the eval-command before the binary.
+- Debugger fails fast with an actionable per-OS install hint when `gdb` is
+   not on PATH, instead of a raw spawn error after the compile step.
 
 ## 0.2.1
 

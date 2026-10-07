@@ -110,6 +110,8 @@ VSIX in an isolated VS Code profile.
 V programs can be debugged from the Run and Debug view. The extension contributes
 a `type: "v"` debugger that compiles the program with `-g` and launches it under
 `gdb`, so breakpoints in V source resolve through the DWARF debug info.
+The bundled adapter is experimental and under repair (see TODO.md item D2-0);
+`gdb` must be on PATH.
 
 A default launch configuration is provided, so starting a debug session does not
 require writing a `launch.json` by hand. The `program` field is the V source file
