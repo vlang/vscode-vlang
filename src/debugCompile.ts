@@ -28,31 +28,6 @@ export function debugCompileArgs(program: string, binary: string): string[] {
 	return ["-g", "-o", binary, program]
 }
 
-/** The GDB command line for a debug session on a compiled binary.
- *
- * `--eval-command` must come before `-- <binary>`: gdb treats everything
- * after `--` as excess executable arguments and ignores it, so an
- * eval-command placed after the binary never runs.
- *
- * The entry symbol is platform dependent. V inlines `fn main` into the C
- * entry point, which is `wmain` on Windows — there is no `main` symbol at
- * all, and `break main` answers "Function main not defined". Verified
- * against a `-g` build on Windows: `break wmain` stops at the first V
- * statement with the V source line shown. `platform` defaults to the host
- * so tests can pin each branch.
- */
-export function debugSessionArgs(
-	binary: string,
-	stopAtEntry: boolean,
-	platform: NodeJS.Platform = process.platform,
-): string[] {
-	const args = ["--interpreter=mi2"]
-	if (stopAtEntry) {
-		args.push("--eval-command", `break ${platform === "win32" ? "wmain" : "main"}`)
-	}
-	args.push("--", binary)
-	return args
-}
 
 /** Actionable error when GDB is not on PATH.
  *
@@ -70,4 +45,52 @@ export function missingDebuggerMessage(platform: NodeJS.Platform = process.platf
 				? "Install GDB (`brew install gdb`) and codesign it per the GDB macOS instructions."
 				: "Install GDB (`sudo apt install gdb` or `sudo dnf install gdb`)."
 	return `Cannot debug: gdb was not found on PATH. ${hint}`
+}
+
+/** The `cppdbg` launch configuration a V debug session delegates to.
+ *
+ * Raw `gdb --interpreter=mi2` never answers DAP `initialize`
+ * (`Undefined command: "Content-Length"`), so no session can run that
+ * way on any platform. Instead the `type: "v"` config is rewritten to
+ * the C/C++ extension's real adapter; only `program` is required there,
+ * and `MIMode`/`setupCommands`/`args`/`cwd` carry over. `MIMode` stays
+ * `gdb` until the planned debugger-path setting (D1-1) parameterizes it.
+ */
+export interface CppdbgLaunchConfiguration {
+	type: "cppdbg"
+	request: "launch"
+	name: string
+	program: string
+	args: string[]
+	cwd: string
+	MIMode: "gdb"
+	stopAtEntry: boolean
+}
+
+export function cppdbgLaunchConfig(input: {
+	name: string
+	binary: string
+	args: string[]
+	cwd: string
+	stopAtEntry: boolean
+}): CppdbgLaunchConfiguration {
+	return {
+		type: "cppdbg",
+		request: "launch",
+		name: input.name,
+		program: input.binary,
+		args: input.args,
+		cwd: input.cwd,
+		MIMode: "gdb",
+		stopAtEntry: input.stopAtEntry,
+	}
+}
+
+/** Actionable error when the delegation target is not installed.
+ *
+ * V debug sessions run on the C/C++ extension's `cppdbg` adapter; our
+ * extensionPack recommends it, but a recommendation is not a guarantee.
+ */
+export function missingCppdbgMessage(): string {
+	return "Cannot debug: the C/C++ extension (ms-vscode.cpptools) is not installed. Install it from the Marketplace — V debugging delegates to its cppdbg adapter."
 }

@@ -3,9 +3,10 @@ import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
 import {
+	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
-	debugSessionArgs,
+	missingCppdbgMessage,
 	missingDebuggerMessage,
 } from "../debugCompile"
 
@@ -39,38 +40,9 @@ describe("V debug compile", () => {
 		assert.notStrictEqual(first, second)
 	})
 
-	it("breaks on wmain for stopAtEntry on Windows", () => {
-		// V inlines `fn main` into the C entry point, which is `wmain` on
-		// Windows — there is no `main` symbol, and `break main` answers
-		// "Function main not defined". Verified against a `-g` build:
-		// `break wmain` stops at the first V statement.
-		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", true, "win32"), [
-			"--interpreter=mi2",
-			"--eval-command",
-			"break wmain",
-			"--",
-			"/tmp/v-debug-main",
-		])
-	})
-
-	it("breaks on main for stopAtEntry elsewhere", () => {
-		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", true, "linux"), [
-			"--interpreter=mi2",
-			"--eval-command",
-			"break main",
-			"--",
-			"/tmp/v-debug-main",
-		])
-	})
-
-	it("places the eval-command before the binary", () => {
-		// gdb treats everything after `--` as excess executable arguments,
-		// so an eval-command placed after the binary never runs.
-		assert.deepStrictEqual(debugSessionArgs("/tmp/v-debug-main", false, "win32"), [
-			"--interpreter=mi2",
-			"--",
-			"/tmp/v-debug-main",
-		])
+	it("names the C/C++ extension when its adapter is missing", () => {
+		assert.ok(missingCppdbgMessage().includes("ms-vscode.cpptools"))
+		assert.ok(missingCppdbgMessage().includes("cppdbg"))
 	})
 
 	it("names a per-OS install route when gdb is missing", () => {
@@ -83,5 +55,29 @@ describe("V debug compile", () => {
 			assert.ok(missingDebuggerMessage(platform).includes("gdb"))
 			assert.ok(missingDebuggerMessage(platform).includes("PATH"))
 		}
+	})
+
+	it("maps a V launch to a cppdbg delegation", () => {
+		// The `type: "v"` config is rewritten to a real DAP adapter
+		// instead of spawning raw gdb, which never answers DAP.
+		assert.deepStrictEqual(
+			cppdbgLaunchConfig({
+				name: "Debug V Program",
+				binary: "/tmp/v-debug-main",
+				args: ["a", "b"],
+				cwd: "/workspace",
+				stopAtEntry: true,
+			}),
+			{
+				type: "cppdbg",
+				request: "launch",
+				name: "Debug V Program",
+				program: "/tmp/v-debug-main",
+				args: ["a", "b"],
+				cwd: "/workspace",
+				MIMode: "gdb",
+				stopAtEntry: true,
+			},
+		)
 	})
 })
