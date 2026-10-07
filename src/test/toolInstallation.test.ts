@@ -112,7 +112,7 @@ describe("managed tool installations", () => {
 		await withTemporaryRoot(async (root) => {
 			const calls: ProcessCall[] = []
 			const installation = await installTool("v", revision, root, "/installed/v", {
-				run: fakeBuild("v", calls),
+				run: fakeBuild("v", calls, "linux"),
 				platform: "linux",
 			})
 			const builds = calls
@@ -131,7 +131,7 @@ describe("managed tool installations", () => {
 	it("falls back to the full bootstrap when the installed V cannot build V", async () => {
 		await withTemporaryRoot(async (root) => {
 			const calls: ProcessCall[] = []
-			const build = fakeBuild("v", calls)
+			const build = fakeBuild("v", calls, "linux")
 			const installation = await installTool("v", revision, root, "/installed/v", {
 				run: async (command, args, options) => {
 					if (command === "/installed/v") {
@@ -486,7 +486,7 @@ describe("managed tool installations", () => {
 		})
 	}
 
-	it("does not accept copied metadata for an external or symlinked executable", async () => {
+	it("does not accept copied metadata for an external or symlinked executable", async (t) => {
 		await withTemporaryRoot(async (root) => {
 			const installed = await installTool("v", revision, root, undefined, {
 				run: fakeBuild("v", []),
@@ -498,10 +498,23 @@ describe("managed tool installations", () => {
 				undefined,
 			)
 			await fs.rm(installed.executable)
-			await fs.symlink(
-				path.join(external, path.basename(installed.executable)),
-				installed.executable,
-			)
+			try {
+				await fs.symlink(
+					path.join(external, path.basename(installed.executable)),
+					installed.executable,
+				)
+			} catch (error) {
+				// Creating symlinks on Windows needs a privilege this machine may lack.
+				if (
+					process.platform === "win32" &&
+					error instanceof Error &&
+					"code" in error &&
+					(error as NodeJS.ErrnoException).code === "EPERM"
+				) {
+					return t.skip("creating symlinks needs SeCreateSymbolicLinkPrivilege")
+				}
+				throw error
+			}
 			assert.strictEqual(
 				await readManagedToolInstallation(installed.executable, "v", root),
 				undefined,
