@@ -26,9 +26,10 @@
 		"build:prod": "npm run build:base -- --minify",
 		"watch": "npm run build:base -- --sourcemap --watch",
 		"typecheck": "tsc --noEmit",
-		"lint": "eslint src --ext ts",
+		"lint": "eslint src",
 		"lint:md": "markdownlint README.md",
 		"fmt": "prettier -w .",
+		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
 		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
@@ -152,12 +153,14 @@
 						"enum": [
 							"build",
 							"run",
-							"test"
+							"test",
+							"prod"
 						],
 						"enumDescriptions": [
 							"Build the workspace with v .",
 							"Run the workspace with v run .",
-							"Test the workspace with v test ."
+							"Test the workspace with v test .",
+							"Build an optimized executable with v -prod ."
 						]
 					}
 				}

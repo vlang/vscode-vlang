@@ -32,18 +32,16 @@ export function generateTestSkeleton(source: string): TestSkeleton | undefined {
 	}
 	const tests: string[] = []
 	for (const line of source.split("\n")) {
-		const match = publicFunction.exec(line)
-		if (match) {
-			tests.push(match[1])
+		const name = publicFunction.exec(line)?.[1]
+		if (name !== undefined) {
+			tests.push(name)
 		}
 	}
 	if (tests.length === 0) {
 		return undefined
 	}
 
-	const functions = tests
-		.map((name) => `fn test_${name}() {\n\tassert true\n}`)
-		.join("\n\n")
+	const functions = tests.map((name) => `fn test_${name}() {\n\tassert true\n}`).join("\n\n")
 	return {
 		content: `module ${module[1]}\n\n${functions}\n`,
 		tests: tests.map((name) => `test_${name}`),

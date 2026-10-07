@@ -34,12 +34,13 @@ async function sendVlsSettings(runningClient: LanguageClient): Promise<void> {
 }
 
 async function createAndStartClient(taskManager: ReturnType<typeof registerVTasks>): Promise<void> {
-	const vlsPath = getVls()
-	const vlsArgs = migratedSetting("v.vls", "args", "vls", "args", [] as string[])
 	const activeFolder = vscode.window.activeTextEditor
 		? workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
 		: undefined
-	const vCommand = vCommandForServer(activeFolder ?? workspace.workspaceFolders?.[0])
+	const folder = activeFolder ?? workspace.workspaceFolders?.[0]
+	const vlsPath = getVls(folder)
+	const vlsArgs = migratedSetting("v.vls", "args", "vls", "args", [] as string[])
+	const vCommand = vCommandForServer(folder)
 	const serverEnvironment = { ...process.env }
 	if (vCommand) serverEnvironment.VLS_V_COMMAND = vCommand
 
@@ -125,7 +126,21 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		log("VLS is disabled in settings.")
 	}
 
-	registerVlsCommands(context, () => client)
+	registerVlsCommands(context, async () => {
+		if (!isVlsEnabled()) {
+			void vscode.window.showInformationMessage("VLS is disabled in settings.")
+			return
+		}
+		if (client) {
+			try {
+				await client.stop()
+			} catch {
+				// The process may already have exited.
+			}
+			client = undefined
+		}
+		await createAndStartClient(taskManager)
+	})
 
 	const inlayHintsEmitter = new vscode.EventEmitter<void>()
 	context.subscriptions.push(inlayHintsEmitter)
