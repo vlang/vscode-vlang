@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   view, with breakpoints in V source resolving through the DWARF debug info the
   compile step produces. The extension contributes a `type: "v"` debugger with a
    default launch configuration, so no `launch.json` has to be written by hand.
+   The session itself runs on the C/C++ extension's `cppdbg` adapter (which must
+   be installed): raw `gdb --interpreter=mi2` never answers the debug protocol,
+   so no session could run that way.
 - Deprecated `vls.*` settings declared in the manifest. Settings carried over
   from the former VLS extension (`vls.command`, `vls.args`, `vls.vCommand`,
   `vls.inlayHints.enabled`, `vls.diagnostics.enabled`, `vls.coverage.enabled`)

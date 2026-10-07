@@ -108,6 +108,14 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       fix Windows/stabs file:line breakpoints (GDB-level, MI-proven) —
       that stays a separate defect. Keep (a) as the independence
       fallback.
+      Implemented 2026-10-07 on this branch: `resolveDebugConfiguration`
+      compiles, fail-fasts on missing gdb / missing cpptools (with
+      install action), and rewrites `type: "v"` to a generated
+      `cppdbg` config (`cppdbgLaunchConfig()`, tested); the raw-MI
+      adapter factory and `debugSessionArgs` are removed. Suite: 96
+      tests, 85 pass, same 7 pre-existing failures. Live-session proof
+      still deferred (no cpptools on this machine): install it, F5 on a
+      `-g` fixture, expect stop-at-entry + variables + call stack.
 - [ ] **D2-1 Attach + process picker** (`request: attach`,
       `processId: ${command:pickProcess}`). Needs D2-0.
 - [ ] **D2-2 Debug CodeLens over `fn main`.** Extend the existing

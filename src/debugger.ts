@@ -3,9 +3,10 @@ import { promisify } from "util"
 import * as path from "path"
 import * as vscode from "vscode"
 import {
+	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
-	debugSessionArgs,
+	missingCppdbgMessage,
 	missingDebuggerMessage,
 } from "./debugCompile"
 import { findInPath } from "./vCommand"
@@ -16,14 +17,12 @@ const execFile = promisify(_execFile)
 /** How long to wait for the compile step of a debug session. */
 const compileTimeoutMs = 60_000
 
-/** The debug adapter V programs are debugged with.
+/** The native debugger a V debug session needs on PATH.
  *
- * V compiles to a native binary with DWARF debug info, so the debugger is the same
- * one a C program would use. `gdb` is used because it is the one available on the
- * platforms V targets; `lldb` is not installed by default on Windows.
- *
- * The adapter speaks the MI interface, which is what `DebugAdapterExecutable`
- * expects from an external program.
+ * V compiles to a native binary, so the session runs under the same
+ * debugger a C program would use; the `cppdbg` adapter drives it. This
+ * is only probed for presence here — the adapter itself is launched by
+ * the C/C++ extension, never directly.
  */
 const debugAdapterCommand = "gdb"
 
@@ -51,34 +50,65 @@ async function compileForDebug(
 	return binary
 }
 
-/** Create a debug session for a V program.
- *
- * The session is a `gdb` MI session on the compiled binary. V emits DWARF, so
- * breakpoints in V source resolve through the debug info the compile step produced.
- *
- * The compile happens here rather than in a `preLaunchTask`, so the debugger is
- * self-contained: a user does not need a task defined to start a session.
- */
-export class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
-	createDebugAdapterDescriptor(
-		_session: vscode.DebugSession,
-	): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-		const configuration = _session.configuration as VDebugConfiguration
-		const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(configuration.program))
-		const vCommand = folder ? vCommandFor(folder) : "v"
-		const cwd = configuration.cwd || folder?.uri.fsPath || path.dirname(configuration.program)
+/** The extension a V debug session delegates to. */
+const cppdbgExtensionId = "ms-vscode.cpptools"
 
+/** Rewrite a V launch configuration into a real debug session.
+ *
+ * Spawning raw `gdb --interpreter=mi2` cannot work: it never answers DAP
+ * `initialize` (`Undefined command: "Content-Length"`), so no session can
+ * run that way on any platform. Instead the program is compiled here and
+ * the configuration is rewritten to the C/C++ extension's `cppdbg`
+ * adapter, which speaks DAP. The compile still happens here rather than
+ * in a `preLaunchTask`, so the debugger stays self-contained: a user
+ * does not need a task defined to start a session.
+ *
+ * Returning `undefined` cancels the session with the message already
+ * shown; that is preferable to launching into a guaranteed failure.
+ */
+export class VDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+	async resolveDebugConfiguration(
+		folder: vscode.WorkspaceFolder | undefined,
+		configuration: vscode.DebugConfiguration,
+	): Promise<vscode.DebugConfiguration | undefined> {
+		const vConfiguration = configuration as VDebugConfiguration
+		if (!vConfiguration.program) {
+			void vscode.window.showErrorMessage("Cannot debug: no V program in the launch configuration.")
+			return undefined
+		}
+		const workspaceFolder =
+			folder ?? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(vConfiguration.program))
+		if (!findInPath(debugAdapterCommand)) {
+			void vscode.window.showErrorMessage(missingDebuggerMessage())
+			return undefined
+		}
+		if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
+			const action = "Install C/C++ Extension"
+			const choice = await vscode.window.showErrorMessage(missingCppdbgMessage(), action)
+			if (choice === action) {
+				await vscode.commands.executeCommand(
+					"workbench.extensions.installExtension",
+					cppdbgExtensionId,
+				)
+			}
+			return undefined
+		}
+		const vCommand = workspaceFolder ? vCommandFor(workspaceFolder) : "v"
+		const cwd =
+			vConfiguration.cwd ||
+			workspaceFolder?.uri.fsPath ||
+			path.dirname(vConfiguration.program)
 		return vscode.window.withProgress(
 			{ location: vscode.ProgressLocation.Window, title: "Compiling V for debugging..." },
 			async () => {
-				if (!findInPath(debugAdapterCommand)) {
-					throw new Error(missingDebuggerMessage())
-				}
-				const binary = await compileForDebug(vCommand, configuration.program, cwd)
-				return new vscode.DebugAdapterExecutable(
-					debugAdapterCommand,
-					debugSessionArgs(binary, configuration.stopAtEntry ?? false),
-				)
+				const binary = await compileForDebug(vCommand, vConfiguration.program, cwd)
+				return cppdbgLaunchConfig({
+					name: configuration.name,
+					binary,
+					args: vConfiguration.args ?? [],
+					cwd,
+					stopAtEntry: vConfiguration.stopAtEntry ?? false,
+				})
 			},
 		)
 	}
@@ -86,11 +116,12 @@ export class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescri
 
 /** Register the V debugger.
  *
- * The debugger is contributed in `package.json` with `type: "v"`. This factory is
- * what turns a launch configuration into a debug session.
+ * The debugger is contributed in `package.json` with `type: "v"`. This
+ * provider compiles the program and rewrites the configuration to the
+ * `cppdbg` adapter before the session starts.
  */
 export function registerDebugger(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
-		vscode.debug.registerDebugAdapterDescriptorFactory("v", new VDebugAdapterDescriptorFactory()),
+		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
 	)
 }
