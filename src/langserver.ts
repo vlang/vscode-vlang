@@ -13,6 +13,7 @@ import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
 import type { ToolName } from "./toolInstallation"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
+import { vDocumentSelector } from "./documentSelector"
 
 const serverSettings = [
 	"v.vls.enable",
@@ -232,7 +233,7 @@ export class VlsManager implements vscode.Disposable {
 		)
 		this.notifiedReplacement = false
 		const options: LanguageClientOptions = {
-			documentSelector: [{ scheme: "file", language: "v" }],
+			documentSelector: [...vDocumentSelector],
 			outputChannel: vlsOutputChannel,
 			// Configuration changes restart the client through our queue. Send settings
 			// after startup only; an independent synchronizer can race the old shutdown.
