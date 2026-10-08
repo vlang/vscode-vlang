@@ -28,7 +28,6 @@ export function debugCompileArgs(program: string, binary: string): string[] {
 	return ["-g", "-o", binary, program]
 }
 
-
 /** Actionable error when GDB is not on PATH.
  *
  * gdb is not installed by default on Windows and effectively unavailable
@@ -65,6 +64,42 @@ export interface CppdbgLaunchConfiguration {
 	cwd: string
 	MIMode: "gdb"
 	stopAtEntry: boolean
+	setupCommands: CppdbgSetupCommand[]
+}
+
+export interface CppdbgSetupCommand {
+	description: string
+	text: string
+	ignoreFailures: boolean
+}
+
+/** MI setup commands that load the V pretty printers for a session.
+ *
+ * The texts are MI commands, which is what the adapter sends: printing is
+ * enabled explicitly, and the printers script runs through the console
+ * interpreter. Backslashes become forward slashes first, so a Windows path
+ * needs no MI-level escaping beyond its quotes. A printer failure never
+ * fails the session: debugging without pretty printers beats not debugging.
+ */
+export function gdbSetupCommands(printersPath: string): CppdbgSetupCommand[] {
+	const script = printersPath.replace(/\\/g, "/").replace(/"/g, '\\"')
+	return [
+		{
+			description: "Enable GDB pretty-printing",
+			text: "-enable-pretty-printing",
+			ignoreFailures: true,
+		},
+		{
+			description: "Load V pretty printers",
+			text: `-interpreter-exec console "source \\"${script}\\""`,
+			ignoreFailures: true,
+		},
+	]
+}
+
+/** The printers script shipped with the extension, next to the bundle. */
+export function vPrintersPath(bundleDirectory: string): string {
+	return path.join(bundleDirectory, "..", "scripts", "gdb", "v_printers.py")
 }
 
 export function cppdbgLaunchConfig(input: {
@@ -73,6 +108,7 @@ export function cppdbgLaunchConfig(input: {
 	args: string[]
 	cwd: string
 	stopAtEntry: boolean
+	printersPath: string
 }): CppdbgLaunchConfiguration {
 	return {
 		type: "cppdbg",
@@ -83,6 +119,7 @@ export function cppdbgLaunchConfig(input: {
 		cwd: input.cwd,
 		MIMode: "gdb",
 		stopAtEntry: input.stopAtEntry,
+		setupCommands: gdbSetupCommands(input.printersPath),
 	}
 }
 
