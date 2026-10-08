@@ -48,6 +48,20 @@ describe("VLS VS Code extension", () => {
 		for (const command of ["vls.build", "vls.run", "vls.test", "vls.coverage.clear"]) {
 			assert.ok(commands.includes(command))
 		}
+		for (const command of [
+			"v.run",
+			"v.fmt",
+			"v.prod",
+			"v.generateTestFile",
+			"v.toggleTestFile",
+			"v.fillStruct",
+			"v.sharePlayground",
+			"v.debugMain",
+			"v.generateJsonDecoder",
+			"v.ver",
+		]) {
+			assert.ok(commands.includes(command), `missing manifest command ${command}`)
+		}
 
 		const taskDefinition = manifest.contributes.taskDefinitions[0]
 		assert.strictEqual(taskDefinition.type, "v")

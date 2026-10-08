@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   creates it without the user having to remember the convention.
 - **V: Toggle Test File**, jumping between a source file and its test file
   in both directions, generating the test file first when missing.
+- **V: Generate JSON Decoder**, inferring V structs for the active JSON
+  document with a `json2` decode example. TOML and YAML share the core
+  and follow once their parsers land as declared dependencies.
 - **V: Fill Struct Fields**, filling an empty `Name{}` literal with the
   fields of the same-file `struct Name` declaration.
 - **V: Share on Playground**, posting the active file and opening its

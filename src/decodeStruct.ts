@@ -1,0 +1,255 @@
+/** Generating V decoder structs from a document.
+ *
+ * Everything here is pure so it is tested without an editor. The editor
+ * wiring (command on JSON files) lives in `commands.ts`.
+ *
+ * REVIEW NOTE — re-verify against vlib on every V minor bump (last
+ * verified V 0.5.2): this module hardcodes three moving targets, the V
+ * struct syntax, the `json2`/`toml`/`yaml` decode calls and their
+ * `@[json: ...]`-style field attributes. The `json` → `json2` migration
+ * already broke this shape once (the old cJSON module is gone). When V
+ * renames a decoder or changes attribute spelling, the generated code
+ * silently stops compiling: regenerate the fixture below against the new
+ * compiler and update the templates. TOML and YAML share this core but
+ * are not wired end to end yet: parsing them needs declared parser
+ * dependencies, which need the package lock repaired first.
+ */
+
+export type DocumentFormat = "json" | "toml" | "yaml"
+
+export interface DocumentFormatSpec {
+	/** Module to import, e.g. `json2`. */
+	importPath: string
+	/** Fallback type for null, empty and mixed values, e.g. `json2.Any`. */
+	anyType: string
+	/** Decode call for a type, e.g. `json2.decode[Foo](data, json2.DecoderOptions{})`. */
+	decodeCall: (typeName: string) => string
+	/** Rename attribute for a foreign key, e.g. ` @[json: 'a-b']`. */
+	renameAttribute: (sourceKey: string) => string
+}
+
+export const documentFormats: Record<DocumentFormat, DocumentFormatSpec> = {
+	json: {
+		importPath: "json2",
+		anyType: "json2.Any",
+		decodeCall: (typeName) => `json2.decode[${typeName}](data, json2.DecoderOptions{})`,
+		renameAttribute: (sourceKey) =>
+			` @[json: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+	},
+	toml: {
+		importPath: "toml",
+		anyType: "toml.Any",
+		decodeCall: (typeName) => `toml.decode[${typeName}](data)`,
+		renameAttribute: (sourceKey) =>
+			` @[toml: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+	},
+	yaml: {
+		importPath: "yaml",
+		anyType: "yaml.Any",
+		decodeCall: (typeName) => `yaml.decode[${typeName}](data)`,
+		renameAttribute: (sourceKey) =>
+			` @[json: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+	},
+}
+
+export interface StructFieldDef {
+	name: string
+	type: string
+	sourceKey?: string
+}
+
+export interface StructDef {
+	name: string
+	fields: StructFieldDef[]
+}
+
+export interface DecodedSchema {
+	structs: StructDef[]
+	rootType: string
+	decodeFunction: string
+}
+
+const validIdentifier = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+const vKeywords = new Set([
+	"as",
+	"assert",
+	"break",
+	"chan",
+	"const",
+	"continue",
+	"defer",
+	"else",
+	"enum",
+	"false",
+	"fn",
+	"for",
+	"go",
+	"goto",
+	"if",
+	"import",
+	"in",
+	"interface",
+	"is",
+	"lock",
+	"match",
+	"module",
+	"mut",
+	"none",
+	"or",
+	"pub",
+	"return",
+	"rlock",
+	"select",
+	"shared",
+	"static",
+	"struct",
+	"true",
+	"type",
+	"unsafe",
+])
+
+function capitalize(name: string): string {
+	return name.slice(0, 1).toUpperCase() + name.slice(1)
+}
+
+/** A valid V identifier for a key, with rename info when it differs. */
+function fieldName(key: string): { name: string; sourceKey?: string } {
+	if (validIdentifier.test(key) && !vKeywords.has(key)) {
+		return { name: key }
+	}
+	let name = key.replace(/[^A-Za-z0-9_]/g, "_")
+	if (/^[0-9]/.test(name)) {
+		name = `_${name}`
+	}
+	if (name === "" || vKeywords.has(name)) {
+		name = name === "" ? "field" : `${name}_`
+	}
+	return { name, sourceKey: key }
+}
+
+function scalarType(value: string | number | boolean): string {
+	if (typeof value === "string") {
+		return "string"
+	}
+	if (typeof value === "boolean") {
+		return "bool"
+	}
+	if (Number.isInteger(value)) {
+		return Math.abs(value) <= 2147483647 ? "int" : "i64"
+	}
+	return "f64"
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function sameKeys(first: Record<string, unknown>, other: unknown): boolean {
+	if (!isObject(other)) {
+		return false
+	}
+	const left = Object.keys(first)
+	const right = Object.keys(other)
+	return left.length === right.length && left.every((key) => right.includes(key))
+}
+
+/** Build struct definitions for a parsed document value. */
+export function structsFromValue(rootName: string, value: unknown, anyType: string): DecodedSchema {
+	const structs: StructDef[] = []
+	const usedNames = new Set<string>()
+	const uniqueName = (base: string): string => {
+		let name = capitalize(base === "" ? "value" : base)
+		let counter = 2
+		while (usedNames.has(name)) {
+			name = `${capitalize(base)}${counter}`
+			counter++
+		}
+		usedNames.add(name)
+		return name
+	}
+	const valueType = (hint: string, item: unknown): string => {
+		if (item === null || item === undefined) {
+			return anyType
+		}
+		if (typeof item === "string" || typeof item === "boolean" || typeof item === "number") {
+			return scalarType(item)
+		}
+		if (Array.isArray(item)) {
+			if (item.length === 0) {
+				return `[]${anyType}`
+			}
+			const first = item[0]
+			if (
+				isObject(first) &&
+				Object.keys(first).length > 0 &&
+				item.every((element) => sameKeys(first, element))
+			) {
+				return `[]${valueType(hint, first)}`
+			}
+			if (!item.some((element) => typeof element === "object")) {
+				const elementTypes = new Set<string>()
+				for (const element of item as (string | number | boolean)[]) {
+					elementTypes.add(scalarType(element))
+				}
+				if (elementTypes.size === 1) {
+					return `[]${[...elementTypes][0] ?? anyType}`
+				}
+				if (item.every((element) => typeof element === "number")) {
+					return "[]f64"
+				}
+			}
+			return `[]${anyType}`
+		}
+		if (isObject(item)) {
+			const entries = Object.entries(item)
+			if (entries.length === 0) {
+				return anyType
+			}
+			const name = uniqueName(hint)
+			const struct: StructDef = { name, fields: [] }
+			structs.push(struct)
+			struct.fields = entries.map(([key, fieldValue]) => {
+				const field = fieldName(key)
+				return {
+					name: field.name,
+					type: valueType(key, fieldValue),
+					...(field.sourceKey ? { sourceKey: field.sourceKey } : {}),
+				}
+			})
+			return name
+		}
+		return anyType
+	}
+	if (!isObject(value) && !Array.isArray(value)) {
+		throw new Error("The top level must be an object or an array to infer structs from.")
+	}
+	const rootType = valueType(rootName, value)
+	const decodeName = `decode_${rootType.replace(/[^A-Za-z0-9]/g, "").toLowerCase()}`
+	return { structs, rootType, decodeFunction: decodeName }
+}
+
+/** Render the module: import, structs, and a decode example. */
+export function renderModule(spec: DocumentFormatSpec, schema: DecodedSchema): string {
+	const lines = [`import ${spec.importPath}`, ""]
+	for (const struct of schema.structs) {
+		lines.push(`struct ${struct.name} {`)
+		for (const field of struct.fields) {
+			const attribute = field.sourceKey ? spec.renameAttribute(field.sourceKey) : ""
+			lines.push(`\t${field.name} ${field.type}${attribute}`)
+		}
+		lines.push("}", "")
+	}
+	lines.push(`fn ${schema.decodeFunction}(data string) !${schema.rootType} {`)
+	lines.push(`\treturn ${spec.decodeCall(schema.rootType)}`)
+	lines.push("}")
+	return `${lines.join("\n")}\n`
+}
+
+/** Root struct name from a file name: `foo.json` decodes into `Foo`. */
+export function rootNameForFile(fileName: string): string {
+	const base = fileName.split(/[\\/]/).pop() ?? fileName
+	const stem = base.includes(".") ? base.slice(0, base.lastIndexOf(".")) : base
+	const cleaned = stem.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[0-9]+/, "")
+	return capitalize(cleaned === "" ? "root" : cleaned)
+}

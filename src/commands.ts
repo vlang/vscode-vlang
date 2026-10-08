@@ -12,6 +12,7 @@ import {
 } from "vscode"
 import { executeV } from "./exec"
 import { outputChannel, vlsOutputChannel } from "./logger"
+import { documentFormats, renderModule, rootNameForFile, structsFromValue } from "./decodeStruct"
 import { sharePlaygroundCode } from "./playground"
 
 function activeVDocument(): TextDocument | undefined {
@@ -85,8 +86,45 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand("v.run", run),
 		commands.registerCommand("v.fmt", fmt),
 		commands.registerCommand("v.ver", ver),
-		commands.registerCommand("v.sharePlayground", sharePlayground),
+		commands.registerCommand("v.generateJsonDecoder", generateJsonDecoder),
 	)
+}
+
+/** Generate decoder structs for the active JSON document.
+ *
+ * Parses with the builtin JSON reader (no dependency), infers structs,
+ * and opens the result as an untitled V file. TOML and YAML share the
+ * core but need parser dependencies first.
+ */
+export async function generateJsonDecoder(): Promise<void> {
+	const document = vscode.window.activeTextEditor?.document
+	if (!document || document.languageId !== "json") {
+		void vscode.window.showErrorMessage("Open a JSON file to generate a decoder from.")
+		return
+	}
+	let value: unknown
+	try {
+		value = JSON.parse(document.getText())
+	} catch {
+		void vscode.window.showErrorMessage("The file is not valid JSON.")
+		return
+	}
+	let content: string
+	try {
+		const schema = structsFromValue(
+			rootNameForFile(document.fileName),
+			value,
+			documentFormats.json.anyType,
+		)
+		content = renderModule(documentFormats.json, schema)
+	} catch (error) {
+		void vscode.window.showErrorMessage(
+			error instanceof Error ? error.message : `Could not infer structs: ${String(error)}`,
+		)
+		return
+	}
+	const generated = await vscode.workspace.openTextDocument({ language: "v", content })
+	await vscode.window.showTextDocument(generated, { preview: false })
 }
 
 /** Share the active file on the V playground.
