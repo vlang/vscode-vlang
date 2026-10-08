@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   strings decode to text, `Option`/`Result` show their payload or `none` /
   the error, and arrays and maps summarize their lengths. Element types are
   erased from the debug info, so containers never guess at them.
+- Debuggable MI debugger choice. `miDebuggerPath` names the debugger (with
+  `~`, `${env:NAME}` and `${workspaceFolder}` expanded) and `MIMode`
+  selects `gdb` or `lldb`, unblocking macOS. The pretty printers are GDB
+  scripts, so lldb sessions carry no printer setup commands.
 
 ### Fixed
 

@@ -9,6 +9,7 @@ import {
 	gdbSetupCommands,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	resolveDebuggerCommand,
 	vPrintersPath,
 } from "../debugCompile"
 
@@ -59,6 +60,30 @@ describe("V debug compile", () => {
 		}
 	})
 
+	it("names a per-OS install route when lldb is missing", () => {
+		assert.ok(missingDebuggerMessage("win32", "lldb").includes("LLVM"))
+		assert.ok(missingDebuggerMessage("darwin", "lldb").includes("xcode-select"))
+		assert.ok(missingDebuggerMessage("linux", "lldb").includes("apt install lldb"))
+		for (const platform of ["win32", "darwin", "linux"] as const) {
+			assert.ok(missingDebuggerMessage(platform, "lldb").includes("lldb"))
+		}
+	})
+
+	it("expands the configured debugger path from day one", () => {
+		// `~`, `${env:NAME}` and `${workspaceFolder}` work exactly like the
+		// other executable settings, and blank means the mode default.
+		assert.strictEqual(
+			resolveDebuggerCommand("~/tools/gdb", "gdb"),
+			`${os.homedir()}/tools/gdb`,
+		)
+		assert.strictEqual(
+			resolveDebuggerCommand("${workspaceFolder}/bin/gdb", "gdb", "/ws"),
+			"/ws/bin/gdb",
+		)
+		assert.strictEqual(resolveDebuggerCommand(undefined, "gdb"), "gdb")
+		assert.strictEqual(resolveDebuggerCommand("  ", "lldb"), "lldb")
+	})
+
 	it("maps a V launch to a cppdbg delegation", () => {
 		// The `type: "v"` config is rewritten to a real DAP adapter
 		// instead of spawning raw gdb, which never answers DAP.
@@ -70,6 +95,8 @@ describe("V debug compile", () => {
 				cwd: "/workspace",
 				stopAtEntry: true,
 				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
 			}),
 			{
 				type: "cppdbg",
@@ -79,10 +106,29 @@ describe("V debug compile", () => {
 				args: ["a", "b"],
 				cwd: "/workspace",
 				MIMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
 				stopAtEntry: true,
 				setupCommands: gdbSetupCommands("/extension/scripts/gdb/v_printers.py"),
 			},
 		)
+	})
+
+	it("delegates lldb sessions without gdb printer commands", () => {
+		// The printers are GDB Python; under lldb there is nothing to
+		// source, so the session carries no setup commands at all.
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "lldb",
+			miDebuggerPath: "/usr/bin/lldb",
+		})
+		assert.strictEqual(config.MIMode, "lldb")
+		assert.strictEqual(config.miDebuggerPath, "/usr/bin/lldb")
+		assert.deepStrictEqual(config.setupCommands, [])
 	})
 
 	it("loads the printers through MI without failing the session", () => {
