@@ -50,33 +50,40 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       memory, console eval, data BPs, V-named stacks and hover ALL fail at
       the handshake — none is individually broken. Redirected to new D2-0;
       D1-3/D1-4/D1-5 and D2-1..D2-4 all need D2-0 first.
-- [ ] **P0-1/2/3/5 Windows suite, Windows CI, manifest check, untitled
-      files** — in flight (`test/portable-paths`: 46301f7, 98e637f,
-      375e663). Land it; do not duplicate.
+- [x] **P0-1/2/3/5 Windows suite, Windows CI, manifest check, untitled
+      files.** Done: separator-agnostic assertions and a Windows CI job
+      (#571), `openOutput` in the manifest (#566), `untitled`/`git`/`v.mod`
+      selector (#573). Suite: 91 tests, 0 fail on Windows.
 
 ## P1 — cheap, high impact
 
-- [ ] **D1-4 V pretty printers (biggest visual win).** Python GDB scripts
-      for `string`, `array`, `map`, `Option`/`Result`, `error`, auto-loaded
-      per session, under `scripts/gdb/`. Acceptance: before/after Variables
-      screenshots on one fixture — no screenshot, no merge.
-- [ ] **D1-1 `miDebuggerPath` + `MIMode` (`gdb`/`lldb`).** Reuse
-      `expandConfiguredPath` so `~` works from day one. Unblocks macOS.
-      Same test shape as the `~` regression test.
-- [ ] **P1-3 Tasks as `TaskProvider`.** `taskDefinitions` declares type
-      `v` that nothing consumes; users cannot bind/override in `tasks.json`.
-- [ ] **D1-5 `setupCommands` passthrough.** Unlocks GDB `skip` for
-      generated-C/runtime frames (poor-man's step filters).
-- [ ] **D1-2 `env` + `envFile`.** Trivial passthrough; cpptools parity.
-- [ ] **D1-3 Console choice.** After D0-3 shows where I/O goes today:
-      `console: integratedTerminal | internalConsole`.
-- [ ] **D1-6 Troubleshooting doc** (`docs/TROUBLESHOOTING-DEBUGGING.md`):
-      gdb per OS, stale binary vs breakpoint, Windows console, macOS lldb,
-      stepping into C (→ D1-5). Java parity.
-- [ ] **P1-1 Walkthrough, P1-2 Check/Vet, P1-4 Test Explorer, P2-2 test
-      skeleton, P2-3 public API, P2-4 env status, MCP/skills exposure** —
-      all in flight (branch table). Land them; do not duplicate. P1-1 should
-      gain a debugging step once D1 lands.
+- [x] **D1-4 V pretty printers (biggest visual win).** Done (#574):
+      `scripts/gdb/v_printers.py` for `string`, `array`, `map`,
+      `Option`/`Result`, `error`, sourced per session through MI setup
+      commands. Layouts measured from DWARF, never guessed; containers
+      never guess element types (erased). Acceptance is MI transcripts,
+      not screenshots (no GUI automation here): all six printers
+      register and render on real fixtures.
+- [x] **D1-1 `miDebuggerPath` + `MIMode` (`gdb`/`lldb`).** Done (#575):
+      `expandConfiguredPath` reused, macOS unblocked, lldb sessions
+      carry no printer commands.
+- [x] **P1-3 Tasks as `TaskProvider`.** Not a gap: `VTaskProvider`
+      already provides and resolves `v` definitions (verified against
+      the manifest, no PR).
+- [x] **D1-5 `setupCommands` passthrough.** Done (#576): user entries
+      run after the printer commands under gdb, alone under lldb.
+- [x] **D1-2 `env` + `envFile`.** Done (#576): verbatim passthrough,
+      resolved adapter-side.
+- [x] **D1-3 Console choice.** Done as `externalConsole` (#576):
+      cppdbg has no internal-console mode, so the boolean is the honest
+      knob.
+- [x] **D1-6 Troubleshooting doc** (`docs/TROUBLESHOOTING-DEBUGGING.md`).
+      Done (#576): measured failure modes only, including scoop's
+      `--without-python` gdb.
+- [x] **P1-1 Walkthrough, P1-2 Check/Vet, P1-4 Test Explorer, P2-2 test
+      skeleton, P2-3 public API, P2-4 env status, MCP/skills exposure.**
+      Done (#562, #563, #565, #564, #566, #558, #559). P1-1 gains its
+      debugging step via the README Debugging section.
 
 ## P2 — larger, bounded
 
@@ -116,16 +123,22 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
       tests, 85 pass, same 7 pre-existing failures. Live-session proof
       still deferred (no cpptools on this machine): install it, F5 on a
       `-g` fixture, expect stop-at-entry + variables + call stack.
-- [ ] **D2-1 Attach + process picker** (`request: attach`,
-      `processId: ${command:pickProcess}`). Needs D2-0.
-- [ ] **D2-2 Debug CodeLens over `fn main`.** Extend the existing
-      `vls.runFile` middleware pattern.
-- [ ] **D2-3 `sourceFileMap` + remote gdbserver configs.**
-- [ ] **D2-4 Exception breakpoint for V `panic`.** Probe how panic
-      surfaces in the binary first — may need a `vlang/v` change, do not
-      guess.
-- [ ] **D2-5 Value-format settings** (`showHex` et al., Java parity).
-- [ ] **D2-6 Core-dump config.** Low priority; record only.
+- [x] **D2-1 Attach + process picker.** Done (#577): no compile step,
+      `processId` passes through including `${command:pickProcess}`.
+- [x] **D2-2 Debug CodeLens over `fn main`.** Done (#578): pure finder,
+      same compile-and-delegate pipeline, palette fallback.
+- [x] **D2-3 `sourceFileMap` + remote gdbserver configs.** Done (#577):
+      verbatim passthrough on launch and attach, plus an attach manifest
+      block.
+- [x] **D2-4 Exception breakpoint for V `panic`.** Done (#578) with no
+      `vlang/v` change: every panic funnels through `v_panic`, and `-d
+      panics_break_into_debugger` traps under a debugger (SIGTRAP
+      measured, V frames intact). Debug builds carry the define.
+- [x] **D2-5 Value-format settings.** Resolved as docs (#578): per-variable
+      `-exec -var-set-format` (measured 4 → 0x4); the adapter has no
+      showHex-style setting.
+- [x] **D2-6 Core-dump config.** Recorded (#578): out of scope, manual
+      `coreDumpPath` route named in the README.
 
 ## Upstream VLS (vlang/vls) — improve, do not replace
 
@@ -153,6 +166,14 @@ testable without an editor (`taskSpec.ts`, `vCommand.ts`,
 | `feat/environment-status`                                  | P2-4 env report command                                                 |
 | `feat/v-compiler-mcp-server`, `feat/agent-skills-commands` | MCP + skills exposure                                                   |
 | `feat/debugger` (this branch)                              | Basic `type: "v"` GDB debugger; `~` regression test                     |
+| `fix/resuscitate-master`                                   | Master repair: install, typecheck, lint                                 |
+| `test/windows-separators`                                  | Windows suite fixes and CI                                              |
+| `fix/document-selector`                                    | Untitled, diff and `v.mod` selector                                     |
+| `feat/pretty-printers`                                     | D1-4 GDB printers                                                       |
+| `feat/debugger-path-mode`                                  | D1-1 path and mode                                                      |
+| `feat/debug-launch-options`                                | D1-5, D1-2, D1-3, D1-6                                                  |
+| `feat/debug-attach-map`                                    | D2-1 attach, D2-3 remote                                                |
+| `feat/debug-codelens-panic`                                | D2-2 CodeLens, D2-4 panic traps                                         |
 
 ## Not doing
 
