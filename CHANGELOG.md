@@ -17,15 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A debugger. V programs can now be launched under `gdb` from the Run and Debug
   view, with breakpoints in V source resolving through the DWARF debug info the
   compile step produces. The extension contributes a `type: "v"` debugger with a
-   default launch configuration, so no `launch.json` has to be written by hand.
-   The session itself runs on the C/C++ extension's `cppdbg` adapter (which must
-   be installed): raw `gdb --interpreter=mi2` never answers the debug protocol,
-   so no session could run that way.
+  default launch configuration, so no `launch.json` has to be written by hand.
+  The session itself runs on the C/C++ extension's `cppdbg` adapter (which must
+  be installed): raw `gdb --interpreter=mi2` never answers the debug protocol,
+  so no session could run that way.
 - Deprecated `vls.*` settings declared in the manifest. Settings carried over
   from the former VLS extension (`vls.command`, `vls.args`, `vls.vCommand`,
   `vls.inlayHints.enabled`, `vls.diagnostics.enabled`, `vls.coverage.enabled`)
   now show a deprecation message naming the `v.*` replacement instead of an
   "Unknown Configuration Setting" warning. Migration behavior is unchanged.
+- GDB pretty printers for V values. Debug sessions load them automatically:
+  strings decode to text, `Option`/`Result` show their payload or `none` /
+  the error, and arrays and maps summarize their lengths. Element types are
+  erased from the debug info, so containers never guess at them.
 
 ### Fixed
 
@@ -35,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the option silently did nothing. It now breaks on `wmain` on Windows
   (`main` elsewhere) with the eval-command before the binary.
 - Debugger fails fast with an actionable per-OS install hint when `gdb` is
-   not on PATH, instead of a raw spawn error after the compile step.
+  not on PATH, instead of a raw spawn error after the compile step.
 
 ## 0.2.1
 
