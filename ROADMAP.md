@@ -7,82 +7,53 @@ cheapest first, so a fix that lands today is never waiting on a bigger one.
 extension's source and has had years of dedicated work; the goal is to stop
 spending developer time on things the editor can answer, not to reach parity.
 
-Some items below are already being implemented in
-[#554](https://github.com/vlang/vscode-vlang/pull/554) (tool management, current
-VLS compatibility, language server lifecycle, Oxlint/Oxfmt). Those are marked
-**in #554** and not duplicated here.
+See `docs/COMPARISON.md` for how the Go, rust-analyzer and Zig extensions
+compare area by area, and what was deliberately not copied.
 
-## P0 — defects on `master` today
+## Open (cheapest first)
 
-- **The test suite fails on Windows.** Three tests assert POSIX path separators
-  and CI runs only on `ubuntu-latest`, so nothing catches it. The assertions
-  should be separator-agnostic rather than hard-coding `path.sep`.
-- **CI covers one operating system.** `ubuntu-latest` for every job, while
-  `golang.go` runs at least Ubuntu and Windows. The build job already exercises
-  path handling via `vsce package`. Adding Windows will surface real bugs first,
-  which is the point.
-- **One registered command is unreachable.** `v.vls.openOutput` is registered in
-  `src/commands.ts` but absent from `contributes.commands`, so it never appears in
-  the Command Palette and cannot be bound to a key. There should be a test that
-  every `commands.registerCommand` call has a manifest entry, rather than a
-  check that happens to name the ids someone remembered.
-- **`documentSelector` is narrower than the language definition.** It is
-  `{ scheme: "file", language: "v" }`, so `untitled` buffers, the diff and git
-  views, and `v.mod` — which `contributes.languages` does declare — get no V
-  features at all.
-- **Legacy `vls.*` settings are read but never declared.** `migratedSetting`
-  honours `vls.command`, `vls.args`, `vls.vCommand` and the three toggles, so
-  anyone who set one during the VLS extension days gets an "Unknown
-  Configuration Setting" warning and no hint about what replaced it. Declaring
-  them with a deprecation message costs nothing and keeps the migration honest.
-- **The documented format command breaks lint.** `npm run fmt` is `prettier -w .`.
-  Prettier prefers `'…'` when a string contains a double quote, and eslint is
-  configured with `quotes: ["error", "double"]`, so running the format command
-  rewrites the repository and then fails its own lint. One of the two should own
-  quoting. **in #554** (Oxlint/Oxfmt).
+- **Toggle test file, both directions.** Generating covers new files;
+  navigating back has no command. `testFileName` already exists, so this
+  is the reverse mapping plus a command. `golang.go` parity.
+- **Snippet repair and curation.** The 50-snippet set is ahead of every
+  comparator (all three ship zero TextMate snippets), but it needs
+  repair, not volume: duplicate `for`/`fore` prefixes, typos
+  (`standart`, `multiply 'const'`), inconsistent float prefixes, and
+  weak bodies (`match` without arms, `struct` without fields). Then
+  about twelve V-specific additions that no server completion covers
+  (`or` blocks, `test_` functions, `error()`/`none`/`panic`, channels,
+  `select`, comptime pairs, attributes).
+- **Fill-struct-fields code action.** Mechanical from document symbols,
+  following the `codeActions.ts` pattern. Interface stubs next, only if
+  the pattern proves out.
+- **Playground share command.** Post the file, open the URL. Go's most
+  learner-friendly command, cheap to mirror.
+- **Docs index.** The content exists (README, troubleshooting guides,
+  this file, the comparison); nothing points at it. A short `docs`
+  index mirroring the Go wiki spine.
 
-## P1 — cheap, and worth doing
+## Done
 
-- **No onboarding.** There is no `contributes.walkthroughs`, so tasks, CodeLens,
-  coverage and the agent commands are only discoverable from the README. A
-  four-step walkthrough would also be the natural home for the agent features.
-- **Two documented gates are missing from the editor.** `v -check` type-checks
-  without producing a binary, and `v fmt -verify` reports whether the formatter
-  would change a file. Both are the checks the rest of a change hangs on, and
-  neither is reachable from the extension. `v vet` is likewise absent, even
-  though the extension already ships a `problemMatchers` entry for V's own
-  diagnostics.
-- **Test Explorer integration.** This is the largest gap that can be closed
-  without inventing anything. `golang.go` uses `vscode.tests.createTestController`
-  and three views in the `test` container; this extension uses tasks and CodeLens,
-  so nothing appears in the Test Explorer panel.
-  The mapping is unusually good for V: a test is a `test_`-prefixed function in a
-  `_test.v` file, `VTEST_ONLY` and `VTEST_ONLY_FN` take exactly the glob filter
-  that `TestRunRequest.include` already models, and `v test` is already a task.
-  Starting with one item per test file is enough to be useful.
-- **Tasks are hand-built instead of contributed.** `src/vTasks.ts` constructs
-  task objects in TypeScript. `contributes.taskDefinitions` declares a `v` type
-  that nothing consumes as a `TaskProvider`, so users cannot bind `v.build` in
-  `tasks.json` or override the arguments.
-
-## P2 — larger, but bounded
-
-- **No debugger.** This contributes `breakpoints` and leans on the C/C++
-  extension; `doc/vscode.md` walks the user through a hand-written `launch.json`
-  with lldb. `golang.go` contributes a debugger backed by ~144 KB of TypeScript.
-  V is a better candidate than it looks: it emits DWARF, `-g` gives V line
-  numbers, `-cg` gives C line numbers, and `run` and `test` already exist as
-  tasks. A thin `type: "v"` debugger delegating to the C/C++ extension's DAP
-  session would cost far less than building one from scratch.
-- **No code actions.** Generating a `foo_test.v` skeleton for a `foo.v` is a
-  mechanical transformation that V's own test layout makes unambiguous, and it is
-  the one code action that pays for itself.
-- **No public API.** `golang.go` exports a small surface so other extensions can
-  resolve the toolchain path. Exporting `resolveV(resource)` would be enough for
-  CI tooling to stop guessing.
-- **No environment status.** Which `v` is live, which VLS is live, and which of
-  the two V extensions in the marketplace is providing language support are all
-  invisible to the user today. **Largely in #554.**
+- Windows suite and Windows CI (#571). Separator-agnostic assertions;
+  `build-and-package` runs on Windows too.
+- Unreachable `v.vls.openOutput` command (#566). Registered in the
+  manifest.
+- Narrow `documentSelector` (#573). Covers `untitled`, `git` and
+  `v.mod` now.
+- Undeclared legacy `vls.*` settings (#567). Declared with deprecation
+  messages.
+- Format/lint coherence (#570). eslint and prettier configs agree, the
+  lock installs, `fmt:check` exists and passes.
+- Walkthrough and Check/Vet/Format tasks (#562).
+- Test Explorer (#563).
+- `v` TaskProvider: already implemented (`VTaskProvider`), verified
+  against the manifest; the gap text was stale, no PR needed.
+- Debugger (#567) with delegation, GDB printers (#574), path and mode
+  (#575), launch options (#576), attach and remote targets (#577),
+  CodeLens and panic traps (#578).
+- Test skeleton code action (upstream #565).
+- Public API (#564). Environment status (#566).
+- MCP server (#558) and agent skills commands (#559).
 
 ## Already here, for contrast
 
