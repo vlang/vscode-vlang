@@ -28,27 +28,34 @@ export interface DocumentFormatSpec {
 	renameAttribute: (sourceKey: string) => string
 }
 
+/** Escape a key for a single-quoted V attribute. */
+function escapeAttributeKey(sourceKey: string): string {
+	return sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+}
+
+/** A rename attribute in one format's spelling. */
+function renameAttribute(kind: "json" | "toml"): (sourceKey: string) => string {
+	return (sourceKey) => ` @[${kind}: '${escapeAttributeKey(sourceKey)}']`
+}
+
 export const documentFormats: Record<DocumentFormat, DocumentFormatSpec> = {
 	json: {
 		importPath: "json2",
 		anyType: "json2.Any",
 		decodeCall: (typeName) => `json2.decode[${typeName}](data, json2.DecoderOptions{})`,
-		renameAttribute: (sourceKey) =>
-			` @[json: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+		renameAttribute: renameAttribute("json"),
 	},
 	toml: {
 		importPath: "toml",
 		anyType: "toml.Any",
 		decodeCall: (typeName) => `toml.decode[${typeName}](data)`,
-		renameAttribute: (sourceKey) =>
-			` @[toml: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+		renameAttribute: renameAttribute("toml"),
 	},
 	yaml: {
 		importPath: "yaml",
 		anyType: "yaml.Any",
 		decodeCall: (typeName) => `yaml.decode[${typeName}](data)`,
-		renameAttribute: (sourceKey) =>
-			` @[json: '${sourceKey.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}']`,
+		renameAttribute: renameAttribute("json"),
 	},
 }
 
@@ -192,8 +199,9 @@ export function structsFromValue(rootName: string, value: unknown, anyType: stri
 				for (const element of item as (string | number | boolean)[]) {
 					elementTypes.add(scalarType(element))
 				}
-				if (elementTypes.size === 1) {
-					return `[]${[...elementTypes][0] ?? anyType}`
+				const onlyType = [...elementTypes][0]
+				if (elementTypes.size === 1 && onlyType !== undefined) {
+					return `[]${onlyType}`
 				}
 				if (item.every((element) => typeof element === "number")) {
 					return "[]f64"
