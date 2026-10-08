@@ -12,6 +12,7 @@ import {
 } from "vscode"
 import { executeV } from "./exec"
 import { outputChannel, vlsOutputChannel } from "./logger"
+import { sharePlaygroundCode } from "./playground"
 
 function activeVDocument(): TextDocument | undefined {
 	const document = window.activeTextEditor?.document
@@ -84,7 +85,37 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand("v.run", run),
 		commands.registerCommand("v.fmt", fmt),
 		commands.registerCommand("v.ver", ver),
+		commands.registerCommand("v.sharePlayground", sharePlayground),
 	)
+}
+
+/** Share the active file on the V playground.
+ *
+ * The link is copied to the clipboard and offered to open, mirroring
+ * the playground's own share flow.
+ */
+export async function sharePlayground(): Promise<void> {
+	const document = activeVDocument()
+	if (!document) {
+		void window.showErrorMessage("No active V file to share.")
+		return
+	}
+	let link: string
+	try {
+		link = await sharePlaygroundCode(document.getText())
+	} catch (error) {
+		void window.showErrorMessage(
+			error instanceof Error
+				? error.message
+				: `Could not share on the playground: ${String(error)}`,
+		)
+		return
+	}
+	await env.clipboard.writeText(link)
+	const action = await window.showInformationMessage(`Playground link copied: ${link}`, "Open")
+	if (action === "Open") {
+		await env.openExternal(Uri.parse(link))
+	}
 }
 
 async function updateVls(): Promise<void> {
@@ -109,3 +140,4 @@ export function registerVlsCommands(context: ExtensionContext, restart: () => Pr
 		}),
 	)
 }
+
