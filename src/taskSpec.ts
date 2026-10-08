@@ -64,11 +64,11 @@ export function taskActionTitle(action: VTaskAction): string {
 export function workspaceTaskSpec(action: VTaskAction): VTaskSpec {
 	const args = (() => {
 		switch (action) {
-		case "build":
-			return ["-nocolor", "."]
-		case "prod":
-			return ["-nocolor", "-prod", "."]
-		case "run":
+			case "build":
+				return ["-nocolor", "."]
+			case "prod":
+				return ["-nocolor", "-prod", "."]
+			case "run":
 				return ["-nocolor", "run", "."]
 			case "test":
 				return ["-nocolor", "test", "."]

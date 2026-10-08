@@ -304,7 +304,7 @@
 			{
 				"id": "vWelcome",
 				"title": "Get Started with V",
-				"description": "Install V, build and run a project, run the checks that gate a change, and set up agents.",
+				"description": "Install V, build and run a project, run the checks that gate a change, debug it, and set up agents.",
 				"steps": [
 					{
 						"id": "installV",
@@ -313,7 +313,9 @@
 						"media": {
 							"markdown": "walkthrough/installV.md"
 						},
-						"completionEvents": ["onCommand:v.ver"]
+						"completionEvents": [
+							"onCommand:v.ver"
+						]
 					},
 					{
 						"id": "buildRunTest",
@@ -322,7 +324,9 @@
 						"media": {
 							"markdown": "walkthrough/buildRunTest.md"
 						},
-						"completionEvents": ["onCommand:vls.build"]
+						"completionEvents": [
+							"onCommand:vls.build"
+						]
 					},
 					{
 						"id": "checkVetFmt",
@@ -331,7 +335,17 @@
 						"media": {
 							"markdown": "walkthrough/checkVetFmt.md"
 						},
-						"completionEvents": ["onCommand:vls.check"]
+						"completionEvents": [
+							"onCommand:vls.check"
+						]
+					},
+					{
+						"id": "debugging",
+						"title": "Debug a program",
+						"description": "Start a debug session from the Run and Debug view, then check this step off.",
+						"media": {
+							"markdown": "walkthrough/debugging.md"
+						}
 					}
 				]
 			}
