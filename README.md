@@ -129,6 +129,15 @@ running binary for symbols (nothing is compiled), `processId` takes a PID
 or `${command:pickProcess}` for the adapter's picker, and `sourceFileMap`,
 `miDebuggerServerAddress` and `pipeTransport` reach remote targets.
 
+A `Debug Main` lens over `fn main` starts the same pipeline without a
+launch configuration. Panics stop in the debugger instead of exiting:
+debug builds trap on panic while a debugger is attached.
+
+Hexadecimal display is per variable, not a launch option: in the Debug
+Console, `-exec -var-set-format <name> hex` reformats a value (the
+adapter has no showHex-style setting). Core dumps stay out of scope;
+open one with a hand-written `cppdbg` config using `coreDumpPath`.
+
 Each session loads GDB pretty printers for V values: strings show as text,
 `Option` and `Result` show their payload, and arrays and maps summarize
 their lengths. This needs a GDB with Python support; without it the session

@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   process by PID (or `${command:pickProcess}`) with no compile step, and
   `sourceFileMap`, `miDebuggerServerAddress` and `pipeTransport` reach
   remote debuggers.
+- Debug CodeLens and panic traps. A `Debug Main` lens over `fn main`
+  starts a session without a launch configuration, and debug builds trap
+  on panic while a debugger is attached instead of exiting: every panic
+  funnels through `v_panic`, so no compiler change was needed.
 
 ### Fixed
 
