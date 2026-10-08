@@ -63,7 +63,8 @@ item or run `V: Clear Test Coverage` to remove the highlights.
 To create a test file from a source file, run **V: Generate Test File**. It
 creates the `_test.v` file beside the source with one `test_` function per public
 function, each with a placeholder assertion to replace. It refuses to overwrite
-an existing test file.
+an existing test file. **V: Toggle Test File** jumps between a source file
+and its test file, generating the test file first when it does not exist yet.
 
 ## Usage
 
@@ -81,6 +82,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
+- `V: Toggle Test File`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`

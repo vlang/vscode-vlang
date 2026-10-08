@@ -41,9 +41,7 @@ export function generateTestSkeleton(source: string): TestSkeleton | undefined {
 		return undefined
 	}
 
-	const functions = tests
-		.map((name) => `fn test_${name}() {\n\tassert true\n}`)
-		.join("\n\n")
+	const functions = tests.map((name) => `fn test_${name}() {\n\tassert true\n}`).join("\n\n")
 	return {
 		content: `module ${module[1]}\n\n${functions}\n`,
 		tests: tests.map((name) => `test_${name}`),
@@ -58,4 +56,17 @@ export function generateTestSkeleton(source: string): TestSkeleton | undefined {
 export function testFileName(sourceFileName: string): string {
 	const dot = sourceFileName.lastIndexOf(".")
 	return dot === -1 ? `${sourceFileName}_test.v` : `${sourceFileName.slice(0, dot)}_test.v`
+}
+
+/** The source file name for a test file, if it follows the layout.
+ *
+ * The reverse of `testFileName`: `foo_test.v` is tested-from `foo.v`.
+ * Anything else — including a bare `_test.v` with no stem — has no source.
+ */
+export function sourceFileName(testFile: string): string | undefined {
+	const suffix = "_test.v"
+	if (!testFile.endsWith(suffix) || testFile.length <= suffix.length) {
+		return undefined
+	}
+	return `${testFile.slice(0, -suffix.length)}.v`
 }

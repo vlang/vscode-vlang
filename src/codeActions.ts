@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { generateTestSkeleton, testFileName } from "./testSkeleton"
+import { generateTestSkeleton, sourceFileName, testFileName } from "./testSkeleton"
 
 /** A code action that generates a test skeleton for a V source file.
  *
@@ -83,6 +83,45 @@ export async function generateTestFile(uri: vscode.Uri): Promise<boolean> {
 	return true
 }
 
+/** Open the test file for a source file, or the source for a test file.
+ *
+ * From a source file with no test file yet, this generates one rather than
+ * opening an empty editor. From a test file whose source is gone, it says
+ * so instead of opening nothing.
+ */
+export async function toggleTestFile(uri?: vscode.Uri): Promise<void> {
+	const target = uri ?? vscode.window.activeTextEditor?.document.uri
+	if (!target || target.scheme !== "file") {
+		void vscode.window.showErrorMessage("No V file to toggle from.")
+		return
+	}
+	const source = sourceFileName(target.fsPath)
+	if (source !== undefined) {
+		const sourceUri = vscode.Uri.file(source)
+		const exists = await vscode.workspace.fs.stat(sourceUri).then(
+			() => true,
+			() => false,
+		)
+		if (!exists) {
+			void vscode.window.showErrorMessage(`Source file not found: ${source}.`)
+			return
+		}
+		await vscode.window.showTextDocument(sourceUri, { preview: false })
+		return
+	}
+	const generated = await generateTestFile(target)
+	if (!generated) {
+		const testUri = vscode.Uri.file(testFileName(target.fsPath))
+		const exists = await vscode.workspace.fs.stat(testUri).then(
+			() => true,
+			() => false,
+		)
+		if (exists) {
+			await vscode.window.showTextDocument(testUri, { preview: false })
+		}
+	}
+}
+
 /** Register the test skeleton code action.
  *
  * The command is registered separately from the provider so it can be bound to a
@@ -97,6 +136,9 @@ export function registerCodeActions(context: vscode.ExtensionContext): void {
 		),
 		vscode.commands.registerCommand("v.generateTestFile", (uri: vscode.Uri) =>
 			generateTestFile(uri),
+		),
+		vscode.commands.registerCommand("v.toggleTestFile", (uri?: vscode.Uri) =>
+			toggleTestFile(uri),
 		),
 	)
 }
