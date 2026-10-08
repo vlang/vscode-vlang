@@ -3,6 +3,7 @@ import { promisify } from "util"
 import * as path from "path"
 import * as vscode from "vscode"
 import {
+	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
@@ -11,6 +12,7 @@ import {
 	resolveDebuggerCommand,
 	vPrintersPath,
 	type CppdbgEnvironmentEntry,
+	type CppdbgPipeTransport,
 	type VDebuggerMode,
 	type VSetupCommandInput,
 } from "./debugCompile"
@@ -40,6 +42,10 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 	environment?: CppdbgEnvironmentEntry[]
 	envFile?: string
 	externalConsole?: boolean
+	processId?: string
+	sourceFileMap?: Record<string, string>
+	miDebuggerServerAddress?: string
+	pipeTransport?: CppdbgPipeTransport
 }
 
 /** Compile a V program to a binary with debug info. */
@@ -111,6 +117,27 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			vConfiguration.cwd ||
 			workspaceFolder?.uri.fsPath ||
 			path.dirname(vConfiguration.program)
+		if (vConfiguration.request === "attach") {
+			if (!vConfiguration.processId) {
+				void vscode.window.showErrorMessage(
+					"Cannot debug: attach needs a processId, e.g. ${command:pickProcess}.",
+				)
+				return undefined
+			}
+			return cppdbgAttachConfig({
+				name: configuration.name,
+				program: vConfiguration.program,
+				processId: vConfiguration.processId,
+				cwd,
+				printersPath: vPrintersPath(__dirname),
+				miMode,
+				miDebuggerPath: debuggerPath,
+				setupCommands: vConfiguration.setupCommands,
+				sourceFileMap: vConfiguration.sourceFileMap,
+				miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+				pipeTransport: vConfiguration.pipeTransport,
+			})
+		}
 		return vscode.window.withProgress(
 			{ location: vscode.ProgressLocation.Window, title: "Compiling V for debugging..." },
 			async () => {
@@ -128,6 +155,9 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					environment: vConfiguration.environment,
 					envFile: vConfiguration.envFile,
 					externalConsole: vConfiguration.externalConsole,
+					sourceFileMap: vConfiguration.sourceFileMap,
+					miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+					pipeTransport: vConfiguration.pipeTransport,
 				})
 			},
 		)
