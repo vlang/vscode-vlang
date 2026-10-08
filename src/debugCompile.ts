@@ -1,5 +1,6 @@
 import * as os from "os"
 import * as path from "path"
+import { expandConfiguredPath } from "./vCommand"
 
 /** A counter so two debug sessions started in the same millisecond do not collide. */
 let debugSessionCounter = 0
@@ -28,15 +29,26 @@ export function debugCompileArgs(program: string, binary: string): string[] {
 	return ["-g", "-o", binary, program]
 }
 
-/** Actionable error when GDB is not on PATH.
+/** Actionable error when the debugger is not on PATH.
  *
  * gdb is not installed by default on Windows and effectively unavailable
  * on macOS, so a first debug session there otherwise dies with a raw
  * spawn error. The message names the per-OS install route. `platform`
- * defaults to the host so tests can pin each branch. When the planned
- * debugger-path setting lands, its resolution replaces this check.
+ * defaults to the host so tests can pin each branch.
  */
-export function missingDebuggerMessage(platform: NodeJS.Platform = process.platform): string {
+export function missingDebuggerMessage(
+	platform: NodeJS.Platform = process.platform,
+	debuggerCommand = "gdb",
+): string {
+	if (debuggerCommand !== "gdb") {
+		const hint =
+			platform === "win32"
+				? "Install LLVM from the releases page and put its bin directory on PATH."
+				: platform === "darwin"
+					? "Install the Xcode command line tools (`xcode-select --install`); lldb ships with them."
+					: "Install LLDB (`sudo apt install lldb` or `sudo dnf install lldb`)."
+		return `Cannot debug: ${debuggerCommand} was not found on PATH. ${hint}`
+	}
 	const hint =
 		platform === "win32"
 			? "Install GDB via MSYS2 (`pacman -S mingw-w64-ucrt-x86_64-gdb`) or MinGW-w64 and restart VS Code so it is on PATH."
@@ -46,14 +58,37 @@ export function missingDebuggerMessage(platform: NodeJS.Platform = process.platf
 	return `Cannot debug: gdb was not found on PATH. ${hint}`
 }
 
+/** The MI debugger a V debug session runs under. */
+export type VDebuggerMode = "gdb" | "lldb"
+
+/** Resolve the debugger command for a session.
+ *
+ * A configured path expands `~`, `${env:NAME}` and `${workspaceFolder}`
+ * exactly like the other executable settings, so the `~` regression test
+ * shape applies here from day one. Blank means the mode default, which
+ * the adapter searches for on PATH.
+ */
+export function resolveDebuggerCommand(
+	configuredPath: string | undefined,
+	miMode: VDebuggerMode,
+	workspaceFolder?: string,
+): string {
+	const value = (configuredPath ?? "").trim()
+	if (!value) {
+		return miMode === "lldb" ? "lldb" : "gdb"
+	}
+	return expandConfiguredPath(value, workspaceFolder)
+}
+
 /** The `cppdbg` launch configuration a V debug session delegates to.
  *
  * Raw `gdb --interpreter=mi2` never answers DAP `initialize`
  * (`Undefined command: "Content-Length"`), so no session can run that
  * way on any platform. Instead the `type: "v"` config is rewritten to
  * the C/C++ extension's real adapter; only `program` is required there,
- * and `MIMode`/`setupCommands`/`args`/`cwd` carry over. `MIMode` stays
- * `gdb` until the planned debugger-path setting (D1-1) parameterizes it.
+ * and `MIMode`/`miDebuggerPath`/`setupCommands`/`args`/`cwd` carry over.
+ * The pretty printers are GDB scripts, so a non-gdb mode gets no printer
+ * setup commands.
  */
 export interface CppdbgLaunchConfiguration {
 	type: "cppdbg"
@@ -62,7 +97,8 @@ export interface CppdbgLaunchConfiguration {
 	program: string
 	args: string[]
 	cwd: string
-	MIMode: "gdb"
+	MIMode: VDebuggerMode
+	miDebuggerPath: string
 	stopAtEntry: boolean
 	setupCommands: CppdbgSetupCommand[]
 }
@@ -109,6 +145,8 @@ export function cppdbgLaunchConfig(input: {
 	cwd: string
 	stopAtEntry: boolean
 	printersPath: string
+	miMode: VDebuggerMode
+	miDebuggerPath: string
 }): CppdbgLaunchConfiguration {
 	return {
 		type: "cppdbg",
@@ -117,9 +155,10 @@ export function cppdbgLaunchConfig(input: {
 		program: input.binary,
 		args: input.args,
 		cwd: input.cwd,
-		MIMode: "gdb",
+		MIMode: input.miMode,
+		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: input.stopAtEntry,
-		setupCommands: gdbSetupCommands(input.printersPath),
+		setupCommands: input.miMode === "gdb" ? gdbSetupCommands(input.printersPath) : [],
 	}
 }
 

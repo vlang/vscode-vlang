@@ -8,9 +8,11 @@ import {
 	debugCompileArgs,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	resolveDebuggerCommand,
 	vPrintersPath,
+	type VDebuggerMode,
 } from "./debugCompile"
-import { findInPath } from "./vCommand"
+import { resolvedCommand } from "./vCommand"
 import { vCommandFor } from "./vExecutable"
 
 const execFile = promisify(_execFile)
@@ -18,26 +20,20 @@ const execFile = promisify(_execFile)
 /** How long to wait for the compile step of a debug session. */
 const compileTimeoutMs = 60_000
 
-/** The native debugger a V debug session needs on PATH.
- *
- * V compiles to a native binary, so the session runs under the same
- * debugger a C program would use; the `cppdbg` adapter drives it. This
- * is only probed for presence here — the adapter itself is launched by
- * the C/C++ extension, never directly.
- */
-const debugAdapterCommand = "gdb"
-
 /** The shape of a V debug configuration.
  *
  * `program` is the V source file to debug. It is compiled with `-g` before the
  * session starts, because the debug info is what lets a breakpoint in V source map
- * to a location in the binary.
+ * to a location in the binary. `miDebuggerPath` names the MI debugger (a path
+ * or a command on PATH, with `~` expanded); blank means the `MIMode` default.
  */
 export interface VDebugConfiguration extends vscode.DebugConfiguration {
 	program: string
 	args?: string[]
 	stopAtEntry?: boolean
 	cwd?: string
+	miDebuggerPath?: string
+	MIMode?: VDebuggerMode
 }
 
 /** Compile a V program to a binary with debug info. */
@@ -77,8 +73,20 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 		}
 		const workspaceFolder =
 			folder ?? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(vConfiguration.program))
-		if (!findInPath(debugAdapterCommand)) {
-			void vscode.window.showErrorMessage(missingDebuggerMessage())
+		const miMode = vConfiguration.MIMode === "lldb" ? "lldb" : "gdb"
+		const debuggerCommand = resolveDebuggerCommand(
+			vConfiguration.miDebuggerPath,
+			miMode,
+			workspaceFolder?.uri.fsPath,
+		)
+		const debuggerPath = resolvedCommand(debuggerCommand, workspaceFolder?.uri.fsPath)
+		if (!debuggerPath) {
+			const configured = (vConfiguration.miDebuggerPath ?? "").trim()
+			void vscode.window.showErrorMessage(
+				configured
+					? `Cannot debug: debugger not found: ${debuggerCommand}. Check miDebuggerPath.`
+					: missingDebuggerMessage(process.platform, miMode),
+			)
 			return undefined
 		}
 		if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
@@ -108,6 +116,8 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					cwd,
 					stopAtEntry: vConfiguration.stopAtEntry ?? false,
 					printersPath: vPrintersPath(__dirname),
+					miMode,
+					miDebuggerPath: debuggerPath,
 				})
 			},
 		)
