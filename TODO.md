@@ -147,7 +147,8 @@ panics_break_into_debugger` traps under a debugger (SIGTRAP
       2026-10-07.
 - [ ] **#473 same-module auto-import.** Server-side indexer issue.
 - [ ] **#495 Windows "starting, never active".** Upstream PR #529
-      announces the missing-V1-compiler cause; needs merge + a note here.
+      (missing-V1-compiler cause) was closed unmerged, so the cause
+      still stands and there is nothing to note yet.
 - Reference: v-analyzer (204★, tree-sitter, semantic tokens, rename,
   TOML config) is the feature bar, not a replacement target. Cheapest
   VLS-side answers in order: semantic tokens, type-definition,
