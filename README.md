@@ -118,7 +118,11 @@ require writing a `launch.json` by hand. The `program` field is the V source fil
 to debug; `args`, `stopAtEntry` and `cwd` are optional. `miDebuggerPath` names
 the MI debugger (a path or a command on PATH, with `~` expanded) and `MIMode`
 selects `gdb` or `lldb`; both default to gdb on PATH, which is what unblocks
-macOS debugging where gdb is effectively unavailable.
+macOS debugging where gdb is effectively unavailable. `setupCommands` passes
+extra MI commands through after the printer setup, `environment` and `envFile`
+set the program environment, and `externalConsole` runs it outside the
+integrated terminal. See `docs/TROUBLESHOOTING-DEBUGGING.md` when a session
+misbehaves.
 
 Each session loads GDB pretty printers for V values: strings show as text,
 `Option` and `Result` show their payload, and arrays and maps summarize

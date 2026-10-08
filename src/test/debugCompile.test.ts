@@ -166,4 +166,84 @@ describe("V debug compile", () => {
 			path.join("/extension/out", "..", "scripts", "gdb", "v_printers.py"),
 		)
 	})
+
+	it("runs user setup commands after the printer commands", () => {
+		// Unlocks GDB `skip` for generated-C frames and the like; a user
+		// entry needs only its text, and never fails the session either.
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "gdb",
+			miDebuggerPath: "/usr/bin/gdb",
+			setupCommands: [{ text: "skip -gfi vlib/*" }],
+		})
+		assert.deepStrictEqual(
+			config.setupCommands.map((command) => command.text),
+			[
+				"-enable-pretty-printing",
+				'-interpreter-exec console "source \\"/extension/scripts/gdb/v_printers.py\\""',
+				"skip -gfi vlib/*",
+			],
+		)
+		assert.ok(config.setupCommands.every((command) => command.ignoreFailures))
+	})
+
+	it("passes user setup commands to lldb sessions untouched", () => {
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "lldb",
+			miDebuggerPath: "/usr/bin/lldb",
+			setupCommands: [
+				{ description: "Skip runtime", text: "skip -gfi vlib/*", ignoreFailures: false },
+			],
+		})
+		assert.deepStrictEqual(config.setupCommands, [
+			{ description: "Skip runtime", text: "skip -gfi vlib/*", ignoreFailures: false },
+		])
+	})
+
+	it("passes environment, envFile and console choice through", () => {
+		// The adapter resolves the file and the variables itself.
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "gdb",
+			miDebuggerPath: "/usr/bin/gdb",
+			environment: [{ name: "VFLAGS", value: "-d debug" }],
+			envFile: "/workspace/.env",
+			externalConsole: true,
+		})
+		assert.deepStrictEqual(config.environment, [{ name: "VFLAGS", value: "-d debug" }])
+		assert.strictEqual(config.envFile, "/workspace/.env")
+		assert.strictEqual(config.externalConsole, true)
+	})
+
+	it("omits environment, envFile and console choice when unset", () => {
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "gdb",
+			miDebuggerPath: "/usr/bin/gdb",
+		})
+		assert.ok(!("environment" in config))
+		assert.ok(!("envFile" in config))
+		assert.ok(!("externalConsole" in config))
+	})
 })

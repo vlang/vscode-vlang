@@ -10,7 +10,9 @@ import {
 	missingDebuggerMessage,
 	resolveDebuggerCommand,
 	vPrintersPath,
+	type CppdbgEnvironmentEntry,
 	type VDebuggerMode,
+	type VSetupCommandInput,
 } from "./debugCompile"
 import { resolvedCommand } from "./vCommand"
 import { vCommandFor } from "./vExecutable"
@@ -34,6 +36,10 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 	cwd?: string
 	miDebuggerPath?: string
 	MIMode?: VDebuggerMode
+	setupCommands?: VSetupCommandInput[]
+	environment?: CppdbgEnvironmentEntry[]
+	envFile?: string
+	externalConsole?: boolean
 }
 
 /** Compile a V program to a binary with debug info. */
@@ -118,6 +124,10 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					printersPath: vPrintersPath(__dirname),
 					miMode,
 					miDebuggerPath: debuggerPath,
+					setupCommands: vConfiguration.setupCommands,
+					environment: vConfiguration.environment,
+					envFile: vConfiguration.envFile,
+					externalConsole: vConfiguration.externalConsole,
 				})
 			},
 		)
