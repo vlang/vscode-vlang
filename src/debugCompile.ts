@@ -101,12 +101,44 @@ export interface CppdbgLaunchConfiguration {
 	miDebuggerPath: string
 	stopAtEntry: boolean
 	setupCommands: CppdbgSetupCommand[]
+	environment?: CppdbgEnvironmentEntry[]
+	envFile?: string
+	externalConsole?: boolean
+}
+
+/** An environment entry for the debugged program. */
+export interface CppdbgEnvironmentEntry {
+	name: string
+	value: string
 }
 
 export interface CppdbgSetupCommand {
 	description: string
 	text: string
 	ignoreFailures: boolean
+}
+
+/** A user-supplied setup command from the V launch configuration. */
+export interface VSetupCommandInput {
+	description?: string
+	text: string
+	ignoreFailures?: boolean
+}
+
+/** Normalize user setup commands: only `text` is required.
+ *
+ * A failing user command never fails the session, the same rule the
+ * built-in printer commands follow: a session that starts without one
+ * skipped breakpoint beats no session.
+ */
+export function normalizeSetupCommands(
+	entries: VSetupCommandInput[] | undefined,
+): CppdbgSetupCommand[] {
+	return (entries ?? []).map((entry) => ({
+		description: entry.description ?? "",
+		text: entry.text,
+		ignoreFailures: entry.ignoreFailures ?? true,
+	}))
 }
 
 /** MI setup commands that load the V pretty printers for a session.
@@ -147,7 +179,12 @@ export function cppdbgLaunchConfig(input: {
 	printersPath: string
 	miMode: VDebuggerMode
 	miDebuggerPath: string
+	setupCommands?: VSetupCommandInput[]
+	environment?: CppdbgEnvironmentEntry[]
+	envFile?: string
+	externalConsole?: boolean
 }): CppdbgLaunchConfiguration {
+	const userCommands = normalizeSetupCommands(input.setupCommands)
 	return {
 		type: "cppdbg",
 		request: "launch",
@@ -158,7 +195,13 @@ export function cppdbgLaunchConfig(input: {
 		MIMode: input.miMode,
 		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: input.stopAtEntry,
-		setupCommands: input.miMode === "gdb" ? gdbSetupCommands(input.printersPath) : [],
+		setupCommands:
+			input.miMode === "gdb"
+				? [...gdbSetupCommands(input.printersPath), ...userCommands]
+				: userCommands,
+		...(input.environment ? { environment: input.environment } : {}),
+		...(input.envFile ? { envFile: input.envFile } : {}),
+		...(input.externalConsole !== undefined ? { externalConsole: input.externalConsole } : {}),
 	}
 }
 
