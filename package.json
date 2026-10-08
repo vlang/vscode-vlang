@@ -347,6 +347,20 @@
 								"type": "string",
 								"description": "Working directory for the program. Defaults to the workspace folder.",
 								"default": "${workspaceFolder}"
+							},
+							"miDebuggerPath": {
+								"type": "string",
+								"description": "Path or command name of the MI debugger. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}. Empty means the MIMode default on PATH.",
+								"default": ""
+							},
+							"MIMode": {
+								"type": "string",
+								"enum": [
+									"gdb",
+									"lldb"
+								],
+								"description": "The MI debugger to run the session under. The V pretty printers only load under gdb.",
+								"default": "gdb"
 							}
 						}
 					}
