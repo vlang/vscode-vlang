@@ -323,7 +323,9 @@
 				"label": "V",
 				"configurationAttributes": {
 					"launch": {
-						"required": ["program"],
+						"required": [
+							"program"
+						],
 						"properties": {
 							"program": {
 								"type": "string",
@@ -361,6 +363,57 @@
 								],
 								"description": "The MI debugger to run the session under. The V pretty printers only load under gdb.",
 								"default": "gdb"
+							},
+							"setupCommands": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"text"
+									],
+									"properties": {
+										"description": {
+											"type": "string"
+										},
+										"text": {
+											"type": "string",
+											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames."
+										},
+										"ignoreFailures": {
+											"type": "boolean"
+										}
+									}
+								},
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"default": []
+							},
+							"environment": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"name",
+										"value"
+									],
+									"properties": {
+										"name": {
+											"type": "string"
+										},
+										"value": {
+											"type": "string"
+										}
+									}
+								},
+								"description": "Environment variables for the debugged program."
+							},
+							"envFile": {
+								"type": "string",
+								"description": "Path to a KEY=VALUE environment file for the debugged program. Entries overwrite environment."
+							},
+							"externalConsole": {
+								"type": "boolean",
+								"description": "Run the program in an external console instead of the integrated terminal.",
+								"default": false
 							}
 						}
 					}

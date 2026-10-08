@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `~`, `${env:NAME}` and `${workspaceFolder}` expanded) and `MIMode`
   selects `gdb` or `lldb`, unblocking macOS. The pretty printers are GDB
   scripts, so lldb sessions carry no printer setup commands.
+- Debug launch passthrough. `setupCommands` appends user MI commands after
+  the printer setup (e.g. GDB `skip` rules for generated frames),
+  `environment` and `envFile` set the program environment, and
+  `externalConsole` runs it outside the integrated terminal. A
+  `docs/TROUBLESHOOTING-DEBUGGING.md` guide covers the failure modes.
 
 ### Fixed
 
