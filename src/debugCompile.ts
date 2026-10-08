@@ -23,10 +23,33 @@ export function debugBinaryPath(program: string): string {
  *
  * `-g` is the debug info that lets a breakpoint in V source resolve to a location
  * in the binary. `-o` writes to the path `debugBinaryPath` computed, because the
- * default output name is derived from the source and would land in the source tree.
+ * default output name would land in the source tree. `-d
+ * panics_break_into_debugger` turns a panic into a trap while a debugger is
+ * attached instead of an exit: every panic funnels through `v_panic`, so no
+ * V-side change was needed, and without a debugger the flag changes
+ * nothing. Measured: SIGTRAP with `risky()` and `wmain` on the stack.
  */
 export function debugCompileArgs(program: string, binary: string): string[] {
-	return ["-g", "-o", binary, program]
+	return ["-g", "-d", "panics_break_into_debugger", "-o", binary, program]
+}
+
+const mainFunction = /^fn\s+main\s*\(/
+
+/** Zero-based line numbers declaring `fn main`.
+ *
+ * Drives the Debug CodeLens: exactly the lines a session starts from,
+ * without parsing anything else. Indented and commented-out matches do
+ * not count; `main` is always top level.
+ */
+export function mainFunctionLines(source: string): number[] {
+	const lines: number[] = []
+	const split = source.split("\n")
+	for (let index = 0; index < split.length; index++) {
+		if (mainFunction.test(split[index] ?? "")) {
+			lines.push(index)
+		}
+	}
+	return lines
 }
 
 /** Actionable error when the debugger is not on PATH.

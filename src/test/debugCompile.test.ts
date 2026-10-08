@@ -8,6 +8,7 @@ import {
 	debugBinaryPath,
 	debugCompileArgs,
 	gdbSetupCommands,
+	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
 	resolveDebuggerCommand,
@@ -27,9 +28,12 @@ describe("V debug compile", () => {
 	it("compiles with debug info and an explicit output path", () => {
 		// `-g` is the debug info that lets a breakpoint in V source resolve to a
 		// location in the binary. `-o` writes to the computed path, because the
-		// default output name would land in the source tree.
+		// default output name would land in the source tree. The panic define
+		// turns a panic into a trap under a debugger instead of an exit.
 		assert.deepStrictEqual(debugCompileArgs("/w/app/src/main.v", "/tmp/v-debug-main"), [
 			"-g",
+			"-d",
+			"panics_break_into_debugger",
 			"-o",
 			"/tmp/v-debug-main",
 			"/w/app/src/main.v",
@@ -319,5 +323,15 @@ describe("V debug compile", () => {
 		assert.deepStrictEqual(config.sourceFileMap, { "/build": "/workspace" })
 		assert.ok(!("miDebuggerServerAddress" in config))
 		assert.ok(!("pipeTransport" in config))
+	})
+
+	it("finds fn main lines for the Debug CodeLens", () => {
+		assert.deepStrictEqual(mainFunctionLines("module main\n\nfn main() {\n}\n"), [2])
+		assert.deepStrictEqual(mainFunctionLines("module main\n\nfn main () {\n}\n"), [2])
+		assert.deepStrictEqual(mainFunctionLines("module main\n\nfn helper() {}\n"), [])
+		assert.deepStrictEqual(mainFunctionLines("module main\n\nfn mainx() {}\n"), [])
+		assert.deepStrictEqual(mainFunctionLines("// fn main() {}\nfn helper() {}\n"), [])
+		assert.deepStrictEqual(mainFunctionLines("  fn main() {}\n"), [])
+		assert.deepStrictEqual(mainFunctionLines("fn main() {}\nfn main() {}\n"), [0, 1])
 	})
 })
