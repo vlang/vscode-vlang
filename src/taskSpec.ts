@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 
-export type VTaskAction = "build" | "run" | "test" | "check" | "vet" | "fmt"
+export type VTaskAction = "build" | "run" | "test" | "prod" | "check" | "vet" | "fmt"
 
 export interface VTaskSpec {
 	action: VTaskAction
@@ -56,15 +56,19 @@ export function shouldSaveTaskDocument(
 }
 
 export function taskActionTitle(action: VTaskAction): string {
-	return action === "fmt" ? "Format Check" : action[0].toUpperCase() + action.slice(1)
+	if (action === "prod") return "Build Optimized"
+	if (action === "fmt") return "Format Check"
+	return action.charAt(0).toUpperCase() + action.slice(1)
 }
 
 export function workspaceTaskSpec(action: VTaskAction): VTaskSpec {
 	const args = (() => {
 		switch (action) {
-			case "build":
-				return ["-nocolor", "."]
-			case "run":
+		case "build":
+			return ["-nocolor", "."]
+		case "prod":
+			return ["-nocolor", "-prod", "."]
+		case "run":
 				return ["-nocolor", "run", "."]
 			case "test":
 				return ["-nocolor", "test", "."]
@@ -103,7 +107,15 @@ function taskPath(targetPath: string, workingDirectory: string): string {
 	) {
 		return targetPath
 	}
-	return relativePath
+	return relativePath.startsWith("-") ? `.${path.sep}${relativePath}` : relativePath
+}
+
+export function activeBuildTaskSpec(filePath: string, workingDirectory: string): VTaskSpec {
+	return {
+		action: "prod",
+		args: ["-nocolor", "-prod", taskPath(path.dirname(filePath), workingDirectory)],
+		name: "Build Optimized Active Module",
+	}
 }
 
 export function activeRunTaskSpec(filePath: string, workingDirectory: string): VTaskSpec {
