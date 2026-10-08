@@ -7,6 +7,7 @@ import {
 	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
+	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
 	resolveDebuggerCommand,
@@ -168,10 +169,62 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
  *
  * The debugger is contributed in `package.json` with `type: "v"`. This
  * provider compiles the program and rewrites the configuration to the
- * `cppdbg` adapter before the session starts.
+ * `cppdbg` adapter before the session starts. A CodeLens over `fn main`
+ * starts the same pipeline without a launch configuration.
  */
 export function registerDebugger(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
+		vscode.languages.registerCodeLensProvider(
+			{ scheme: "file", language: "v" },
+			new VDebugCodeLensProvider(),
+		),
+		vscode.commands.registerCommand("v.debugMain", (uri?: vscode.Uri) => debugMain(uri)),
 	)
+}
+
+function activeVFilePath(): string | undefined {
+	const document = vscode.window.activeTextEditor?.document
+	if (!document || document.uri.scheme !== "file") {
+		return undefined
+	}
+	if (document.languageId !== "v" && !document.fileName.endsWith(".vsh")) {
+		return undefined
+	}
+	return document.uri.fsPath
+}
+
+async function debugMain(uri?: vscode.Uri): Promise<void> {
+	const filePath = uri?.scheme === "file" ? uri.fsPath : activeVFilePath()
+	if (!filePath) {
+		void vscode.window.showErrorMessage("No V file to debug.")
+		return
+	}
+	const fileUri = uri?.scheme === "file" ? uri : vscode.Uri.file(filePath)
+	const folder = vscode.workspace.getWorkspaceFolder(fileUri)
+	const started = await vscode.debug.startDebugging(folder, {
+		type: "v",
+		request: "launch",
+		name: `Debug ${path.basename(filePath)}`,
+		program: filePath,
+	})
+	if (!started) {
+		void vscode.window.showErrorMessage("Could not start the V debug session.")
+	}
+}
+
+class VDebugCodeLensProvider implements vscode.CodeLensProvider {
+	provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+		if (document.uri.scheme !== "file") {
+			return []
+		}
+		return mainFunctionLines(document.getText()).map(
+			(line) =>
+				new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
+					title: "Debug Main",
+					command: "v.debugMain",
+					arguments: [document.uri],
+				}),
+		)
+	}
 }

@@ -293,6 +293,11 @@
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
 				"category": "V"
+			},
+			{
+				"command": "v.debugMain",
+				"title": "Debug Main",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -307,6 +312,10 @@
 				},
 				{
 					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.debugMain",
 					"when": "editorLangId == v"
 				},
 				{
