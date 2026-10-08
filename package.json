@@ -280,6 +280,11 @@
 				"category": "V"
 			},
 			{
+				"command": "v.toggleTestFile",
+				"title": "Toggle Test File",
+				"category": "V"
+			},
+			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"
@@ -312,6 +317,10 @@
 				},
 				{
 					"command": "v.prod",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.toggleTestFile",
 					"when": "editorLangId == v"
 				},
 				{
