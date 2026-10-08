@@ -117,6 +117,11 @@ A default launch configuration is provided, so starting a debug session does not
 require writing a `launch.json` by hand. The `program` field is the V source file
 to debug; `args`, `stopAtEntry` and `cwd` are optional.
 
+Each session loads GDB pretty printers for V values: strings show as text,
+`Option` and `Result` show their payload, and arrays and maps summarize
+their lengths. This needs a GDB with Python support; without it the session
+still runs, only without the pretty display.
+
 ## License
 
 The extension is distributed under [GPL-2.0-only](./LICENSE) because its

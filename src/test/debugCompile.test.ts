@@ -6,8 +6,10 @@ import {
 	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
+	gdbSetupCommands,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	vPrintersPath,
 } from "../debugCompile"
 
 describe("V debug compile", () => {
@@ -67,6 +69,7 @@ describe("V debug compile", () => {
 				args: ["a", "b"],
 				cwd: "/workspace",
 				stopAtEntry: true,
+				printersPath: "/extension/scripts/gdb/v_printers.py",
 			}),
 			{
 				type: "cppdbg",
@@ -77,7 +80,44 @@ describe("V debug compile", () => {
 				cwd: "/workspace",
 				MIMode: "gdb",
 				stopAtEntry: true,
+				setupCommands: gdbSetupCommands("/extension/scripts/gdb/v_printers.py"),
 			},
+		)
+	})
+
+	it("loads the printers through MI without failing the session", () => {
+		// The texts are MI commands, which is what the adapter sends, so
+		// the console `source` runs wrapped in `-interpreter-exec`.
+		assert.deepStrictEqual(gdbSetupCommands("/extension/scripts/gdb/v_printers.py"), [
+			{
+				description: "Enable GDB pretty-printing",
+				text: "-enable-pretty-printing",
+				ignoreFailures: true,
+			},
+			{
+				description: "Load V pretty printers",
+				text: '-interpreter-exec console "source \\"/extension/scripts/gdb/v_printers.py\\""',
+				ignoreFailures: true,
+			},
+		])
+	})
+
+	it("quotes Windows printers paths for MI", () => {
+		// Backslashes become forward slashes so no MI-level escaping is
+		// needed beyond the quotes; a printer failure never fails the launch.
+		const [enable, source] = gdbSetupCommands("C:\\vscode ext\\v_printers.py")
+		assert.strictEqual(enable?.text, "-enable-pretty-printing")
+		assert.strictEqual(
+			source?.text,
+			'-interpreter-exec console "source \\"C:/vscode ext/v_printers.py\\""',
+		)
+		assert.ok(source?.ignoreFailures)
+	})
+
+	it("resolves the printers next to the bundle", () => {
+		assert.strictEqual(
+			vPrintersPath("/extension/out"),
+			path.join("/extension/out", "..", "scripts", "gdb", "v_printers.py"),
 		)
 	})
 })

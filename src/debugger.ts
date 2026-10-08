@@ -8,6 +8,7 @@ import {
 	debugCompileArgs,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	vPrintersPath,
 } from "./debugCompile"
 import { findInPath } from "./vCommand"
 import { vCommandFor } from "./vExecutable"
@@ -40,11 +41,7 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 }
 
 /** Compile a V program to a binary with debug info. */
-async function compileForDebug(
-	vCommand: string,
-	program: string,
-	cwd: string,
-): Promise<string> {
+async function compileForDebug(vCommand: string, program: string, cwd: string): Promise<string> {
 	const binary = debugBinaryPath(program)
 	await execFile(vCommand, debugCompileArgs(program, binary), { cwd, timeout: compileTimeoutMs })
 	return binary
@@ -73,7 +70,9 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 	): Promise<vscode.DebugConfiguration | undefined> {
 		const vConfiguration = configuration as VDebugConfiguration
 		if (!vConfiguration.program) {
-			void vscode.window.showErrorMessage("Cannot debug: no V program in the launch configuration.")
+			void vscode.window.showErrorMessage(
+				"Cannot debug: no V program in the launch configuration.",
+			)
 			return undefined
 		}
 		const workspaceFolder =
@@ -108,6 +107,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					args: vConfiguration.args ?? [],
 					cwd,
 					stopAtEntry: vConfiguration.stopAtEntry ?? false,
+					printersPath: vPrintersPath(__dirname),
 				})
 			},
 		)
