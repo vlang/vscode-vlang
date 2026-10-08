@@ -44,6 +44,13 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Generate from JSON
+
+On a JSON file, **V: Generate JSON Decoder** infers V structs for the
+document and opens them as an untitled V file, with a decode example
+using `json2`. TOML and YAML share the same core and follow once their
+parsers land as declared dependencies.
+
 ### Build, run, and test
 
 Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
@@ -87,6 +94,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Toggle Test File`
 - `V: Fill Struct Fields`
 - `V: Share on Playground`
+- `V: Generate JSON Decoder`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`
