@@ -17,14 +17,7 @@ import { configuredCommand, resolvedCommand } from "./vCommand"
  * setting that is blank.
  */
 export function vCommandFor(folder: WorkspaceFolder): string {
-	const configured = migratedSetting(
-		"v",
-		"executablePath",
-		"vls",
-		"vCommand",
-		"v",
-		folder.uri,
-	)
+	const configured = migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder.uri)
 	return (
 		resolvedCommand(configured, folder.uri.fsPath) ??
 		configuredCommand(configured, folder.uri.fsPath)

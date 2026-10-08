@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **V: Generate JSON Decoder**, inferring V structs for the active JSON
   document with a `json2` decode example. TOML and YAML share the core
   and follow once their parsers land as declared dependencies.
+- XML and CSV decoders on the same core: strict XML and typed-column
+  CSV inference with `encoding.xml` / `encoding.csv` examples, plus
+  **V: Convert Selection Encoding** (base64/hex/base32/base58 both
+  ways), **V: Organize Imports** (`v fmt` does not sort), VPM search
+  and inspect commands, decimal hovers over non-decimal literals, and
+  a dozen veb snippets.
 - **V: Fill Struct Fields**, filling an empty `Name{}` literal with the
   fields of the same-file `struct Name` declaration.
 - **V: Share on Playground**, posting the active file and opening its

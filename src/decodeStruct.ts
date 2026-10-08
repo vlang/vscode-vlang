@@ -1,31 +1,35 @@
 /** Generating V decoder structs from a document.
  *
  * Everything here is pure so it is tested without an editor. The editor
- * wiring (command on JSON files) lives in `commands.ts`.
+ * wiring (commands on document files) lives in `commands.ts`.
  *
  * REVIEW NOTE — re-verify against vlib on every V minor bump (last
- * verified V 0.5.2): this module hardcodes three moving targets, the V
- * struct syntax, the `json2`/`toml`/`yaml` decode calls and their
- * `@[json: ...]`-style field attributes. The `json` → `json2` migration
- * already broke this shape once (the old cJSON module is gone). When V
- * renames a decoder or changes attribute spelling, the generated code
- * silently stops compiling: regenerate the fixture below against the new
- * compiler and update the templates. TOML and YAML share this core but
- * are not wired end to end yet: parsing them needs declared parser
- * dependencies, which need the package lock repaired first.
+ * verified V 0.5.2): this module hardcodes four moving targets, the V
+ * struct syntax, the decoder calls and their `@[json: ...]`-style field
+ * attributes. The `json` → `json2` migration already broke this shape
+ * once (the old cJSON module is gone). When V renames a decoder or
+ * changes attribute spelling, the generated code silently stops
+ * compiling: regenerate the fixtures against the new compiler and
+ * update the templates. JSON parses with the builtin reader; TOML and
+ * YAML share this core but are not wired end to end yet, because parsing
+ * them needs declared parser dependencies, which need the package lock
+ * repaired first. XML and CSV parse with the strict readers in
+ * `docTables.ts`.
  */
 
-export type DocumentFormat = "json" | "toml" | "yaml"
+import { mergeRepeatShapes, parseCsvDocument, parseXmlDocument, typedCsvRecords } from "./docTables"
+
+export type DocumentFormat = "json" | "toml" | "yaml" | "xml" | "csv"
 
 export interface DocumentFormatSpec {
-	/** Module to import, e.g. `json2`. */
-	importPath: string
 	/** Fallback type for null, empty and mixed values, e.g. `json2.Any`. */
 	anyType: string
-	/** Decode call for a type, e.g. `json2.decode[Foo](data, json2.DecoderOptions{})`. */
-	decodeCall: (typeName: string) => string
 	/** Rename attribute for a foreign key, e.g. ` @[json: 'a-b']`. */
 	renameAttribute: (sourceKey: string) => string
+	/** Imports for a schema, e.g. `["encoding.xml", "json2"]`. */
+	importsFor: (schema: DecodedSchema) => string[]
+	/** Example function lines for a schema. */
+	exampleFor: (schema: DecodedSchema) => string[]
 }
 
 /** Escape a key for a single-quoted V attribute. */
@@ -38,24 +42,89 @@ function renameAttribute(kind: "json" | "toml"): (sourceKey: string) => string {
 	return (sourceKey) => ` @[${kind}: '${escapeAttributeKey(sourceKey)}']`
 }
 
+/** Whether any rendered type mentions the fallback type. */
+function schemaUsesType(schema: DecodedSchema, typeName: string): boolean {
+	if (schema.rootType.includes(typeName)) {
+		return true
+	}
+	return schema.structs.some((struct) =>
+		struct.fields.some((field) => field.type.includes(typeName)),
+	)
+}
+
+function decodeExample(
+	decodeFunction: string,
+	rootType: string,
+	call: string,
+	returnsResult: boolean,
+): string[] {
+	const returns = returnsResult ? `!${rootType}` : rootType
+	return [`fn ${decodeFunction}(data string) ${returns} {`, `\treturn ${call}`, "}"]
+}
+
 export const documentFormats: Record<DocumentFormat, DocumentFormatSpec> = {
 	json: {
-		importPath: "json2",
 		anyType: "json2.Any",
-		decodeCall: (typeName) => `json2.decode[${typeName}](data, json2.DecoderOptions{})`,
 		renameAttribute: renameAttribute("json"),
+		importsFor: () => ["json2"],
+		exampleFor: (schema) =>
+			decodeExample(
+				schema.decodeFunction,
+				schema.rootType,
+				`json2.decode[${schema.rootType}](data, json2.DecoderOptions{})`,
+				true,
+			),
 	},
 	toml: {
-		importPath: "toml",
 		anyType: "toml.Any",
-		decodeCall: (typeName) => `toml.decode[${typeName}](data)`,
 		renameAttribute: renameAttribute("toml"),
+		importsFor: () => ["toml"],
+		exampleFor: (schema) =>
+			decodeExample(
+				schema.decodeFunction,
+				schema.rootType,
+				`toml.decode[${schema.rootType}](data)`,
+				true,
+			),
 	},
 	yaml: {
-		importPath: "yaml",
 		anyType: "yaml.Any",
-		decodeCall: (typeName) => `yaml.decode[${typeName}](data)`,
 		renameAttribute: renameAttribute("json"),
+		importsFor: () => ["yaml"],
+		exampleFor: (schema) =>
+			decodeExample(
+				schema.decodeFunction,
+				schema.rootType,
+				`yaml.decode[${schema.rootType}](data)`,
+				true,
+			),
+	},
+	csv: {
+		anyType: "string",
+		renameAttribute: () => "",
+		importsFor: () => ["encoding.csv"],
+		exampleFor: (schema) => {
+			const item = schema.structs[0]?.name ?? schema.rootType
+			return decodeExample(
+				schema.decodeFunction,
+				`[]${item}`,
+				`csv.decode[${item}](data)`,
+				false,
+			)
+		},
+	},
+	xml: {
+		anyType: "json2.Any",
+		renameAttribute: () => "",
+		importsFor: (schema) =>
+			schemaUsesType(schema, "json2.Any") ? ["encoding.xml", "json2"] : ["encoding.xml"],
+		exampleFor: (schema) => [
+			"// No struct decoder exists: load the document, then read fields",
+			"// with get_elements_by_tag and friends.",
+			`fn ${schema.decodeFunction.replace(/^decode_/, "load_")}(data string) !xml.XMLDocument {`,
+			"\treturn xml.XMLDocument.from_string(data)",
+			"}",
+		],
 	},
 }
 
@@ -237,9 +306,9 @@ export function structsFromValue(rootName: string, value: unknown, anyType: stri
 	return { structs, rootType, decodeFunction: decodeName }
 }
 
-/** Render the module: import, structs, and a decode example. */
+/** Render the module: imports, structs, and a decode example. */
 export function renderModule(spec: DocumentFormatSpec, schema: DecodedSchema): string {
-	const lines = [`import ${spec.importPath}`, ""]
+	const lines = [...spec.importsFor(schema).map((module) => `import ${module}`), ""]
 	for (const struct of schema.structs) {
 		lines.push(`struct ${struct.name} {`)
 		for (const field of struct.fields) {
@@ -248,9 +317,7 @@ export function renderModule(spec: DocumentFormatSpec, schema: DecodedSchema): s
 		}
 		lines.push("}", "")
 	}
-	lines.push(`fn ${schema.decodeFunction}(data string) !${schema.rootType} {`)
-	lines.push(`\treturn ${spec.decodeCall(schema.rootType)}`)
-	lines.push("}")
+	lines.push(...spec.exampleFor(schema))
 	return `${lines.join("\n")}\n`
 }
 
@@ -260,4 +327,33 @@ export function rootNameForFile(fileName: string): string {
 	const stem = base.includes(".") ? base.slice(0, base.lastIndexOf(".")) : base
 	const cleaned = stem.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[0-9]+/, "")
 	return capitalize(cleaned === "" ? "root" : cleaned)
+}
+
+/** Schema for a JSON document. */
+export function schemaFromJson(rootName: string, text: string): DecodedSchema {
+	let value: unknown
+	try {
+		value = JSON.parse(text)
+	} catch {
+		throw new Error("The file is not valid JSON.")
+	}
+	return structsFromValue(rootName, value, documentFormats.json.anyType)
+}
+
+/** Schema for an XML document, merging repeat siblings first. */
+export function schemaFromXml(rootName: string, text: string): DecodedSchema {
+	return structsFromValue(
+		rootName,
+		mergeRepeatShapes(parseXmlDocument(text)),
+		documentFormats.xml.anyType,
+	)
+}
+
+/** Schema for a CSV document, typing each column across all rows. */
+export function schemaFromCsv(rootName: string, text: string): DecodedSchema {
+	const rows = parseCsvDocument(text)
+	if (rows.length === 0) {
+		throw new Error("The file has no data rows to infer structs from.")
+	}
+	return structsFromValue(rootName, typedCsvRecords(rows), documentFormats.csv.anyType)
 }

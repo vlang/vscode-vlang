@@ -58,6 +58,12 @@ describe("VLS VS Code extension", () => {
 			"v.sharePlayground",
 			"v.debugMain",
 			"v.generateJsonDecoder",
+			"v.generateXmlDecoder",
+			"v.generateCsvDecoder",
+			"v.convertEncoding",
+			"v.organizeImports",
+			"v.vpmSearch",
+			"v.vpmList",
 			"v.ver",
 		]) {
 			assert.ok(commands.includes(command), `missing manifest command ${command}`)

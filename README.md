@@ -48,8 +48,17 @@ effective until replaced by the corresponding `v.*` settings.
 
 On a JSON file, **V: Generate JSON Decoder** infers V structs for the
 document and opens them as an untitled V file, with a decode example
-using `json2`. TOML and YAML share the same core and follow once their
-parsers land as declared dependencies.
+using `json2`. **V: Generate XML Decoder** and **V: Generate CSV
+Decoder** do the same from XML (strict subset, struct shape only —
+vlib has no struct decoder, so the example loads the document for the
+query API) and CSV (columns typed across rows) files. TOML and YAML
+share the same core and follow once their parsers land as declared
+dependencies.
+
+Protobuf, ASN.1, PEM, CBOR and raw binary payloads carry no field
+names without a schema, so struct inference does not apply to them;
+base64, hex, base32 and base58 are encodings, covered by
+**V: Convert Selection Encoding** instead.
 
 ### Build, run, and test
 
@@ -95,6 +104,12 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Fill Struct Fields`
 - `V: Share on Playground`
 - `V: Generate JSON Decoder`
+- `V: Generate XML Decoder`
+- `V: Generate CSV Decoder`
+- `V: Convert Selection Encoding`
+- `V: Organize Imports`
+- `V: Search VPM Modules`
+- `V: List Installed VPM Modules`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`

@@ -1,4 +1,4 @@
-import { registerCommands, registerVlsCommands } from "commands"
+import { registerCommands, registerNumberHover, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
 import { registerDebugger } from "./debugger"
 import { getVls, isVlsEnabled } from "langserver"
@@ -97,6 +97,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register the debugger so a V program can be launched under gdb. The compile
 	// step happens inside the factory, so no task needs to be defined first.
 	registerDebugger(context)
+	registerNumberHover(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {

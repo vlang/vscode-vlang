@@ -31,7 +31,7 @@
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/debugCompile.test.js out/test/playground.test.js out/test/fillStruct.test.js out/test/decodeStruct.test.js",
+		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/debugCompile.test.js out/test/playground.test.js out/test/fillStruct.test.js out/test/decodeStruct.test.js out/test/convert.test.js out/test/vpm.test.js out/test/numberHover.test.js out/test/docTables.test.js out/test/importsCleanup.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -54,6 +54,10 @@
 			{
 				"language": "v",
 				"path": "snippets/snippets.json"
+			},
+			{
+				"language": "v",
+				"path": "snippets/veb.json"
 			}
 		],
 		"languages": [
@@ -318,6 +322,36 @@
 				"command": "v.generateJsonDecoder",
 				"title": "Generate JSON Decoder",
 				"category": "V"
+			},
+			{
+				"command": "v.generateXmlDecoder",
+				"title": "Generate XML Decoder",
+				"category": "V"
+			},
+			{
+				"command": "v.generateCsvDecoder",
+				"title": "Generate CSV Decoder",
+				"category": "V"
+			},
+			{
+				"command": "v.convertEncoding",
+				"title": "Convert Selection Encoding",
+				"category": "V"
+			},
+			{
+				"command": "v.organizeImports",
+				"title": "Organize Imports",
+				"category": "V"
+			},
+			{
+				"command": "v.vpmSearch",
+				"title": "Search VPM Modules",
+				"category": "V"
+			},
+			{
+				"command": "v.vpmList",
+				"title": "List Installed VPM Modules",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -343,6 +377,28 @@
 					"when": "editorLangId == json"
 				},
 				{
+					"command": "v.generateXmlDecoder",
+					"when": "editorLangId == xml"
+				},
+				{
+					"command": "v.generateCsvDecoder",
+					"when": "editorLangId == csv || (editorLangId == plaintext && resourceExtname == .csv)"
+				},
+				{
+					"command": "v.convertEncoding",
+					"when": "editorHasSelection"
+				},
+				{
+					"command": "v.organizeImports",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.vpmSearch"
+				},
+				{
+					"command": "v.vpmList"
+				},
+				{
 					"command": "v.fillStruct",
 					"when": "editorLangId == v"
 				},
@@ -363,6 +419,16 @@
 				{
 					"command": "v.generateJsonDecoder",
 					"when": "editorLangId == json",
+					"group": "navigation"
+				},
+				{
+					"command": "v.generateXmlDecoder",
+					"when": "editorLangId == xml",
+					"group": "navigation"
+				},
+				{
+					"command": "v.generateCsvDecoder",
+					"when": "editorLangId == csv || (editorLangId == plaintext && resourceExtname == .csv)",
 					"group": "navigation"
 				}
 			]
@@ -617,8 +683,11 @@
 	},
 	"activationEvents": [
 		"workspaceContains:**/*.v",
+		"workspaceContains:**/*.xml",
+		"workspaceContains:**/*.csv",
 		"onLanguage:v",
 		"onLanguage:json",
+		"onLanguage:xml",
 		"onTaskType:v"
 	],
 	"main": "./out/extension.js",

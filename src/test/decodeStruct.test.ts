@@ -1,6 +1,14 @@
 import * as assert from "assert"
 import { describe, it } from "node:test"
-import { documentFormats, renderModule, rootNameForFile, structsFromValue } from "../decodeStruct"
+import {
+	documentFormats,
+	renderModule,
+	rootNameForFile,
+	schemaFromCsv,
+	schemaFromJson,
+	schemaFromXml,
+	structsFromValue,
+} from "../decodeStruct"
 
 const anyType = "json2.Any"
 
@@ -110,12 +118,77 @@ describe("decoder struct inference", () => {
 	})
 
 	it("knows the toml and yaml call shapes", () => {
-		assert.strictEqual(documentFormats.toml.importPath, "toml")
-		assert.strictEqual(documentFormats.toml.decodeCall("Cfg"), "toml.decode[Cfg](data)")
+		const schema = structsFromValue("Cfg", { count: 1 }, "toml.Any")
+		assert.deepStrictEqual(documentFormats.toml.importsFor(schema), ["toml"])
+		assert.deepStrictEqual(documentFormats.toml.exampleFor(schema), [
+			"fn decode_cfg(data string) !Cfg {",
+			"\treturn toml.decode[Cfg](data)",
+			"}",
+		])
 		assert.strictEqual(documentFormats.toml.renameAttribute("a-b"), " @[toml: 'a-b']")
-		assert.strictEqual(documentFormats.yaml.importPath, "yaml")
-		assert.strictEqual(documentFormats.yaml.decodeCall("Cfg"), "yaml.decode[Cfg](data)")
+		assert.deepStrictEqual(documentFormats.yaml.importsFor(schema), ["yaml"])
+		assert.deepStrictEqual(documentFormats.yaml.exampleFor(schema), [
+			"fn decode_cfg(data string) !Cfg {",
+			"\treturn yaml.decode[Cfg](data)",
+			"}",
+		])
 		assert.strictEqual(documentFormats.yaml.renameAttribute("a-b"), " @[json: 'a-b']")
+	})
+
+	it("loads XML documents instead of decoding structs", () => {
+		const schema = structsFromValue("Catalog", { book: "x" }, "json2.Any")
+		assert.deepStrictEqual(documentFormats.xml.importsFor(schema), ["encoding.xml"])
+		assert.deepStrictEqual(documentFormats.xml.exampleFor(schema), [
+			"// No struct decoder exists: load the document, then read fields",
+			"// with get_elements_by_tag and friends.",
+			"fn load_catalog(data string) !xml.XMLDocument {",
+			"\treturn xml.XMLDocument.from_string(data)",
+			"}",
+		])
+		assert.strictEqual(documentFormats.xml.renameAttribute("a-b"), "")
+	})
+
+	it("decodes CSV rows without a result", () => {
+		const schema = structsFromValue("Users", [{ name: "a" }], "string")
+		assert.deepStrictEqual(documentFormats.csv.importsFor(schema), ["encoding.csv"])
+		assert.deepStrictEqual(documentFormats.csv.exampleFor(schema), [
+			"fn decode_users(data string) []Users {",
+			"\treturn csv.decode[Users](data)",
+			"}",
+		])
+	})
+
+	it("parses JSON documents end to end", () => {
+		const schema = schemaFromJson("Shop", '{"name": "x", "count": 3}')
+		assert.strictEqual(schema.rootType, "Shop")
+		assert.deepStrictEqual(schema.structs[0]?.fields, [
+			{ name: "name", type: "string" },
+			{ name: "count", type: "int" },
+		])
+		assert.throws(() => schemaFromJson("Shop", "{nope"), /not valid JSON/)
+	})
+
+	it("parses XML documents end to end", () => {
+		const schema = schemaFromXml("Catalog", "<catalog><book><title>x</title></book></catalog>")
+		assert.strictEqual(schema.rootType, "Catalog")
+		assert.deepStrictEqual(
+			schema.structs.map((struct) => struct.name),
+			["Catalog", "Book"],
+		)
+		assert.throws(
+			() => schemaFromXml("Catalog", "<catalog><book></catalog>"),
+			/Mismatched tags/,
+		)
+	})
+
+	it("parses CSV documents end to end", () => {
+		const schema = schemaFromCsv("Users", "name,count\namy,3\nbo,4\n")
+		assert.strictEqual(schema.rootType, "[]Users")
+		assert.deepStrictEqual(schema.structs[0]?.fields, [
+			{ name: "name", type: "string" },
+			{ name: "count", type: "int" },
+		])
+		assert.throws(() => schemaFromCsv("Users", ""), /no data rows/)
 	})
 
 	it("names roots after files", () => {
