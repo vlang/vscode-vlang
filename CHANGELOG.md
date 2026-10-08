@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   creates it without the user having to remember the convention.
 - **V: Toggle Test File**, jumping between a source file and its test file
   in both directions, generating the test file first when missing.
+- **V: Share on Playground**, posting the active file and opening its
+  share link (copied to the clipboard too).
 - A debugger. V programs can now be launched under `gdb` from the Run and Debug
   view, with breakpoints in V source resolving through the DWARF debug info the
   compile step produces. The extension contributes a `type: "v"` debugger with a

@@ -83,6 +83,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
 - `V: Toggle Test File`
+- `V: Share on Playground`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`
