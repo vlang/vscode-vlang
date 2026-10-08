@@ -65,6 +65,8 @@ creates the `_test.v` file beside the source with one `test_` function per publi
 function, each with a placeholder assertion to replace. It refuses to overwrite
 an existing test file. **V: Toggle Test File** jumps between a source file
 and its test file, generating the test file first when it does not exist yet.
+**V: Fill Struct Fields** fills an empty `Name{}` literal with the fields
+of the `struct Name` declared in the same file.
 
 ## Usage
 
@@ -83,6 +85,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
 - `V: Toggle Test File`
+- `V: Fill Struct Fields`
 - `V: Share on Playground`
 - `V: Show V version`
 - `V: Update VLS`
