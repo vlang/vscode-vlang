@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `environment` and `envFile` set the program environment, and
   `externalConsole` runs it outside the integrated terminal. A
   `docs/TROUBLESHOOTING-DEBUGGING.md` guide covers the failure modes.
+- Debug attach and remote targets. `"request": "attach"` joins a running
+  process by PID (or `${command:pickProcess}`) with no compile step, and
+  `sourceFileMap`, `miDebuggerServerAddress` and `pipeTransport` reach
+  remote debuggers.
 
 ### Fixed
 

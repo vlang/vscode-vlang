@@ -124,6 +124,11 @@ set the program environment, and `externalConsole` runs it outside the
 integrated terminal. See `docs/TROUBLESHOOTING-DEBUGGING.md` when a session
 misbehaves.
 
+Attach works the same way with `"request": "attach"`: `program` names the
+running binary for symbols (nothing is compiled), `processId` takes a PID
+or `${command:pickProcess}` for the adapter's picker, and `sourceFileMap`,
+`miDebuggerServerAddress` and `pipeTransport` reach remote targets.
+
 Each session loads GDB pretty printers for V values: strings show as text,
 `Option` and `Result` show their payload, and arrays and maps summarize
 their lengths. This needs a GDB with Python support; without it the session

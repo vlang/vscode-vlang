@@ -3,6 +3,7 @@ import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
 import {
+	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
 	debugBinaryPath,
 	debugCompileArgs,
@@ -245,5 +246,78 @@ describe("V debug compile", () => {
 		assert.ok(!("environment" in config))
 		assert.ok(!("envFile" in config))
 		assert.ok(!("externalConsole" in config))
+	})
+
+	it("rewrites attach without compiling", () => {
+		// Attaching joins a running process: `program` names the binary
+		// for symbols and `processId` passes through untouched, including
+		// the adapter's own process picker.
+		assert.deepStrictEqual(
+			cppdbgAttachConfig({
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				processId: "${command:pickProcess}",
+				cwd: "/workspace",
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+			}),
+			{
+				type: "cppdbg",
+				request: "attach",
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				args: [],
+				cwd: "/workspace",
+				MIMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+				stopAtEntry: false,
+				setupCommands: gdbSetupCommands("/extension/scripts/gdb/v_printers.py"),
+				processId: "${command:pickProcess}",
+			},
+		)
+	})
+
+	it("passes source maps and remote transport through attach", () => {
+		const config = cppdbgAttachConfig({
+			name: "Attach Remote V Program",
+			program: "/tmp/v-debug-main",
+			processId: "1234",
+			cwd: "/workspace",
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "gdb",
+			miDebuggerPath: "/usr/bin/gdb",
+			sourceFileMap: { "/build": "/workspace" },
+			miDebuggerServerAddress: "localhost:2345",
+			pipeTransport: {
+				pipeProgram: "ssh",
+				pipeArgs: ["remote"],
+				debuggerPath: "/usr/bin/gdb",
+			},
+		})
+		assert.deepStrictEqual(config.sourceFileMap, { "/build": "/workspace" })
+		assert.strictEqual(config.miDebuggerServerAddress, "localhost:2345")
+		assert.deepStrictEqual(config.pipeTransport, {
+			pipeProgram: "ssh",
+			pipeArgs: ["remote"],
+			debuggerPath: "/usr/bin/gdb",
+		})
+	})
+
+	it("passes source maps through launch", () => {
+		const config = cppdbgLaunchConfig({
+			name: "Debug V Program",
+			binary: "/tmp/v-debug-main",
+			args: [],
+			cwd: "/workspace",
+			stopAtEntry: false,
+			printersPath: "/extension/scripts/gdb/v_printers.py",
+			miMode: "gdb",
+			miDebuggerPath: "/usr/bin/gdb",
+			sourceFileMap: { "/build": "/workspace" },
+		})
+		assert.deepStrictEqual(config.sourceFileMap, { "/build": "/workspace" })
+		assert.ok(!("miDebuggerServerAddress" in config))
+		assert.ok(!("pipeTransport" in config))
 	})
 })
