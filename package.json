@@ -414,6 +414,136 @@
 								"type": "boolean",
 								"description": "Run the program in an external console instead of the integrated terminal.",
 								"default": false
+							},
+							"sourceFileMap": {
+								"type": "object",
+								"description": "Map build paths to local source paths, e.g. for remote targets."
+							},
+							"miDebuggerServerAddress": {
+								"type": "string",
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+							},
+							"pipeTransport": {
+								"type": "object",
+								"required": [
+									"pipeProgram",
+									"debuggerPath"
+								],
+								"properties": {
+									"pipeProgram": {
+										"type": "string"
+									},
+									"pipeArgs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									},
+									"pipeCwd": {
+										"type": "string"
+									},
+									"pipeEnv": {
+										"type": "object"
+									},
+									"debuggerPath": {
+										"type": "string"
+									}
+								},
+								"description": "Reach a remote debugger through a pipe program such as ssh."
+							}
+						}
+					},
+					"attach": {
+						"required": [
+							"program",
+							"processId"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Path to the running binary, for symbols. Nothing is compiled on attach."
+							},
+							"processId": {
+								"type": "string",
+								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
+								"default": "${command:pickProcess}"
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory for expression evaluation. Defaults to the workspace folder.",
+								"default": "${workspaceFolder}"
+							},
+							"miDebuggerPath": {
+								"type": "string",
+								"description": "Path or command name of the MI debugger. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}. Empty means the MIMode default on PATH.",
+								"default": ""
+							},
+							"MIMode": {
+								"type": "string",
+								"enum": [
+									"gdb",
+									"lldb"
+								],
+								"description": "The MI debugger to run the session under. The V pretty printers only load under gdb.",
+								"default": "gdb"
+							},
+							"setupCommands": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"text"
+									],
+									"properties": {
+										"description": {
+											"type": "string"
+										},
+										"text": {
+											"type": "string"
+										},
+										"ignoreFailures": {
+											"type": "boolean"
+										}
+									}
+								},
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"default": []
+							},
+							"sourceFileMap": {
+								"type": "object",
+								"description": "Map build paths to local source paths, e.g. for remote targets."
+							},
+							"miDebuggerServerAddress": {
+								"type": "string",
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+							},
+							"pipeTransport": {
+								"type": "object",
+								"required": [
+									"pipeProgram",
+									"debuggerPath"
+								],
+								"properties": {
+									"pipeProgram": {
+										"type": "string"
+									},
+									"pipeArgs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									},
+									"pipeCwd": {
+										"type": "string"
+									},
+									"pipeEnv": {
+										"type": "object"
+									},
+									"debuggerPath": {
+										"type": "string"
+									}
+								},
+								"description": "Reach a remote debugger through a pipe program such as ssh."
 							}
 						}
 					}

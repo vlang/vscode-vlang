@@ -92,7 +92,7 @@ export function resolveDebuggerCommand(
  */
 export interface CppdbgLaunchConfiguration {
 	type: "cppdbg"
-	request: "launch"
+	request: "launch" | "attach"
 	name: string
 	program: string
 	args: string[]
@@ -104,6 +104,19 @@ export interface CppdbgLaunchConfiguration {
 	environment?: CppdbgEnvironmentEntry[]
 	envFile?: string
 	externalConsole?: boolean
+	processId?: string
+	sourceFileMap?: Record<string, string>
+	miDebuggerServerAddress?: string
+	pipeTransport?: CppdbgPipeTransport
+}
+
+/** Remote debugging transport for the MI debugger. */
+export interface CppdbgPipeTransport {
+	pipeProgram: string
+	pipeArgs?: string[]
+	pipeCwd?: string
+	pipeEnv?: Record<string, string>
+	debuggerPath: string
 }
 
 /** An environment entry for the debugged program. */
@@ -183,6 +196,9 @@ export function cppdbgLaunchConfig(input: {
 	environment?: CppdbgEnvironmentEntry[]
 	envFile?: string
 	externalConsole?: boolean
+	sourceFileMap?: Record<string, string>
+	miDebuggerServerAddress?: string
+	pipeTransport?: CppdbgPipeTransport
 }): CppdbgLaunchConfiguration {
 	const userCommands = normalizeSetupCommands(input.setupCommands)
 	return {
@@ -202,6 +218,55 @@ export function cppdbgLaunchConfig(input: {
 		...(input.environment ? { environment: input.environment } : {}),
 		...(input.envFile ? { envFile: input.envFile } : {}),
 		...(input.externalConsole !== undefined ? { externalConsole: input.externalConsole } : {}),
+		...(input.sourceFileMap ? { sourceFileMap: input.sourceFileMap } : {}),
+		...(input.miDebuggerServerAddress
+			? { miDebuggerServerAddress: input.miDebuggerServerAddress }
+			: {}),
+		...(input.pipeTransport ? { pipeTransport: input.pipeTransport } : {}),
+	}
+}
+
+/** Rewrite a V attach configuration into a real debug session.
+ *
+ * Attaching means joining a running process, so there is nothing to
+ * compile: `program` names the binary for symbols, and `processId`
+ * passes through untouched — including `${command:pickProcess}`, which
+ * the adapter's own process picker provides.
+ */
+export function cppdbgAttachConfig(input: {
+	name: string
+	program: string
+	processId: string
+	cwd: string
+	printersPath: string
+	miMode: VDebuggerMode
+	miDebuggerPath: string
+	setupCommands?: VSetupCommandInput[]
+	sourceFileMap?: Record<string, string>
+	miDebuggerServerAddress?: string
+	pipeTransport?: CppdbgPipeTransport
+}): CppdbgLaunchConfiguration {
+	const userCommands = normalizeSetupCommands(input.setupCommands)
+	return {
+		type: "cppdbg",
+		request: "attach",
+		name: input.name,
+		program: input.program,
+		args: [],
+		cwd: input.cwd,
+		MIMode: input.miMode,
+		miDebuggerPath: input.miDebuggerPath,
+		stopAtEntry: false,
+		setupCommands:
+			input.miMode === "gdb"
+				? [...gdbSetupCommands(input.printersPath), ...userCommands]
+				: userCommands,
+		processId: input.processId,
+		...(input.sourceFileMap ? { sourceFileMap: input.sourceFileMap } : {}),
+		...(input.miDebuggerServerAddress
+			? { miDebuggerServerAddress: input.miDebuggerServerAddress }
+			: {}),
+		...(input.pipeTransport ? { pipeTransport: input.pipeTransport } : {}),
 	}
 }
 
