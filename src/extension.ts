@@ -8,6 +8,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-lan
 import { installV, isVInstalled } from "./utils"
 import { migratedSetting } from "./settings"
 import { registerVTasks, runCodeLensCommand, vCommandForServer } from "./vTasks"
+import { ToolManager } from "./toolManager"
 
 export let client: LanguageClient | undefined
 
@@ -98,6 +99,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// step happens inside the factory, so no task needs to be defined first.
 	registerDebugger(context)
 	registerNumberHover(context)
+
+	// Own the managed V and VLS builds and their update checks. Its constructor
+	// calls initializeManagedTools, so a managed executable is preferred over PATH
+	// by the VLS start, tasks, and run commands below.
+	const toolManager = new ToolManager(context, async (update) => update())
+	context.subscriptions.push(toolManager)
+	void toolManager.check()
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {

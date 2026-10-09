@@ -121,6 +121,24 @@
 					"default": "v",
 					"description": "Path or command name of the V compiler used by VLS and V build, run, and test tasks. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
 				},
+				"v.tools.updateChannel": {
+					"type": "string",
+					"enum": [
+						"master",
+						"release"
+					],
+					"default": "master",
+					"enumDescriptions": [
+						"Follow the latest upstream commit.",
+						"Follow the latest released tag."
+					],
+					"description": "Which upstream to compare installed tools against. `master` follows the latest commit, `release` follows the latest released tag; VLS always follows its own master."
+				},
+				"v.tools.checkForUpdates": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for V and VLS updates when the extension activates. Checks run at most once a day and require a trusted workspace."
+				},
 				"v.vls.enable": {
 					"type": "boolean",
 					"default": true,
@@ -306,6 +324,16 @@
 			{
 				"command": "v.vls.update",
 				"title": "Update VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.install",
+				"title": "Install or Update V",
+				"category": "V"
+			},
+			{
+				"command": "v.tools.checkForUpdates",
+				"title": "Check for Updates",
 				"category": "V"
 			},
 			{
