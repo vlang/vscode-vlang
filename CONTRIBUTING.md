@@ -18,6 +18,9 @@ needed by the extension-host tests (see _V toolchain_).
   semicolons, double quotes; both are enforced by config, not by review.
 - `npm test` — typecheck, lint, then the logic tests. This is the gate.
 - `npm run test:logic` — bundle and run the logic tests with `node --test`.
+- `npm run coverage` — the same suites, with a per-module coverage report.
+  Source modules only: test files and the vscode stand-in are excluded, because
+  a suite's own lines are counted against it twice over once it is bundled.
 - `npm run test:grammar` — vscode-tmgrammar-test over `syntaxes/tests/*.v`
   against `syntaxes/v.tmLanguage.json`.
 - `npm run test:vscode` — run the extension in a real VS Code.
@@ -47,9 +50,8 @@ after. A test that goes through `parseByVersion` also needs `resetParseCache()`,
 which memoises by document URI and version — a version a test does not change
 between cases.
 
-`test:logic` names its entry files twice, once as esbuild inputs and once for
-`node --test`, so a new test file has to be added to both lists in
-`package.json`.
+`test:logic` names its entry files once, in `build:test`, and runs the bundles
+that step produced. Adding a suite means editing that one script.
 
 Six tests fail on a Windows checkout for environment reasons, not for logic:
 symlink permissions, POSIX paths in a fixture, and an executable name

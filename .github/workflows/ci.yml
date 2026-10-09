@@ -70,6 +70,22 @@ jobs:
       - name: Run grammar tests
         run: npm run test:grammar
 
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      # Not a gate: the report goes in the log so a change that lowers coverage
+      # is visible in review, and the threshold comes after the number is known.
+      - name: Coverage report
+        run: npm run coverage
+
   extension-host:
     name: Extension host (${{ matrix.os }}, ${{ matrix.server }})
     strategy:
