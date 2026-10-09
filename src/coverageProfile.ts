@@ -84,7 +84,22 @@ class LcovProfileParser {
 	}
 }
 
+/** Resolving the real path of a file is a syscall walk up the tree, and this runs on
+ * every keystroke through the coverage decoration listener. A path keeps its canonical
+ * form until the filesystem is restructured, so the answer is memoised. `baseDirectory`
+ * is part of the key because it decides what a relative path resolves against. The cache
+ * is dropped wholesale once it grows past the limit rather than evicting, which keeps a
+ * long editing session bounded.
+ */
+const canonicalPathCache = new Map<string, string>()
+const canonicalPathCacheLimit = 4096
+
 export function canonicalFilePath(filePath: string, baseDirectory = process.cwd()): string {
+	const cacheKey = `${baseDirectory}\n${filePath}`
+	const cached = canonicalPathCache.get(cacheKey)
+	if (cached !== undefined) {
+		return cached
+	}
 	let absolutePath = path.isAbsolute(filePath)
 		? path.normalize(filePath)
 		: path.resolve(baseDirectory, filePath)
@@ -102,7 +117,22 @@ export function canonicalFilePath(filePath: string, baseDirectory = process.cwd(
 			existingPath = parent
 		}
 	}
-	return process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath
+	const canonical = process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath
+	if (canonicalPathCache.size >= canonicalPathCacheLimit) {
+		canonicalPathCache.clear()
+	}
+	canonicalPathCache.set(cacheKey, canonical)
+	return canonical
+}
+
+/** Drop the path memo.
+ *
+ * Called when a coverage run finishes or is cleared: a run is the moment the user may
+ * have restructured the workspace, so any canonical path recorded before it cannot be
+ * relied on afterwards.
+ */
+export function resetCanonicalPaths(): void {
+	canonicalPathCache.clear()
 }
 
 export function instrumentCoverageArgs(args: string[], coverageDirectory: string): string[] {

@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import { emptyLiteralAt, fillStructBody, structFields } from "./fillStruct"
+import { parseByVersion } from "./documentMemo"
 import { generateTestSkeleton, sourceFileName, testFileName } from "./testSkeleton"
 
 /** A code action that generates a test skeleton for a V source file.
@@ -20,7 +21,7 @@ export class GenerateTestSkeletonAction implements vscode.CodeActionProvider {
 		if (document.languageId !== "v") {
 			return []
 		}
-		const skeleton = generateTestSkeleton(document.getText())
+		const skeleton = parseByVersion(document, generateTestSkeleton)
 		if (!skeleton) {
 			return []
 		}
@@ -143,7 +144,7 @@ export class FillStructFieldsAction implements vscode.CodeActionProvider {
 		if (!literal) {
 			return []
 		}
-		const fields = structFields(document.getText(), literal.name)
+		const fields = parseByVersion(document, (source) => structFields(source, literal.name))
 		if (!fields || fields.length === 0) {
 			return []
 		}

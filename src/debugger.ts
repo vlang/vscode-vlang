@@ -2,6 +2,7 @@ import { execFile as _execFile } from "child_process"
 import { promisify } from "util"
 import * as path from "path"
 import * as vscode from "vscode"
+import { parseByVersion } from "./documentMemo"
 import {
 	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
@@ -218,7 +219,7 @@ class VDebugCodeLensProvider implements vscode.CodeLensProvider {
 		if (document.uri.scheme !== "file") {
 			return []
 		}
-		return mainFunctionLines(document.getText()).map(
+		return parseByVersion(document, mainFunctionLines).map(
 			(line) =>
 				new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
 					title: "Debug Main",
