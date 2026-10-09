@@ -1,6 +1,7 @@
 import { registerCommands, registerNumberHover, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
 import { registerDebugger } from "./debugger"
+import { registerFolding } from "./folding"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
@@ -99,6 +100,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// step happens inside the factory, so no task needs to be defined first.
 	registerDebugger(context)
 	registerNumberHover(context)
+	// Fold blocks, import runs and //#region markers. This takes over the
+	// document's folding from the editor, so it has to cover all three itself.
+	registerFolding(context)
 
 	// Own the managed V and VLS builds and their update checks. Its constructor
 	// calls initializeManagedTools, so a managed executable is preferred over PATH

@@ -20,6 +20,7 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 - runnable CodeLens actions for `main` and tests
 - workspace build, run, and test tasks
 - test coverage highlighting and a status bar summary
+- code folding for blocks, import runs, and `//#region` markers
 
 ### V Language Server
 
@@ -122,6 +123,9 @@ You can access all of the above commands from the command palette (`Cmd+Shift+P`
 
 Clone this repository and run `npm install` to install the dependencies.
 Then press `F5` to open a new VS Code window with the extension loaded.
+
+The build, test, and grammar-test commands, and the layout of `src/`, are
+described in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Open the output console (`Cmd+Shift+U`) to see the debug output from the extension.
 

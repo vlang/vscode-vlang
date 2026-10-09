@@ -62,6 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   starts a session without a launch configuration, and debug builds trap
   on panic while a debugger is attached instead of exiting: every panic
   funnels through `v_panic`, so no compiler change was needed.
+- Code folding. A folding range provider folds declaration blocks, runs of
+  top-level `import` statements, and `//#region` / `//#endregion` markers.
+  There is no command for it: a provider replaces the editor's own
+  indentation folding for V files, so this answers for every brace pair
+  rather than for a few. `#region` is deliberately not folded — a line
+  starting with `#` is one directive token to the V parser, so folding it
+  would invent syntax.
 
 ### Fixed
 

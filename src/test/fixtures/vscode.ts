@@ -1,5 +1,12 @@
 type Scope = "global" | "workspace" | "workspaceFolder"
 type Entry = { value: unknown; scope: Scope }
+type FoldingProvider = {
+	provideFoldingRanges(document: {
+		uri: { toString(): string }
+		version: number
+		getText(): string
+	}): unknown
+}
 
 export const state = {
 	settings: new Map<string, Entry>(),
@@ -7,6 +14,7 @@ export const state = {
 	information: [] as string[],
 	errors: [] as string[],
 	logs: [] as string[],
+	foldingRanges: [] as FoldingProvider[],
 	promptResponse: "Later" as string | undefined,
 	prompts: 0,
 	updates: [] as string[],
@@ -18,6 +26,7 @@ export function resetVscode(): void {
 	state.information.length = 0
 	state.errors.length = 0
 	state.logs.length = 0
+	state.foldingRanges.length = 0
 	state.promptResponse = "Later"
 	state.prompts = 0
 	state.updates.length = 0
@@ -97,6 +106,27 @@ export const workspace = {
 				)
 			},
 		}
+	},
+}
+
+export const FoldingRange = class {
+	start: number
+	end: number
+	kind: number | undefined
+
+	constructor(start: number, end: number, kind?: number) {
+		this.start = start
+		this.end = end
+		this.kind = kind
+	}
+}
+
+export const FoldingRangeKind = { Comment: 1, Imports: 2 }
+
+export const languages = {
+	registerFoldingRangeProvider(_selector: unknown, provider: FoldingProvider) {
+		state.foldingRanges.push(provider)
+		return { dispose: () => undefined }
 	},
 }
 
