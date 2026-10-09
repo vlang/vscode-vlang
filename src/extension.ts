@@ -3,12 +3,14 @@ import { registerCodeActions } from "./codeActions"
 import { registerDebugger } from "./debugger"
 import { registerFolding } from "./folding"
 import { getVls, isVlsEnabled } from "langserver"
+import { registerStatusBar } from "./statusBar"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
 import { migratedSetting } from "./settings"
 import { registerVTasks, runCodeLensCommand, vCommandForServer } from "./vTasks"
+import { registerTestGutter } from "./testGutter"
 import { ToolManager } from "./toolManager"
 
 export let client: LanguageClient | undefined
@@ -66,7 +68,11 @@ async function createAndStartClient(taskManager: ReturnType<typeof registerVTask
 				return next(document, range, token)
 			},
 			executeCommand: async (command, args, next) => {
-				if (command === "vls.runFile" || command === "vls.runTests") {
+				if (
+					command === "vls.runFile" ||
+					command === "vls.runTests" ||
+					command === "v.testLine"
+				) {
 					await runCodeLensCommand(command, args, taskManager)
 					return undefined
 				}
@@ -103,6 +109,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Fold blocks, import runs and //#region markers. This takes over the
 	// document's folding from the editor, so it has to cover all three itself.
 	registerFolding(context)
+	// A lens over each `fn test_`, which goes through the same task path as the
+	// run lens, plus the status bar for the resolved toolchain. Both are offered
+	// while VLS is off, because neither depends on it.
+	registerTestGutter(context)
+	registerStatusBar(context)
 
 	// Own the managed V and VLS builds and their update checks. Its constructor
 	// calls initializeManagedTools, so a managed executable is preferred over PATH
