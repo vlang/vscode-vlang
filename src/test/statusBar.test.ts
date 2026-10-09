@@ -41,12 +41,15 @@ describe("status bar text", () => {
 })
 
 describe("register status bar", () => {
-	it("shows one item per tool and disposes them with the extension", () => {
+	it("shows one item for V and disposes it with the extension", () => {
 		resetVscode()
 		const subscriptions: { dispose(): void }[] = []
 		registerStatusBar({ subscriptions } as unknown as ExtensionContext)
-		assert.strictEqual(state.statusBarItems.length, 2)
-		assert.strictEqual(subscriptions.length, 2)
-		assert.ok(state.statusBarItems.every((item) => item.text.length > 0))
+		assert.strictEqual(state.statusBarItems.length, 1)
+		assert.strictEqual(subscriptions.length, 1)
+		assert.ok((state.statusBarItems[0]?.text ?? "").length > 0)
+		// The server owns its own item, which reports starting, stopped and
+		// not-installed; a second one for VLS would state the path twice.
+		assert.strictEqual(state.statusBarItems[0]?.name, "V compiler")
 	})
 })

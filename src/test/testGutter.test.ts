@@ -81,8 +81,10 @@ describe("register test gutter", () => {
 		resetVscode()
 		resetParseCache()
 		const subscriptions: { dispose(): void }[] = []
-		registerTestGutter({ subscriptions } as unknown as ExtensionContext)
-		assert.strictEqual(subscriptions.length, 1)
+		// The manager is never called by these assertions: they are about the lens
+		// the provider offers, not about the task it would start.
+		registerTestGutter({ subscriptions } as unknown as ExtensionContext, {} as never)
+		assert.strictEqual(subscriptions.length, 2)
 		const provider = state.codeLenses[0]
 		assert.notStrictEqual(provider, undefined)
 		return provider?.provideCodeLenses({
@@ -104,5 +106,17 @@ describe("register test gutter", () => {
 
 	it("answers nothing for a document with no test, leaving the server's lenses", () => {
 		assert.strictEqual(provide("module main\n\nfn main() {}\n"), undefined)
+	})
+
+	it("registers the command the lens runs, so clicking it is not a no-op", () => {
+		resetVscode()
+		resetParseCache()
+		const subscriptions: { dispose(): void }[] = []
+		registerTestGutter({ subscriptions } as unknown as ExtensionContext, {} as never)
+		// A CodeLens command runs on the client and never reaches the language
+		// server's middleware, so the handler has to be registered here or the lens
+		// does nothing when it is clicked.
+		assert.strictEqual(subscriptions.length, 2)
+		assert.ok(state.commands.has(testGutterCommand))
 	})
 })

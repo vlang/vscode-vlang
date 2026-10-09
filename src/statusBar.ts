@@ -43,25 +43,26 @@ export function statusBarText(state: StatusBarState): StatusBarText {
 	}
 }
 
-/** A status bar item for the toolchain the extension actually resolved.
+/** A status bar item for the V compiler the extension actually resolved.
  *
- * Two items, V and VLS, rather than one: the VLS server can be down while V
- * works, which is the failure users file as "no intellisense at all", and one
- * item cannot say both. The state comes from the resolution the task and
- * server paths already do, so the bar cannot disagree with what a run uses.
+ * One item, for V. The server has its own, and it is the better one: the
+ * manager reports starting, stopped, unsupported and not-installed, and offers
+ * the fix on the click. A second item here would state the VLS path twice with
+ * two different click targets, and would appear while the server is disabled
+ * and not running at all.
+ *
+ * The state comes from the resolution the task and run paths already do, so
+ * the bar cannot disagree with what a run uses.
  */
 export function registerStatusBar(context: vscode.ExtensionContext): void {
-	for (const tool of ["v", "vls"] as const) {
-		const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
-		item.name = `${tool === "v" ? "V" : "VLS"} status`
-		const state = resolveToolState(tool, vscode.workspace.workspaceFolders?.[0])
-		const text = statusBarText(state)
-		item.text = text.text
-		item.tooltip = text.tooltip
-		item.command = text.command
-		item.show()
-		context.subscriptions.push(item)
-	}
+	const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
+	item.name = "V compiler"
+	const text = statusBarText(resolveToolState("v", vscode.workspace.workspaceFolders?.[0]))
+	item.text = text.text
+	item.tooltip = text.tooltip
+	item.command = text.command
+	item.show()
+	context.subscriptions.push(item)
 }
 
 /** Whether the configured tool resolves, read the way the task path reads it.

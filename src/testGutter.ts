@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import { parseByVersion } from "./documentMemo"
+import { runCodeLensCommand, VTaskManager } from "./vTasks"
 
 /** The command id the middleware dispatches to the task path.
  *
@@ -84,9 +85,21 @@ export interface TestLens {
  * Registered for the same document selector the V tasks use, so a lens never
  * appears where the task could not run. The parse is memoised per document
  * version because the provider is asked on every edit.
+ *
+ * The lens command is registered here rather than left to the language client's
+ * middleware: a CodeLens runs on the client, so nothing routes it through the
+ * server, and a lens without a handler is a lens that silently does nothing.
  */
-export function registerTestGutter(context: vscode.ExtensionContext): void {
+export function registerTestGutter(
+	context: vscode.ExtensionContext,
+	taskManager: VTaskManager,
+): void {
 	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			testGutterCommand,
+			(uri: vscode.Uri | undefined, name: string | undefined) =>
+				runCodeLensCommand(testGutterCommand, [uri, name], taskManager),
+		),
 		vscode.languages.registerCodeLensProvider([{ language: "v" }], {
 			provideCodeLenses: (document) => {
 				const lenses = parseByVersion(document, editorTestLenses)

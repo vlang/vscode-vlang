@@ -62,6 +62,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   starts a session without a launch configuration, and debug builds trap
   on panic while a debugger is attached instead of exiting: every panic
   funnels through `v_panic`, so no compiler change was needed.
+- **V: Select V executable**. The picker offers the configured value, the
+  compiler on PATH, and any build this extension manages, in that order, and
+  writes the choice to `v.executablePath` — the setting tasks, runs and the
+  language server already resolve through. A browsed path is written only once
+  it is shown to exist, because a configured command that does not resolve
+  turns every later task into the error the picker was opened to fix. The
+  status bar item is the one for V: the language server already has its own
+  that reports starting, stopped and not-installed.
+- A `Run Test` lens over each `fn test_`, running that one test through the
+  same task path as the existing run lens, so the command list gains nothing
+  that has to be kept in sync. The lens registers its own handler, because a
+  CodeLens command runs on the client and never reaches the server
+  middleware.
 - Code folding. A folding range provider folds declaration blocks, runs of
   top-level `import` statements, and `//#region` / `//#endregion` markers.
   There is no command for it: a provider replaces the editor's own
@@ -72,6 +85,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The `Run Test` lens emitted a command nothing handled, so clicking it did
+  nothing, and the branch that listed it in the language server middleware was
+  unreachable: a CodeLens command runs on the client and never reaches the
+  server. The handler is registered beside the lens.
+- The language server is now owned by the module that was written for it. Two
+  client owners existed, and only the inline one in `activate` was reachable,
+  so a crashed server was never restarted, its status never showed the state,
+  and a restart of the window did not recover it. Crash recovery now goes
+  through the same queue that serializes starts and settings changes.
 - Debugger `stopAtEntry` on Windows. The entry breakpoint targeted a `main`
   symbol that does not exist (V inlines `fn main` into `wmain`), and the
   `--eval-command` was placed after `-- <binary>` where gdb ignores it, so

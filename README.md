@@ -112,6 +112,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Search VPM Modules`
 - `V: List Installed VPM Modules`
 - `V: Show V version`
+- `V: Select V executable`
 - `V: Update VLS`
 - `V: Restart VLS`
 - `V: Build`, `V: Run`, and `V: Test`
