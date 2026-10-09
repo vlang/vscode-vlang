@@ -1065,6 +1065,12 @@
 							"include": "#operators"
 						},
 						{
+							"include": "#brackets"
+						},
+						{
+							"include": "#punctuation"
+						},
+						{
 							"include": "#numbers"
 						},
 						{
