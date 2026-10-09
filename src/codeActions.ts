@@ -38,10 +38,48 @@ export class GenerateTestSkeletonAction implements vscode.CodeActionProvider {
 	}
 }
 
+/** What the edit should do to the test file.
+ *
+ * A file that is not there is created. A file that is has the user asked first,
+ * and overwriting it *replaces* its contents: `createFile` asks for an absent
+ * file, so it is refused in exactly the case overwriting applies to. The choice
+ * is its own function because it is the whole decision, and the path it used to
+ * live on was the one place a test could not reach.
+ */
+export function testFileStrategy(
+	exists: boolean,
+	overwriteConfirmed: boolean,
+): "create" | "replace" | "cancel" {
+	if (!exists) {
+		return "create"
+	}
+	return overwriteConfirmed ? "replace" : "cancel"
+}
+
+/** The end of a document, as the replacement range needs it.
+ *
+ * A document of one empty line ends at 0,0, so replacing from there is an insert:
+ * the range is empty and nothing of the old file is left. An empty document is
+ * reported by the editor as one empty line, which is why the zero case is valid
+ * rather than an error.
+ */
+export function documentEnd(
+	lineCount: number,
+	lastLineText: string,
+): {
+	line: number
+	character: number
+} {
+	if (lineCount < 1) {
+		return { line: 0, character: 0 }
+	}
+	return { line: lineCount - 1, character: lastLineText.length }
+}
+
 /** Create the `_test.v` file for a source file.
  *
- * Refuses to overwrite an existing test file, because that would discard work the
- * user already wrote. The caller is told whether the file was created.
+ * Refuses to discard work the user already wrote by asking first, and replaces
+ * the file only when they confirm. The caller is told whether it was written.
  */
 export async function generateTestFile(uri: vscode.Uri): Promise<boolean> {
 	const source = await vscode.workspace.fs.readFile(uri).then(
@@ -62,23 +100,34 @@ export async function generateTestFile(uri: vscode.Uri): Promise<boolean> {
 		() => true,
 		() => false,
 	)
-	if (exists) {
-		const overwrite = await vscode.window.showWarningMessage(
-			`${testPath} already exists. Overwrite it?`,
-			"Overwrite",
-			"Cancel",
-		)
-		if (overwrite !== "Overwrite") {
-			return false
-		}
+	const overwrite = exists
+		? await vscode.window.showWarningMessage(
+				`${testPath} already exists. Overwrite it?`,
+				"Overwrite",
+				"Cancel",
+			)
+		: undefined
+	const strategy = testFileStrategy(exists, overwrite === "Overwrite")
+	if (strategy === "cancel") {
+		return false
 	}
 
 	const workspaceEdit = new vscode.WorkspaceEdit()
-	workspaceEdit.createFile(testUri, { ignoreIfExists: false })
-	workspaceEdit.insert(testUri, new vscode.Position(0, 0), skeleton.content)
+	if (strategy === "replace") {
+		const existing = await vscode.workspace.openTextDocument(testUri)
+		const end = documentEnd(existing.lineCount, existing.lineAt(existing.lineCount - 1).text)
+		workspaceEdit.replace(
+			testUri,
+			new vscode.Range(0, 0, end.line, end.character),
+			skeleton.content,
+		)
+	} else {
+		workspaceEdit.createFile(testUri)
+		workspaceEdit.insert(testUri, new vscode.Position(0, 0), skeleton.content)
+	}
 	const applied = await vscode.workspace.applyEdit(workspaceEdit)
 	if (!applied) {
-		void vscode.window.showErrorMessage(`Could not create ${testPath}.`)
+		void vscode.window.showErrorMessage(`Could not write ${testPath}.`)
 		return false
 	}
 	await vscode.window.showTextDocument(testUri, { preview: false })
