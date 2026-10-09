@@ -72,6 +72,16 @@ async function withTemporaryRoot(run: (root: string) => Promise<void>): Promise<
 	}
 }
 
+function processRunning(processId: number): boolean {
+	try {
+		process.kill(processId, 0)
+		return true
+	} catch (error) {
+		// `EPERM` means the process exists but belongs to another user.
+		return (error as NodeJS.ErrnoException).code === "EPERM"
+	}
+}
+
 describe("managed tool installations", () => {
 	it("builds pinned official V source and verifies executable metadata", async () => {
 		await withTemporaryRoot(async (root) => {
@@ -548,25 +558,75 @@ describe("managed tool installations", () => {
 
 	it("cancels build descendants before removing their candidate directory", async () => {
 		await withTemporaryRoot(async (root) => {
-			const marker = path.join(root, "descendant-wrote-after-cancellation")
+			const descendantPidFile = path.join(root, "descendant.pid")
 			const abort = new AbortController()
-			const descendant = `setTimeout(() => require('fs').writeFileSync(${JSON.stringify(marker)}, 'unexpected'), 350); console.log('ready')`
-			const parent = `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], {stdio: ['ignore', 'inherit', 'inherit']}); setInterval(() => {}, 1000)`
-			await assert.rejects(
-				runToolProcess(process.execPath, ["-e", parent], {
-					cwd: root,
-					timeoutMs: 5000,
-					signal: abort.signal,
-					onOutput: (output) => {
-						if (output.includes("ready")) {
-							abort.abort()
+			// The descendant reports its own pid and then busy-waits, so the only thing
+			// that can end it is the cancellation. It shares no stdio with the parent and
+			// runs in its own process group, so it is not kept alive by the pipes of the
+			// run being cancelled and a kill scoped to the parent alone cannot reap it.
+			const descendant = `require('fs').writeFileSync(${JSON.stringify(
+				descendantPidFile,
+			)}, String(process.pid)); setInterval(() => {}, 100)`
+			const parent = [
+				`const descendant = require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(
+					descendant,
+				)}], {stdio: 'ignore', windowsHide: true, detached: process.platform === 'win32', cwd: require('os').tmpdir()})`,
+				"// Cancel only once the descendant is running and has reported its pid.",
+				"const reported = () => { try { require('fs').readFileSync(" +
+					JSON.stringify(descendantPidFile) +
+					", 'utf8'); return true } catch { return false } }",
+				"const wait = () => { if (reported()) { process.stdout.write('ready'); return } setTimeout(wait, 5) }",
+				"wait()",
+				"setInterval(() => {}, 1000)",
+			].join("\n")
+			let descendantPid = 0
+			let descendantReaped = false
+			try {
+				await assert.rejects(
+					runToolProcess(process.execPath, ["-e", parent], {
+						cwd: root,
+						timeoutMs: 5000,
+						signal: abort.signal,
+						onOutput: (output) => {
+							if (output.includes("ready")) {
+								abort.abort()
+							}
+						},
+					}),
+					{ name: "AbortError" },
+				)
+				descendantPid = Number(await fs.readFile(descendantPidFile, "utf8"))
+				// `taskkill` signals the tree and returns before the OS has reaped it, so
+				// the descendant can still be running when the promise rejects. Wait for
+				// the process to disappear: a descendant that survives the cancellation
+				// never stops running, so this keeps failing on a broken kill while
+				// tolerating however long the reap takes. A fixed delay here is what made
+				// this test flake.
+				const deadline = Date.now() + 10000
+				for (;;) {
+					if (!processRunning(descendantPid)) {
+						descendantReaped = true
+						return
+					}
+					assert.ok(Date.now() < deadline, "a build descendant outlived its cancellation")
+					await new Promise((resolve) => setTimeout(resolve, 25))
+				}
+			} finally {
+				// Only a kill that did not work leaves the descendant running. Reap it
+				// before the temporary root goes, or the descendant holds the directory
+				// open and `withTemporaryRoot` fails to remove it on Windows.
+				if (descendantPid && !descendantReaped) {
+					try {
+						process.kill(descendantPid, "SIGKILL")
+						const gone = Date.now() + 5000
+						while (processRunning(descendantPid) && Date.now() < gone) {
+							await new Promise((resolve) => setTimeout(resolve, 25))
 						}
-					},
-				}),
-				{ name: "AbortError" },
-			)
-			await new Promise((resolve) => setTimeout(resolve, 500))
-			await assert.rejects(fs.stat(marker), { code: "ENOENT" })
+					} catch {
+						// The cancellation reaped it, or the process ended on its own.
+					}
+				}
+			}
 		})
 	})
 
