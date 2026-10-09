@@ -36,12 +36,7 @@ export interface ProvisioningHost {
 }
 
 export type ProvisioningResult =
-	| "current"
-	| "supported"
-	| "latestVersion"
-	| "unchecked"
-	| "declined"
-	| "installed"
+	"current" | "supported" | "latestVersion" | "unchecked" | "declined" | "installed"
 
 /** Product decisions are independent of VS Code, network access and process execution. */
 export class ToolProvisioner {
