@@ -13,14 +13,25 @@ concurrency:
 
 jobs:
   build-and-package:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          # The lock is the cache key, so every job that installs the same
+          # dependencies shares one entry.
+          cache: npm
       - name: Validate GitHub Actions workflows
+        # The list is explicit, not a glob: this job now runs on Windows too, and a
+        # glob is not expanded there, so `actionlint .github/workflows/*.yml` would
+        # ask it to read a filename containing an asterisk. A new workflow file has
+        # to be added here.
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml .github/workflows/docs_ci.yml
       - name: Install dependencies
         run: npm ci
@@ -39,6 +50,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
       - name: Install dependencies
         run: npm ci
       - name: Check formatting and Markdown
@@ -52,6 +64,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
       - name: Install dependencies
         run: npm ci
       - name: Run grammar tests
@@ -71,9 +84,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Toolchain cache
+        id: v-toolchain
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/v
+          # The build is pure for a pinned source revision, so the key names both
+          # pinned revisions: the other server variants then restore this build
+          # instead of re-running it.
+          key: v-toolchain-${{ runner.os }}-01eb66904707b68fca95091ba820672b2a2611eb-475a2bd7ec4bed7061721816afb46580c4fe0a5b
       - name: Build V compiler
+        if: steps.v-toolchain.outputs.cache-hit != 'true'
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
@@ -88,12 +112,27 @@ jobs:
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
           make -C "$RUNNER_TEMP/v" v1
-      - name: Build VLS with version reporting
+      - name: VLS toolchain cache
         if: matrix.server == 'real'
+        id: vls-toolchain
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vls
+          # Keyed on the V revision the server is built with as well as its own,
+          # because the compiler that produces it is part of what is cached.
+          key: vls-toolchain-${{ runner.os }}-e61d428dc80453397f8d4a128f202b7c6be22fb0-01eb66904707b68fca95091ba820672b2a2611eb
+      - name: Build VLS with version reporting
+        if: matrix.server == 'real' && steps.vls-toolchain.outputs.cache-hit != 'true'
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
           git init "$RUNNER_TEMP/vls"
+          # Pin the CLI version follow-up on top of current upstream VLS so the
+          # real host exercises an external executable without managed metadata.
+          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
+          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
+          cd "$RUNNER_TEMP/vls"
+          "$RUNNER_TEMP/v/v" -new-compiler .
           # Pin the CLI version follow-up on top of current upstream VLS so the
           # real host exercises an external executable without managed metadata.
           git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0

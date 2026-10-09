@@ -165,7 +165,7 @@ describe("VLS VS Code extension", () => {
 			"/workspace",
 		)
 
-		assert.deepStrictEqual(profile.get(path.normalize("/workspace/src/example.v")), {
+		assert.deepStrictEqual(profile.get(canonicalFilePath("/workspace/src/example.v")), {
 			covered: [3, 8],
 			uncovered: [12],
 		})
@@ -446,24 +446,25 @@ describe("VLS VS Code extension", () => {
 	})
 
 	it("uses the nearest V project root for standalone saves and coverage", () => {
-		const target = "/project/cmd/app/main.v"
+		const project = path.resolve("/project")
+		const target = path.join(project, "cmd", "app", "main.v")
 		const vmodExists = (filePath: string) => {
-			return filePath === path.normalize("/project/v.mod")
+			return filePath === path.join(project, "v.mod")
 		}
 		const projectRoot = standaloneTaskScope(target, vmodExists)
 		const dirtyImport = {
-			filePath: "/project/lib/foo/foo.v",
+			filePath: path.join(project, "lib", "foo", "foo.v"),
 			languageId: "v",
 			isDirty: true,
 		}
 
-		assert.strictEqual(projectRoot, path.normalize("/project"))
+		assert.strictEqual(projectRoot, project)
 		assert.strictEqual(taskCoverageRoot(target, undefined, vmodExists), projectRoot)
-		assert.strictEqual(taskWorkingDirectory(target), path.normalize("/project/cmd/app"))
+		assert.strictEqual(taskWorkingDirectory(target), path.dirname(target))
 		assert.ok(shouldSaveTaskDocument(target, projectRoot, dirtyImport))
 		assert.strictEqual(
 			standaloneTaskScope(target, () => false),
-			path.normalize("/project/cmd/app"),
+			path.dirname(target),
 		)
 	})
 

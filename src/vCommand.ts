@@ -85,5 +85,7 @@ export function serverCommand(configured: string, workspaceFolder?: string): str
 		return findInPath("v")
 	}
 	const command = expandConfiguredPath(value, workspaceFolder)
-	return pathCommand(command, workspaceFolder) || findInPath(command) || command
+	const resolved = pathCommand(command, workspaceFolder) || findInPath(command) || command
+	// A configured path can mix separators; the spawned command must be native.
+	return path.normalize(resolved)
 }
