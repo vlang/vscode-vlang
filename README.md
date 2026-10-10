@@ -65,6 +65,11 @@ creates the `_test.v` file beside the source with one `test_` function per publi
 function, each with a placeholder assertion to replace. It refuses to overwrite
 an existing test file.
 
+Every `_test.v` file also appears in the Test Explorer, with one item per
+`test_` function. Running a test from there executes `v test` on its file with
+`VTEST_ONLY_FN` set to the selected function, so the filter the Test Explorer
+already provides is the one V understands.
+
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer
