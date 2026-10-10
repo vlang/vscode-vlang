@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- A public API for other extensions. `vscode.extensions.getExtension('vlanguage.vscode-vlang').exports.resolveV(resource)`
+  returns the absolute path to the `v` binary the extension would use for that
+  resource, so CI tooling and formatters can stop re-implementing the resolution.
+  `golang.go` exports the same kind of surface.
 
 ## 0.2.1
 
