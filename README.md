@@ -44,6 +44,33 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Agents: the bundled V agent skills
+
+The compiler ships agent skills — the rules that make V code which looks right
+fail to compile, the build and test loop, testing conventions, concurrency, the
+memory model, and how to drive the MCP server. `v skills` installs them into
+`.agents/skills/<name>/`, which VS Code, Claude Code, opencode and Copilot
+already read, so one install improves every agent you use. A project install
+lands in the repository and is shared with your team; a user install lands in
+`~/.agents/skills` and applies to every project on the machine.
+
+The extension adds commands around that rather than a copy of it:
+
+- `V: Install V Agent Skills` reads the compiler's catalog, lets you pick skills
+  and a scope, and runs the install
+- `V: Show V Agent Skill Status` says what is installed where and which copies
+  have fallen behind the compiler's
+- `V: Update V Agent Skills` refreshes the ones that have
+
+Nothing is overwritten silently. `v skills add` refuses to replace an installed
+skill unless it is given `--force`, which the command only does when you picked a
+skill that is already installed and out of date. `v skills update` holds back a
+skill whose files were edited locally, and reports which one and why.
+
+These commands need a V that supports `v skills`. On an older compiler they
+report that rather than doing nothing. Skills also work with agents outside VS
+Code, without this extension; see `v skills --help`.
+
 ### Build, run, and test
 
 Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
@@ -88,6 +115,9 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
+- `V: Install V Agent Skills`
+- `V: Show V Agent Skill Status`
+- `V: Update V Agent Skills`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`
