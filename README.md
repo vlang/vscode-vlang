@@ -65,6 +65,13 @@ creates the `_test.v` file beside the source with one `test_` function per publi
 function, each with a placeholder assertion to replace. It refuses to overwrite
 an existing test file.
 
+## Roadmap
+
+Known gaps and what would close them, cheapest first — the missing Test Explorer
+integration, the absent debugger, and the parts of the test suite that fail on
+Windows. See [ROADMAP.md](./ROADMAP.md); please read it before opening a pull
+request so we do not duplicate each other.
+
 ## Usage
 
 First you will need to install [Visual Studio Code][vs-code] >= `1.105`.

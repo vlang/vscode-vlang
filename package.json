@@ -27,7 +27,7 @@
 		"watch": "npm run build:base -- --sourcemap --watch",
 		"typecheck": "tsc --noEmit",
 		"lint": "eslint src",
-		"lint:md": "markdownlint README.md",
+		"lint:md": "markdownlint README.md ROADMAP.md",
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
