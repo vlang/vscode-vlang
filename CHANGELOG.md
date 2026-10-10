@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
 
+### Fixed
+
+- Cover unsaved buffers, diff views and `v.mod` files with V language
+  features. The selector was file-scheme `v` only, so none of them got any.
+
 ## 0.2.1
 
 _23 September 2026_
