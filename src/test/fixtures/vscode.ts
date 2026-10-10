@@ -1,5 +1,32 @@
 type Scope = "global" | "workspace" | "workspaceFolder"
 type Entry = { value: unknown; scope: Scope }
+type FoldingProvider = {
+	provideFoldingRanges(document: {
+		uri: { toString(): string }
+		version: number
+		getText(): string
+	}): unknown
+}
+
+type CodeLensProvider = {
+	provideCodeLenses(document: {
+		uri: ReturnType<typeof Uri.file>
+		version: number
+		getText(): string
+	}): unknown
+}
+type StatusBarItem = {
+	text: string
+	tooltip: string | undefined
+	command: string | undefined
+	name: string | undefined
+	show(): void
+	hide(): void
+	dispose(): void
+}
+
+// The shape a test hands to a register* function: the subscriptions array it
+// pushes disposables into is all any of them read from a real context here.
 
 export const state = {
 	settings: new Map<string, Entry>(),
@@ -7,6 +34,9 @@ export const state = {
 	information: [] as string[],
 	errors: [] as string[],
 	logs: [] as string[],
+	foldingRanges: [] as FoldingProvider[],
+	codeLenses: [] as CodeLensProvider[],
+	statusBarItems: [] as StatusBarItem[],
 	promptResponse: "Later" as string | undefined,
 	prompts: 0,
 	updates: [] as string[],
@@ -18,6 +48,9 @@ export function resetVscode(): void {
 	state.information.length = 0
 	state.errors.length = 0
 	state.logs.length = 0
+	state.foldingRanges.length = 0
+	state.codeLenses.length = 0
+	state.statusBarItems.length = 0
 	state.promptResponse = "Later"
 	state.prompts = 0
 	state.updates.length = 0
@@ -66,7 +99,7 @@ export const workspace = {
 	onDidGrantWorkspaceTrust(_callback: () => void) {
 		return { dispose() {} }
 	},
-	getConfiguration(section: string) {
+	getConfiguration(section: string, _resource?: unknown) {
 		return {
 			get<T>(key: string, fallback?: T): T {
 				return (
@@ -100,8 +133,73 @@ export const workspace = {
 	},
 }
 
+export const FoldingRange = class {
+	start: number
+	end: number
+	kind: number | undefined
+
+	constructor(start: number, end: number, kind?: number) {
+		this.start = start
+		this.end = end
+		this.kind = kind
+	}
+}
+
+export const FoldingRangeKind = { Comment: 1, Imports: 2 }
+
+export const languages = {
+	registerFoldingRangeProvider(_selector: unknown, provider: FoldingProvider) {
+		state.foldingRanges.push(provider)
+		return { dispose: () => undefined }
+	},
+	registerCodeLensProvider(_selector: unknown, provider: CodeLensProvider) {
+		state.codeLenses.push(provider)
+		return { dispose: () => undefined }
+	},
+}
+
+export const CodeLens = class {
+	constructor(
+		readonly range: unknown,
+		readonly command: { title: string; command: string; arguments: unknown[] } | undefined,
+	) {}
+}
+
+export const Range = class {
+	constructor(
+		readonly startLine: number,
+		readonly startCharacter: number,
+		readonly endLine: number,
+		readonly endCharacter: number,
+	) {}
+}
+
+export const StatusBarAlignment = { Left: 1, Right: 2 }
+
 export const window = {
-	activeTextEditor: undefined as { document: { uri: ReturnType<typeof Uri.file> } } | undefined,
+	activeTextEditor: undefined as
+		| {
+				document: {
+					uri: ReturnType<typeof Uri.file>
+					languageId: string
+					getText(): string
+				}
+				selection: { active: { line: number } }
+		  }
+		| undefined,
+	createStatusBarItem(_alignment?: number, _priority?: number) {
+		const item: StatusBarItem = {
+			text: "",
+			tooltip: undefined,
+			command: undefined,
+			name: undefined,
+			show() {},
+			hide() {},
+			dispose() {},
+		}
+		state.statusBarItems.push(item)
+		return item
+	},
 	createOutputChannel(_name: string) {
 		return {
 			info(message: string) {

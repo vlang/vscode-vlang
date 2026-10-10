@@ -31,7 +31,9 @@
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
+		"build:test": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts src/test/canonicalPath.test.ts src/test/codeActions.test.ts src/test/saveDocuments.test.ts src/test/folding.test.ts src/test/statusBar.test.ts src/test/testGutter.test.ts src/test/vCommand.test.ts src/test/selectExecutable.test.ts --bundle --alias:vscode=./src/test/fixtures/vscode.ts --platform=node --target=node24 --format=cjs --outdir=out/test",
+		"test:logic": "npm run build:test && node --test out/test/*.test.js",
+		"coverage": "npm run build:test -- --sourcemap && node scripts/coverage.cjs",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -54,6 +56,10 @@
 			{
 				"language": "v",
 				"path": "snippets/snippets.json"
+			},
+			{
+				"language": "v",
+				"path": "snippets/veb.json"
 			}
 		],
 		"languages": [
@@ -117,6 +123,24 @@
 					"default": "v",
 					"description": "Path or command name of the V compiler used by VLS and V build, run, and test tasks. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}."
 				},
+				"v.tools.updateChannel": {
+					"type": "string",
+					"enum": [
+						"master",
+						"release"
+					],
+					"default": "master",
+					"enumDescriptions": [
+						"Follow the latest upstream commit.",
+						"Follow the latest released tag."
+					],
+					"description": "Which upstream to compare installed tools against. `master` follows the latest commit, `release` follows the latest released tag; VLS always follows its own master."
+				},
+				"v.tools.checkForUpdates": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for V and VLS updates when the extension activates. Checks run at most once a day and require a trusted workspace."
+				},
 				"v.vls.enable": {
 					"type": "boolean",
 					"default": true,
@@ -137,6 +161,47 @@
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"vls.command": {
+					"type": "string",
+					"default": "",
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.command` instead.",
+					"description": "Deprecated alias of `v.vls.command`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.args": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.args` instead.",
+					"description": "Deprecated alias of `v.vls.args`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.vCommand": {
+					"scope": "resource",
+					"type": "string",
+					"default": "v",
+					"markdownDeprecationMessage": "Deprecated: use `v.executablePath` instead.",
+					"description": "Deprecated alias of `v.executablePath`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.inlayHints.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.inlayHints.enabled` instead.",
+					"description": "Deprecated alias of `v.vls.inlayHints.enabled`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.diagnostics.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.diagnostics` instead.",
+					"description": "Deprecated alias of `v.vls.diagnostics`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.coverage.enabled": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.coverage.enabled` instead.",
+					"description": "Deprecated alias of `v.vls.coverage.enabled`. Kept so settings from the former VLS extension keep working."
 				}
 			}
 		},
@@ -239,6 +304,21 @@
 				"category": "V"
 			},
 			{
+				"command": "v.toggleTestFile",
+				"title": "Toggle Test File",
+				"category": "V"
+			},
+			{
+				"command": "v.fillStruct",
+				"title": "Fill Struct Fields",
+				"category": "V"
+			},
+			{
+				"command": "v.sharePlayground",
+				"title": "Share on Playground",
+				"category": "V"
+			},
+			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"
@@ -249,8 +329,63 @@
 				"category": "V"
 			},
 			{
+				"command": "v.install",
+				"title": "Install or Update V",
+				"category": "V"
+			},
+			{
+				"command": "v.tools.checkForUpdates",
+				"title": "Check for Updates",
+				"category": "V"
+			},
+			{
+				"command": "v.selectExecutable",
+				"title": "Select V executable",
+				"category": "V"
+			},
+			{
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.debugMain",
+				"title": "Debug Main",
+				"category": "V"
+			},
+			{
+				"command": "v.generateJsonDecoder",
+				"title": "Generate JSON Decoder",
+				"category": "V"
+			},
+			{
+				"command": "v.generateXmlDecoder",
+				"title": "Generate XML Decoder",
+				"category": "V"
+			},
+			{
+				"command": "v.generateCsvDecoder",
+				"title": "Generate CSV Decoder",
+				"category": "V"
+			},
+			{
+				"command": "v.convertEncoding",
+				"title": "Convert Selection Encoding",
+				"category": "V"
+			},
+			{
+				"command": "v.organizeImports",
+				"title": "Organize Imports",
+				"category": "V"
+			},
+			{
+				"command": "v.vpmSearch",
+				"title": "Search VPM Modules",
+				"category": "V"
+			},
+			{
+				"command": "v.vpmList",
+				"title": "List Installed VPM Modules",
 				"category": "V"
 			}
 		],
@@ -269,8 +404,67 @@
 					"when": "editorLangId == v"
 				},
 				{
+					"command": "v.toggleTestFile",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.generateJsonDecoder",
+					"when": "editorLangId == json"
+				},
+				{
+					"command": "v.generateXmlDecoder",
+					"when": "editorLangId == xml"
+				},
+				{
+					"command": "v.generateCsvDecoder",
+					"when": "editorLangId == csv || (editorLangId == plaintext && resourceExtname == .csv)"
+				},
+				{
+					"command": "v.convertEncoding",
+					"when": "editorHasSelection"
+				},
+				{
+					"command": "v.organizeImports",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.vpmSearch"
+				},
+				{
+					"command": "v.vpmList"
+				},
+				{
+					"command": "v.fillStruct",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.sharePlayground",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.debugMain",
+					"when": "editorLangId == v"
+				},
+				{
 					"command": "v.vls.restart",
 					"when": "editorLangId == v && config.v.vls.enable"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "v.generateJsonDecoder",
+					"when": "editorLangId == json",
+					"group": "navigation"
+				},
+				{
+					"command": "v.generateXmlDecoder",
+					"when": "editorLangId == xml",
+					"group": "navigation"
+				},
+				{
+					"command": "v.generateCsvDecoder",
+					"when": "editorLangId == csv || (editorLangId == plaintext && resourceExtname == .csv)",
+					"group": "navigation"
 				}
 			]
 		},
@@ -278,11 +472,257 @@
 			{
 				"language": "v"
 			}
+		],
+		"debuggers": [
+			{
+				"type": "v",
+				"label": "V",
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"program"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "The V source file to debug.",
+								"default": "${file}"
+							},
+							"args": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "Arguments passed to the program.",
+								"default": []
+							},
+							"stopAtEntry": {
+								"type": "boolean",
+								"description": "Break at the start of the program.",
+								"default": false
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory for the program. Defaults to the workspace folder.",
+								"default": "${workspaceFolder}"
+							},
+							"miDebuggerPath": {
+								"type": "string",
+								"description": "Path or command name of the MI debugger. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}. Empty means the MIMode default on PATH.",
+								"default": ""
+							},
+							"MIMode": {
+								"type": "string",
+								"enum": [
+									"gdb",
+									"lldb"
+								],
+								"description": "The MI debugger to run the session under. The V pretty printers only load under gdb.",
+								"default": "gdb"
+							},
+							"setupCommands": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"text"
+									],
+									"properties": {
+										"description": {
+											"type": "string"
+										},
+										"text": {
+											"type": "string",
+											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames."
+										},
+										"ignoreFailures": {
+											"type": "boolean"
+										}
+									}
+								},
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"default": []
+							},
+							"environment": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"name",
+										"value"
+									],
+									"properties": {
+										"name": {
+											"type": "string"
+										},
+										"value": {
+											"type": "string"
+										}
+									}
+								},
+								"description": "Environment variables for the debugged program."
+							},
+							"envFile": {
+								"type": "string",
+								"description": "Path to a KEY=VALUE environment file for the debugged program. Entries overwrite environment."
+							},
+							"externalConsole": {
+								"type": "boolean",
+								"description": "Run the program in an external console instead of the integrated terminal.",
+								"default": false
+							},
+							"sourceFileMap": {
+								"type": "object",
+								"description": "Map build paths to local source paths, e.g. for remote targets."
+							},
+							"miDebuggerServerAddress": {
+								"type": "string",
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+							},
+							"pipeTransport": {
+								"type": "object",
+								"required": [
+									"pipeProgram",
+									"debuggerPath"
+								],
+								"properties": {
+									"pipeProgram": {
+										"type": "string"
+									},
+									"pipeArgs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									},
+									"pipeCwd": {
+										"type": "string"
+									},
+									"pipeEnv": {
+										"type": "object"
+									},
+									"debuggerPath": {
+										"type": "string"
+									}
+								},
+								"description": "Reach a remote debugger through a pipe program such as ssh."
+							}
+						}
+					},
+					"attach": {
+						"required": [
+							"program",
+							"processId"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Path to the running binary, for symbols. Nothing is compiled on attach."
+							},
+							"processId": {
+								"type": "string",
+								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
+								"default": "${command:pickProcess}"
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory for expression evaluation. Defaults to the workspace folder.",
+								"default": "${workspaceFolder}"
+							},
+							"miDebuggerPath": {
+								"type": "string",
+								"description": "Path or command name of the MI debugger. Supports absolute paths, ~, ${env:NAME}, and ${workspaceFolder}. Empty means the MIMode default on PATH.",
+								"default": ""
+							},
+							"MIMode": {
+								"type": "string",
+								"enum": [
+									"gdb",
+									"lldb"
+								],
+								"description": "The MI debugger to run the session under. The V pretty printers only load under gdb.",
+								"default": "gdb"
+							},
+							"setupCommands": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"text"
+									],
+									"properties": {
+										"description": {
+											"type": "string"
+										},
+										"text": {
+											"type": "string"
+										},
+										"ignoreFailures": {
+											"type": "boolean"
+										}
+									}
+								},
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"default": []
+							},
+							"sourceFileMap": {
+								"type": "object",
+								"description": "Map build paths to local source paths, e.g. for remote targets."
+							},
+							"miDebuggerServerAddress": {
+								"type": "string",
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+							},
+							"pipeTransport": {
+								"type": "object",
+								"required": [
+									"pipeProgram",
+									"debuggerPath"
+								],
+								"properties": {
+									"pipeProgram": {
+										"type": "string"
+									},
+									"pipeArgs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									},
+									"pipeCwd": {
+										"type": "string"
+									},
+									"pipeEnv": {
+										"type": "object"
+									},
+									"debuggerPath": {
+										"type": "string"
+									}
+								},
+								"description": "Reach a remote debugger through a pipe program such as ssh."
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "v",
+						"request": "launch",
+						"name": "Debug V Program",
+						"program": "${file}",
+						"stopAtEntry": false
+					}
+				]
+			}
 		]
 	},
 	"activationEvents": [
 		"workspaceContains:**/*.v",
+		"workspaceContains:**/*.xml",
+		"workspaceContains:**/*.csv",
 		"onLanguage:v",
+		"onLanguage:json",
+		"onLanguage:xml",
 		"onTaskType:v"
 	],
 	"main": "./out/extension.js",
