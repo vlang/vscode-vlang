@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 
-export type VTaskAction = "build" | "run" | "test" | "prod"
+export type VTaskAction = "build" | "run" | "test" | "prod" | "check" | "vet" | "fmt"
 
 export interface VTaskSpec {
 	action: VTaskAction
@@ -57,6 +57,7 @@ export function shouldSaveTaskDocument(
 
 export function taskActionTitle(action: VTaskAction): string {
 	if (action === "prod") return "Build Optimized"
+	if (action === "fmt") return "Format Check"
 	return action.charAt(0).toUpperCase() + action.slice(1)
 }
 
@@ -71,6 +72,12 @@ export function workspaceTaskSpec(action: VTaskAction): VTaskSpec {
 				return ["-nocolor", "run", "."]
 			case "test":
 				return ["-nocolor", "test", "."]
+			case "check":
+				return ["-nocolor", "-check", "."]
+			case "vet":
+				return ["-nocolor", "vet", "-W", "."]
+			case "fmt":
+				return ["-nocolor", "fmt", "-verify", "."]
 		}
 	})()
 	return { action, args, name: taskActionTitle(action) }

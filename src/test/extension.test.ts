@@ -38,6 +38,12 @@ import {
 	processTreeKillCommand,
 } from "../processExecution"
 
+const repositoryRoot = path.resolve(__dirname, "..", "..")
+
+function readManifest(): Record<string, any> {
+	return JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"))
+}
+
 describe("VLS VS Code extension", () => {
 	it("contributes build, run, and test commands and tasks", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
@@ -56,12 +62,60 @@ describe("VLS VS Code extension", () => {
 			"run",
 			"test",
 			"prod",
+			"check",
+			"vet",
+			"fmt",
 		])
+		// Every enum entry needs a description, or a user picking one from a task
+		// picker sees a bare word with no idea what it runs.
+		assert.strictEqual(
+			taskDefinition.properties.action.enumDescriptions.length,
+			taskDefinition.properties.action.enum.length,
+		)
 		assert.ok(manifest.contributes.configuration.properties["v.executablePath"])
 		assert.strictEqual(
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
 			true,
 		)
+	})
+
+	it("ships a walkthrough whose steps point at files that exist", () => {
+		const manifest = readManifest()
+		const walkthroughs = manifest.contributes.walkthroughs
+		assert.ok(walkthroughs.length > 0, "no walkthrough is contributed")
+		const declared = new Set<string>(
+			manifest.contributes.commands.map((entry: { command: string }) => entry.command),
+		)
+
+		for (const walkthrough of walkthroughs) {
+			assert.ok(walkthrough.title, `${walkthrough.id} has no title`)
+			assert.ok(walkthrough.steps.length > 0, `${walkthrough.id} has no steps`)
+			for (const step of walkthrough.steps) {
+				assert.ok(step.title, `${walkthrough.id}.${step.id} has no title`)
+				assert.ok(step.description, `${walkthrough.id}.${step.id} has no description`)
+				// A step whose media file is missing renders as a broken card, so the
+				// path is checked against the repository rather than trusted.
+				const media = step.media?.markdown
+				assert.ok(media, `${walkthrough.id}.${step.id} has no media`)
+				assert.ok(
+					fs.existsSync(path.join(repositoryRoot, media)),
+					`${walkthrough.id}.${step.id} points at a missing file: ${media}`,
+				)
+				// A completion event naming an undeclared command never fires, which
+				// leaves the step permanently incomplete.
+				for (const event of step.completionEvents ?? []) {
+					const command = event.startsWith("onCommand:")
+						? event.slice("onCommand:".length)
+						: ""
+					if (command) {
+						assert.ok(
+							declared.has(command),
+							`${walkthrough.id}.${step.id} completes on undeclared command ${command}`,
+						)
+					}
+				}
+			}
+		}
 	})
 
 	it("shows the notices of V in task output as information", () => {
@@ -357,6 +411,24 @@ describe("VLS VS Code extension", () => {
 			action: "test",
 			args: ["-nocolor", "test", "."],
 			name: "Test",
+		})
+		// The three gates the rest of a change hangs on. `v -check` type-checks
+		// without producing a binary, `v vet -W` treats warnings as errors, and
+		// `v fmt -verify` reports whether the formatter would change anything.
+		assert.deepStrictEqual(workspaceTaskSpec("check"), {
+			action: "check",
+			args: ["-nocolor", "-check", "."],
+			name: "Check",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("vet"), {
+			action: "vet",
+			args: ["-nocolor", "vet", "-W", "."],
+			name: "Vet",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("fmt"), {
+			action: "fmt",
+			args: ["-nocolor", "fmt", "-verify", "."],
+			name: "Format Check",
 		})
 	})
 

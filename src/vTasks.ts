@@ -359,6 +359,11 @@ async function runPaletteTask(action: VTaskAction, manager: VTaskManager): Promi
 		target = targetForUri(uri)
 		args = ["-nocolor", "test", uri.fsPath]
 		name = "Test Active File"
+	} else if ((action === "check" || action === "vet" || action === "fmt") && uri) {
+		// The last argument is the target, so it is replaced rather than appended to.
+		target = targetForUri(uri)
+		args = [...workspaceSpec.args.slice(0, -1), uri.fsPath]
+		name = `${workspaceSpec.name} Active File`
 	}
 
 	const task = createVTask(action, target, manager.coverage, args, name)
@@ -397,7 +402,7 @@ class VTaskProvider implements vscode.TaskProvider {
 	provideTasks(): vscode.Task[] {
 		const tasks: vscode.Task[] = []
 		for (const folder of vscode.workspace.workspaceFolders || []) {
-			for (const action of ["build", "run", "test", "prod"] as const) {
+			for (const action of ["build", "run", "test", "prod", "check", "vet", "fmt"] as const) {
 				tasks.push(createVTask(action, folderTarget(folder), this.coverage))
 			}
 		}
@@ -406,7 +411,15 @@ class VTaskProvider implements vscode.TaskProvider {
 
 	resolveTask(task: vscode.Task): vscode.Task | undefined {
 		const action: unknown = task.definition.action
-		if (action !== "build" && action !== "run" && action !== "test" && action !== "prod") {
+		if (
+			action !== "build" &&
+			action !== "run" &&
+			action !== "test" &&
+			action !== "prod" &&
+			action !== "check" &&
+			action !== "vet" &&
+			action !== "fmt"
+		) {
 			return undefined
 		}
 		const folder = workspaceFolderForScope(task.scope) || vscode.workspace.workspaceFolders?.[0]
@@ -478,6 +491,9 @@ export function registerVTasks(context: vscode.ExtensionContext): VTaskManager {
 		vscode.commands.registerCommand("vls.run", () => runPaletteTask("run", manager)),
 		vscode.commands.registerCommand("vls.test", () => runPaletteTask("test", manager)),
 		vscode.commands.registerCommand("v.prod", () => runPaletteTask("prod", manager)),
+		vscode.commands.registerCommand("vls.check", () => runPaletteTask("check", manager)),
+		vscode.commands.registerCommand("vls.vet", () => runPaletteTask("vet", manager)),
+		vscode.commands.registerCommand("vls.fmt", () => runPaletteTask("fmt", manager)),
 		vscode.commands.registerCommand("vls.coverage.clear", () => coverage.clear()),
 		vscode.tasks.onDidEndTask((event) => {
 			manager.endExecution(event.execution)
