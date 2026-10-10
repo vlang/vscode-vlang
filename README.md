@@ -44,6 +44,10 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+`V: Show Environment Status` reports which `v` and which VLS the extension
+resolved, what versions they report, and whether the server is running. The
+answer is written to a document so it can be copied into a bug report.
+
 ### Build, run, and test
 
 Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
@@ -91,6 +95,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`
+- `V: Show Environment Status`
 - `V: Build`, `V: Run`, and `V: Test`
 - `V: Clear Test Coverage`
 

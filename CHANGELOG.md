@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- `V: Show Environment Status`, which reports which `v` and which VLS the
+  extension resolved, what versions they report, and whether the server is
+  running. Two V extensions exist and either can provide language support, so
+  the answer to "which one am I using" was otherwise hard to find.
 
 ## 0.2.1
 

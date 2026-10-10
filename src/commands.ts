@@ -11,6 +11,7 @@ import {
 	WorkspaceEdit,
 } from "vscode"
 import { executeV } from "./exec"
+import { showEnvironmentStatus } from "./envStatusCommand"
 import { outputChannel, vlsOutputChannel } from "./logger"
 
 function activeVDocument(): TextDocument | undefined {
@@ -100,12 +101,19 @@ async function updateVls(): Promise<void> {
 }
 
 /** Register the VLS lifecycle commands for a client owned elsewhere. */
-export function registerVlsCommands(context: ExtensionContext, restart: () => Promise<void>): void {
+export function registerVlsCommands(
+	context: ExtensionContext,
+	restart: () => Promise<void>,
+	isClientRunning: () => boolean = () => false,
+): void {
 	context.subscriptions.push(
 		commands.registerCommand("v.vls.restart", () => restart()),
 		commands.registerCommand("v.vls.update", () => updateVls()),
 		commands.registerCommand("v.vls.openOutput", () => {
 			vlsOutputChannel.show()
 		}),
+		// The report says whether the server is running, so the caller that owns the
+		// client answers that rather than every report claiming the server is down.
+		commands.registerCommand("v.env.status", () => showEnvironmentStatus(isClientRunning())),
 	)
 }
