@@ -69,6 +69,10 @@
 					".vh",
 					".vv"
 				],
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				},
 				"configuration": "language-configuration.json"
 			},
 			{
@@ -79,6 +83,10 @@
 				"extensions": [
 					"v.mod"
 				],
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				},
 				"configuration": "language-configuration.json"
 			}
 		],
