@@ -295,6 +295,30 @@ export class VlsManager implements vscode.Disposable {
 		await sendSettings(nextClient)
 	}
 
+	/** Send the current feature settings to the running server.
+	 *
+	 * The manager owns the client, so it owns the channel: a caller that holds a
+	 * client of its own can send settings to one that has already been replaced.
+	 * Nothing is sent while no server is running, because `initialize` is what
+	 * carries the settings on start.
+	 */
+	async sendSettingsNow(): Promise<void> {
+		await this.pending
+		if (this.client) {
+			await sendSettings(this.client)
+		}
+	}
+
+	/** Whether a server is actually running.
+	 *
+	 * A client that exists is not necessarily running: it can be starting, or
+	 * stopping. Consumers ask this to defer to the server rather than duplicate
+	 * it, so the answer has to mean "it can answer a request now".
+	 */
+	isRunning(): boolean {
+		return this.client?.state === State.Running
+	}
+
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {
 		if (this.disposed || this.client !== failedClient || this.recoveryTimer) return
 		vlsOutputChannel.warn(`VLS disconnected: ${reason}. Scheduling recovery.`)

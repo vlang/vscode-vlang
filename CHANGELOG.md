@@ -14,6 +14,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- **V: Toggle Test File**, jumping between a source file and its test file
+  in both directions, generating the test file first when missing.
+- **V: Generate JSON Decoder**, inferring V structs for the active JSON
+  document with a `json2` decode example. TOML and YAML share the core
+  and follow once their parsers land as declared dependencies.
+- XML and CSV decoders on the same core: strict XML and typed-column
+  CSV inference with `encoding.xml` / `encoding.csv` examples, plus
+  **V: Convert Selection Encoding** (base64/hex/base32/base58 both
+  ways), **V: Organize Imports** (`v fmt` does not sort), VPM search
+  and inspect commands, decimal hovers over non-decimal literals, and
+  a dozen veb snippets.
+- **V: Fill Struct Fields**, filling an empty `Name{}` literal with the
+  fields of the same-file `struct Name` declaration.
+- **V: Share on Playground**, posting the active file and opening its
+  share link (copied to the clipboard too).
+- A debugger. V programs can now be launched under `gdb` from the Run and Debug
+  view, with breakpoints in V source resolving through the DWARF debug info the
+  compile step produces. The extension contributes a `type: "v"` debugger with a
+  default launch configuration, so no `launch.json` has to be written by hand.
+  The session itself runs on the C/C++ extension's `cppdbg` adapter (which must
+  be installed): raw `gdb --interpreter=mi2` never answers the debug protocol,
+  so no session could run that way.
+- Deprecated `vls.*` settings declared in the manifest. Settings carried over
+  from the former VLS extension (`vls.command`, `vls.args`, `vls.vCommand`,
+  `vls.inlayHints.enabled`, `vls.diagnostics.enabled`, `vls.coverage.enabled`)
+  now show a deprecation message naming the `v.*` replacement instead of an
+  "Unknown Configuration Setting" warning. Migration behavior is unchanged.
+- GDB pretty printers for V values. Debug sessions load them automatically:
+  strings decode to text, `Option`/`Result` show their payload or `none` /
+  the error, and arrays and maps summarize their lengths. Element types are
+  erased from the debug info, so containers never guess at them.
+- Debuggable MI debugger choice. `miDebuggerPath` names the debugger (with
+  `~`, `${env:NAME}` and `${workspaceFolder}` expanded) and `MIMode`
+  selects `gdb` or `lldb`, unblocking macOS. The pretty printers are GDB
+  scripts, so lldb sessions carry no printer setup commands.
+- Debug launch passthrough. `setupCommands` appends user MI commands after
+  the printer setup (e.g. GDB `skip` rules for generated frames),
+  `environment` and `envFile` set the program environment, and
+  `externalConsole` runs it outside the integrated terminal. A
+  `docs/TROUBLESHOOTING-DEBUGGING.md` guide covers the failure modes.
+- Debug attach and remote targets. `"request": "attach"` joins a running
+  process by PID (or `${command:pickProcess}`) with no compile step, and
+  `sourceFileMap`, `miDebuggerServerAddress` and `pipeTransport` reach
+  remote debuggers.
+- Debug CodeLens and panic traps. A `Debug Main` lens over `fn main`
+  starts a session without a launch configuration, and debug builds trap
+  on panic while a debugger is attached instead of exiting: every panic
+  funnels through `v_panic`, so no compiler change was needed.
+- **V: Select V executable**. The picker offers the configured value, the
+  compiler on PATH, and any build this extension manages, in that order, and
+  writes the choice to `v.executablePath` — the setting tasks, runs and the
+  language server already resolve through. A browsed path is written only once
+  it is shown to exist, because a configured command that does not resolve
+  turns every later task into the error the picker was opened to fix. The
+  status bar item is the one for V: the language server already has its own
+  that reports starting, stopped and not-installed.
+- A `Run Test` lens over each `fn test_`, running that one test through the
+  same task path as the existing run lens, so the command list gains nothing
+  that has to be kept in sync. The lens registers its own handler, because a
+  CodeLens command runs on the client and never reaches the server
+  middleware.
+- Code folding. A folding range provider folds declaration blocks, runs of
+  top-level `import` statements, and `//#region` / `//#endregion` markers.
+  There is no command for it: a provider replaces the editor's own
+  indentation folding for V files, so this answers for every brace pair
+  rather than for a few. `#region` is deliberately not folded — a line
+  starting with `#` is one directive token to the V parser, so folding it
+  would invent syntax.
+
+### Fixed
+
+- The `Run Test` lens emitted a command nothing handled, so clicking it did
+  nothing, and the branch that listed it in the language server middleware was
+  unreachable: a CodeLens command runs on the client and never reaches the
+  server. The handler is registered beside the lens.
+- The language server is now owned by the module that was written for it. Two
+  client owners existed, and only the inline one in `activate` was reachable,
+  so a crashed server was never restarted, its status never showed the state,
+  and a restart of the window did not recover it. Crash recovery now goes
+  through the same queue that serializes starts and settings changes.
+- Debugger `stopAtEntry` on Windows. The entry breakpoint targeted a `main`
+  symbol that does not exist (V inlines `fn main` into `wmain`), and the
+  `--eval-command` was placed after `-- <binary>` where gdb ignores it, so
+  the option silently did nothing. It now breaks on `wmain` on Windows
+  (`main` elsewhere) with the eval-command before the binary.
+- Debugger fails fast with an actionable per-OS install hint when `gdb` is
+  not on PATH, instead of a raw spawn error after the compile step.
 
 ## 0.2.1
 

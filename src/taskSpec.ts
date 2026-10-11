@@ -15,6 +15,27 @@ export interface TaskDocumentSpec {
 	isDirty: boolean
 }
 
+/** A document that can be flushed to disk before a task runs.
+ *
+ * This is the narrow part of `vscode.TextDocument` the task path uses. Declaring it
+ * structurally keeps the saving logic testable without a VS Code host, which is why
+ * the helper lives beside `shouldSaveTaskDocument` rather than in the task provider.
+ */
+export interface SaveableDocument {
+	save(): Thenable<boolean>
+}
+
+/** Save the documents a task needs, reporting whether all of them made it.
+ *
+ * Saving is independent per document — each writes its own buffer — so the saves are
+ * issued together. The serial form this replaces stopped at the first failure, leaving
+ * the remaining dirty documents unsaved and the task reading stale sources.
+ */
+export async function saveDocuments(documents: readonly SaveableDocument[]): Promise<boolean> {
+	const saved = await Promise.all(documents.map((document) => document.save()))
+	return saved.every((savedOne) => savedOne)
+}
+
 export function standaloneTaskScope(
 	targetFilePath: string,
 	exists: (filePath: string) => boolean = fs.existsSync,
