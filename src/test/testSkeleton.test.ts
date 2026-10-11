@@ -1,6 +1,6 @@
 import * as assert from "assert"
 import { describe, it } from "node:test"
-import { generateTestSkeleton, testFileName } from "../testSkeleton"
+import { generateTestSkeleton, sourceFileName, testFileName } from "../testSkeleton"
 
 const sourceFile = [
 	"module calculator",
@@ -45,5 +45,16 @@ describe("V test skeleton", () => {
 		assert.strictEqual(testFileName("foo.v"), "foo_test.v")
 		assert.strictEqual(testFileName("/w/app/src/bar.v"), "/w/app/src/bar_test.v")
 		assert.strictEqual(testFileName("no_extension"), "no_extension_test.v")
+	})
+
+	it("names the source file after the test file", () => {
+		// The reverse mapping drives the toggle back. Anything else has
+		// no source, including a stemless `_test.v`.
+		assert.strictEqual(sourceFileName("foo_test.v"), "foo.v")
+		assert.strictEqual(sourceFileName("/w/app/src/bar_test.v"), "/w/app/src/bar.v")
+		assert.strictEqual(sourceFileName("a.b_test.v"), "a.b.v")
+		assert.strictEqual(sourceFileName("foo.v"), undefined)
+		assert.strictEqual(sourceFileName("_test.v"), undefined)
+		assert.strictEqual(sourceFileName("foo_test.vv"), undefined)
 	})
 })

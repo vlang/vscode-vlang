@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # The tag is pushed by a maintainer, so the job needs to write a release
+    # against it. Everything else below is read-only, and the checkout is the
+    # tagged tree: what is published is what CI already verified on that SHA.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Run grammar tests
+        run: npm run test:grammar
+      - name: Build
+        run: npm run build
+      - name: Package
+        run: npm run package
+      - name: Upload the VSIX as a release asset
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" "*.vsix" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
