@@ -239,6 +239,11 @@
 				"category": "V"
 			},
 			{
+				"command": "v.toggleTestFile",
+				"title": "Toggle Test File",
+				"category": "V"
+			},
+			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"

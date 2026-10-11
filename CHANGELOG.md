@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **V: Toggle Test File**, which walks the `foo.v` / `foo_test.v` pairing in both
+  directions: from a source file it opens its test file, and from a `_test.v` file
+  it opens the source beside it. Generating a test file only ever created the far
+  end, so navigating back from a test file to the source it tests had no command.
 - A code action that generates a test skeleton. On a `.v` file with public
   functions, **V: Generate Test File** creates the `_test.v` file beside it with
   one `test_` function per public function, each with a placeholder assertion. V
