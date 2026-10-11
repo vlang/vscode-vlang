@@ -1,30 +1,58 @@
 import { registerCommands, registerVlsCommands } from "commands"
+import { registerCodeActions } from "./codeActions"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
+import { migratedSetting } from "./settings"
+import { registerVTasks, runCodeLensCommand, vCommandForServer } from "./vTasks"
 
 export let client: LanguageClient | undefined
 
 function isInlayHintsEnabled(): boolean {
-	return workspace.getConfiguration("v.vls").get<boolean>("inlayHints.enabled", true)
+	return migratedSetting("v.vls", "inlayHints.enabled", "vls", "inlayHints.enabled", true)
 }
 
-async function createAndStartClient(): Promise<void> {
-	const vlsPath = getVls()
-	const vlsArgs = workspace.getConfiguration("v.vls").get<string[]>("args", [])
+async function sendVlsSettings(runningClient: LanguageClient): Promise<void> {
+	await runningClient.sendNotification("workspace/didChangeConfiguration", {
+		settings: {
+			vls: {
+				inlayHints: { enabled: isInlayHintsEnabled() },
+				diagnostics: {
+					enabled: migratedSetting(
+						"v.vls",
+						"diagnostics",
+						"vls",
+						"diagnostics.enabled",
+						true,
+					),
+				},
+			},
+		},
+	})
+}
+
+async function createAndStartClient(taskManager: ReturnType<typeof registerVTasks>): Promise<void> {
+	const activeFolder = vscode.window.activeTextEditor
+		? workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
+		: undefined
+	const folder = activeFolder ?? workspace.workspaceFolders?.[0]
+	const vlsPath = getVls(folder)
+	const vlsArgs = migratedSetting("v.vls", "args", "vls", "args", [] as string[])
+	const vCommand = vCommandForServer(folder)
+	const serverEnvironment = { ...process.env }
+	if (vCommand) serverEnvironment.VLS_V_COMMAND = vCommand
 
 	const serverOptions: ServerOptions = {
-		run: { command: vlsPath, args: vlsArgs },
-		debug: { command: vlsPath, args: vlsArgs },
+		run: { command: vlsPath, args: vlsArgs, options: { env: serverEnvironment } },
+		debug: { command: vlsPath, args: vlsArgs, options: { env: serverEnvironment } },
 	}
 
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: "file", language: "v" }],
 		outputChannel: vlsOutputChannel,
 		synchronize: {
-			configurationSection: "v.vls",
 			fileEvents: [
 				vscode.workspace.createFileSystemWatcher("**/*.v"),
 				vscode.workspace.createFileSystemWatcher("**/*.vv"),
@@ -37,6 +65,13 @@ async function createAndStartClient(): Promise<void> {
 				}
 				return next(document, range, token)
 			},
+			executeCommand: async (command, args, next) => {
+				if (command === "vls.runFile" || command === "vls.runTests") {
+					await runCodeLensCommand(command, args, taskManager)
+					return undefined
+				}
+				return (await next(command, args)) as unknown
+			},
 		},
 	}
 
@@ -45,6 +80,7 @@ async function createAndStartClient(): Promise<void> {
 	vscode.window.showInformationMessage("V Language Server is starting.")
 	try {
 		await nextClient.start()
+		await sendVlsSettings(nextClient)
 		vscode.window.showInformationMessage("V Language Server is now active.")
 	} catch (error) {
 		client = undefined
@@ -55,6 +91,11 @@ async function createAndStartClient(): Promise<void> {
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Register output channels so users can open them even without VLS.
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
+	const taskManager = registerVTasks(context)
+
+	// Offer a code action that generates a test skeleton. Registered here so it is
+	// available as soon as a V file is opened, without waiting for anything else.
+	registerCodeActions(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {
@@ -76,7 +117,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Only start the language server if the user enabled it in settings.
 	if (isVlsEnabled()) {
 		try {
-			await createAndStartClient()
+			await createAndStartClient(taskManager)
 		} catch (err) {
 			// If starting the client fails, log and continue. Users can still
 			// use non-LSP features of the extension.
@@ -88,7 +129,21 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		log("VLS is disabled in settings.")
 	}
 
-	registerVlsCommands(context, () => client)
+	registerVlsCommands(context, async () => {
+		if (!isVlsEnabled()) {
+			void vscode.window.showInformationMessage("VLS is disabled in settings.")
+			return
+		}
+		if (client) {
+			try {
+				await client.stop()
+			} catch {
+				// The process may already have exited.
+			}
+			client = undefined
+		}
+		await createAndStartClient(taskManager)
+	})
 
 	const inlayHintsEmitter = new vscode.EventEmitter<void>()
 	context.subscriptions.push(inlayHintsEmitter)
@@ -107,15 +162,27 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		workspace.onDidChangeConfiguration(async (e: ConfigurationChangeEvent) => {
 			const vlsEnabled = isVlsEnabled()
 
-			if (e.affectsConfiguration("v.vls.inlayHints.enabled")) {
+			if (
+				e.affectsConfiguration("v.vls.inlayHints.enabled") ||
+				e.affectsConfiguration("vls.inlayHints.enabled")
+			) {
 				inlayHintsEmitter.fire()
+			}
+			if (
+				client &&
+				(e.affectsConfiguration("v.vls.inlayHints.enabled") ||
+					e.affectsConfiguration("vls.inlayHints.enabled") ||
+					e.affectsConfiguration("v.vls.diagnostics") ||
+					e.affectsConfiguration("vls.diagnostics.enabled"))
+			) {
+				await sendVlsSettings(client)
 			}
 
 			if (e.affectsConfiguration("v.vls.enable")) {
 				if (vlsEnabled && !client) {
 					// Start the client now that the user enabled it.
 					try {
-						await createAndStartClient()
+						await createAndStartClient(taskManager)
 					} catch (err) {
 						console.error("Failed to start VLS:", err)
 						vscode.window.showErrorMessage(
@@ -134,7 +201,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
 					client = undefined
 				}
 			} else if (
-				(e.affectsConfiguration("v.vls.command") || e.affectsConfiguration("v.vls.args")) &&
+				(e.affectsConfiguration("v.vls.command") ||
+					e.affectsConfiguration("v.vls.args") ||
+					e.affectsConfiguration("vls.command") ||
+					e.affectsConfiguration("vls.args") ||
+					e.affectsConfiguration("v.executablePath") ||
+					e.affectsConfiguration("vls.vCommand")) &&
 				vlsEnabled &&
 				client
 			) {
@@ -150,7 +222,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 								if (client) {
 									await client.stop()
 									client = undefined
-									await createAndStartClient()
+									await createAndStartClient(taskManager)
 								}
 							} catch {
 								client = undefined

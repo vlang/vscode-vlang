@@ -1,52 +1,22 @@
-import eslint from "@eslint/js"
-import tseslint from "@typescript-eslint/eslint-plugin"
-import tsparser from "@typescript-eslint/parser"
-import globals from "globals"
+// ESLint flat config. `npm run lint` is `eslint src`, and the files glob below
+// scopes it to TypeScript sources.
+import tsParser from "@typescript-eslint/parser"
+import tsPlugin from "@typescript-eslint/eslint-plugin"
 
 export default [
 	{
-		// ignore generated and dependency folders
-		ignores: ["node_modules/**", "out/**"],
-	},
-	eslint.configs.recommended,
-	{
-		files: ["**/*.ts"],
+		files: ["src/**/*.ts"],
 		languageOptions: {
-			parser: tsparser,
-			parserOptions: {
-				projectService: true,
-				tsconfigRootDir: import.meta.dirname,
-			},
-			globals: {
-				...globals.node,
-			},
+			parser: tsParser,
+			sourceType: "module",
 		},
 		plugins: {
-			"@typescript-eslint": tseslint,
+			"@typescript-eslint": tsPlugin,
 		},
 		rules: {
-			...tseslint.configs.recommended.rules,
-			...tseslint.configs["recommended-type-checked"].rules,
-			// Custom rules from old config
-			"prefer-const": "error",
-			"no-array-constructor": "error",
-			"no-new-object": "error",
-			"no-shadow": "error",
-			"no-undef-init": "error",
-			"no-var": "error",
-			"object-shorthand": "error",
-			"prefer-template": "error",
-			// Stylistic rules
-			"array-bracket-spacing": "error",
-			"brace-style": "error",
-			"block-spacing": "error",
-			camelcase: "error",
-			"comma-spacing": "error",
-			"eol-last": "error",
-			"func-call-spacing": "error",
-			quotes: ["error", "double"],
+			quotes: ["error", "double", { avoidEscape: true }],
 			semi: ["error", "never"],
-			"no-extra-semi": "error",
+			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
 		},
 	},
 ]

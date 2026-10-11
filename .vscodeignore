@@ -8,6 +8,7 @@ package-lock.json
 # Source and build outputs
 src/
 build/
+*.v
 *.vsix
 
 # TypeScript build artifacts
@@ -28,10 +29,6 @@ coverage/**
 
 # Configuration and metadata
 .github/**
-.eslintrc*
-.eslintignore
-.prettierrc*
-.prettierignore
 .editorconfig
 
 # Misc
@@ -41,3 +38,9 @@ coverage/**
 .yarn*
 *.log
 .vscodeignore
+out/test/**
+out/**/*.map
+scripts/**
+docs/**
+.oxlintrc.json
+.oxfmtrc.json

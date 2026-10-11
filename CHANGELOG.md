@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- A code action that generates a test skeleton. On a `.v` file with public
+  functions, **V: Generate Test File** creates the `_test.v` file beside it with
+  one `test_` function per public function, each with a placeholder assertion. V
+  has no test framework, so the file layout is the whole contract and this
+  creates it without the user having to remember the convention.
+
+## 0.2.1
+
+_23 September 2026_
+
+### Features
+
+- Bring over VLS build, run, and test tasks and runnable CodeLens actions.
+- Show test coverage in the editor and status bar.
+- Keep settings from the former VLS extension effective during migration.
+- Recognize `.vh` and `.vv` files and pair backticks in V editors.
+
+### Changed
+
+- Distribute the combined extension under GPL-2.0-only while retaining the MIT
+  license on existing MIT-covered files.
+
 ## 0.2.0
 
 _13 October 2025_
