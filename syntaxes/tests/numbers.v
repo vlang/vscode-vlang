@@ -19,9 +19,9 @@ _ := 1111111111111111111111111111.25E-10
 //   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ constant.numeric.exponential.v
 _ := 1_234_567.89e+10
 //   ^^^^^^^^^^^^^^^^ constant.numeric.exponential.v
-_ := 1_234_.56
-//   ^^^^^^^^^ constant.numeric.float.v
-_ := 1_234_.56E10
-//   ^^^^^^^^^^^^ constant.numeric.exponential.v
+_ := 1.5_5
+//   ^^^^^ constant.numeric.float.v
+_ := 1e1_0
+//   ^^^^^ constant.numeric.exponential.v
 _ := 1234567890123456789012345678..30
 //   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ constant.numeric.integer.v
