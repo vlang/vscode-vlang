@@ -62,6 +62,7 @@
 				],
 				"extensions": [
 					".v",
+					".vv",
 					".vsh"
 				],
 				"icon": {
@@ -207,7 +208,8 @@
 		]
 	},
 	"activationEvents": [
-		"workspaceContains:**/*.v"
+		"workspaceContains:**/*.v",
+		"workspaceContains:**/*.vv"
 	],
 	"main": "./out/extension.js",
 	"dependencies": {

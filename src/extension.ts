@@ -25,7 +25,10 @@ async function createAndStartClient(): Promise<void> {
 		outputChannel: vlsOutputChannel,
 		synchronize: {
 			configurationSection: "v.vls",
-			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.v"),
+			fileEvents: [
+				vscode.workspace.createFileSystemWatcher("**/*.v"),
+				vscode.workspace.createFileSystemWatcher("**/*.vv"),
+			],
 		},
 		middleware: {
 			provideInlayHints: async (document, range, token, next) => {
