@@ -341,7 +341,7 @@
 			"patterns": [
 				{
 					"name": "meta.definition.generic.v",
-					"match": "(?<=[\\w\\s+])(\\<)(\\w+)(\\>)",
+					"match": "(?<=[\\w\\s+])(\\<)(\\w+(?:\\s*,\\s*\\w+)*)(\\>)",
 					"captures": {
 						"1": {
 							"name": "punctuation.definition.bracket.angle.begin.v"
@@ -366,7 +366,7 @@
 		},
 		"function-decl": {
 			"name": "meta.definition.function.v",
-			"match": "^(\\bpub\\b\\s+)?(\\bfn\\b)\\s+(?:\\([^\\)]+\\)\\s+)?(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
+			"match": "^(\\bpub\\b\\s+)?(\\bfn\\b)\\s+(?:(\\()([^\\)]*)(\\))\\s+)?(?:(?:C\\.)?)(\\w+)\\s*(?:(\\()([^\\)]*)(\\)))?((?<=[\\w\\s+])(\\<)(\\w+(?:\\s*,\\s*\\w+)*)(\\>))?(\\s+([?!&]?[^\\s\\{(][^\\s\\{]*))?",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.v"
@@ -375,12 +375,80 @@
 					"name": "keyword.fn.v"
 				},
 				"3": {
-					"name": "entity.name.function.v"
+					"name": "punctuation.definition.bracket.round.begin.v"
 				},
 				"4": {
 					"patterns": [
 						{
+							"include": "#brackets"
+						},
+						{
+							"include": "#storage"
+						},
+						{
 							"include": "#generic"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"include": "#punctuation"
+						}
+					]
+				},
+				"5": {
+					"name": "punctuation.definition.bracket.round.end.v"
+				},
+				"6": {
+					"name": "entity.name.function.v"
+				},
+				"7": {
+					"name": "punctuation.definition.bracket.round.begin.v"
+				},
+				"8": {
+					"patterns": [
+						{
+							"include": "#brackets"
+						},
+						{
+							"include": "#storage"
+						},
+						{
+							"include": "#generic"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"include": "#punctuation"
+						}
+					]
+				},
+				"9": {
+					"name": "punctuation.definition.bracket.round.end.v"
+				},
+				"10": {
+					"patterns": [
+						{
+							"include": "#generic"
+						}
+					]
+				},
+				"14": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"name": "keyword.operator.optional.v",
+							"match": "[?!&]"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"name": "entity.name.type.v",
+							"match": "\\w+"
 						}
 					]
 				}
@@ -388,7 +456,7 @@
 		},
 		"function-extend-decl": {
 			"name": "meta.definition.function.v",
-			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?",
+			"match": "^\\s*(pub)?\\s*(fn)\\s*(\\()([^\\)]*)(\\))\\s*(?:(?:C\\.)?)(\\w+)\\s*((?<=[\\w\\s+])(\\<)(\\w+(?:\\s*,\\s*\\w+)*)(\\>))?(?:\\([^\\)]*\\))?(\\s+[?!&]?[^\\s\\{(][^\\s\\{]*)?",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.v"
@@ -436,6 +504,24 @@
 					"patterns": [
 						{
 							"include": "#generic"
+						}
+					]
+				},
+				"11": {
+					"patterns": [
+						{
+							"include": "#illegal-name"
+						},
+						{
+							"name": "keyword.operator.optional.v",
+							"match": "[?!&]"
+						},
+						{
+							"include": "#types"
+						},
+						{
+							"name": "entity.name.type.v",
+							"match": "\\w+"
 						}
 					]
 				}
@@ -523,7 +609,7 @@
 		},
 		"function-exist": {
 			"name": "meta.support.function.v",
-			"match": "(\\w+)((?<=[\\w\\s+])(\\<)(\\w+)(\\>))?(?=\\s*\\()",
+			"match": "(\\w+)((?<=[\\w\\s+])(\\<)(\\w+(?:\\s*,\\s*\\w+)*)(\\>))?(?=\\s*\\()",
 			"captures": {
 				"0": {
 					"name": "meta.function.call.v"
@@ -977,6 +1063,12 @@
 					"patterns": [
 						{
 							"include": "#operators"
+						},
+						{
+							"include": "#brackets"
+						},
+						{
+							"include": "#punctuation"
 						},
 						{
 							"include": "#numbers"
