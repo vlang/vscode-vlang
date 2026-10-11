@@ -1,6 +1,6 @@
 import * as assert from "assert"
 import { describe, it } from "node:test"
-import { generateTestSkeleton, testFileName } from "../testSkeleton"
+import { generateTestSkeleton, sourceFileName, testFileName } from "../testSkeleton"
 
 const sourceFile = [
 	"module calculator",
@@ -45,5 +45,15 @@ describe("V test skeleton", () => {
 		assert.strictEqual(testFileName("foo.v"), "foo_test.v")
 		assert.strictEqual(testFileName("/w/app/src/bar.v"), "/w/app/src/bar_test.v")
 		assert.strictEqual(testFileName("no_extension"), "no_extension_test.v")
+	})
+
+	it("names the source file after the test file", () => {
+		// The suffix is the direction, so a test file names the source it tests.
+		assert.strictEqual(sourceFileName("/w/app/src/bar_test.v"), "/w/app/src/bar.v")
+		assert.strictEqual(sourceFileName("foo_test.v"), "foo.v")
+		// A file that is not a test file tests nothing, so toggling from it walks
+		// the forward mapping instead.
+		assert.strictEqual(sourceFileName("foo.v"), undefined)
+		assert.strictEqual(sourceFileName("no_extension"), undefined)
 	})
 })

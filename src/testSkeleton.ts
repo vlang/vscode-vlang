@@ -57,3 +57,14 @@ export function testFileName(sourceFileName: string): string {
 	const dot = sourceFileName.lastIndexOf(".")
 	return dot === -1 ? `${sourceFileName}_test.v` : `${sourceFileName.slice(0, dot)}_test.v`
 }
+
+const testFileSuffix = "_test.v"
+
+/** The source file name for a test file, the reverse of `testFileName`.
+ *
+ * The suffix is the only marker of the direction, so a file without it tests
+ * nothing and has no source file to return to.
+ */
+export function sourceFileName(name: string): string | undefined {
+	return name.endsWith(testFileSuffix) ? `${name.slice(0, -testFileSuffix.length)}.v` : undefined
+}

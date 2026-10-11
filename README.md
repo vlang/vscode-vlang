@@ -65,6 +65,10 @@ creates the `_test.v` file beside the source with one `test_` function per publi
 function, each with a placeholder assertion to replace. It refuses to overwrite
 an existing test file.
 
+**V: Toggle Test File** walks the same pairing in both directions: from a source
+file it opens its `_test.v` file, and from a `_test.v` file it opens the source
+beside it. Nothing is created, so a missing file is reported rather than written.
+
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer
@@ -88,6 +92,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
+- `V: Toggle Test File`
 - `V: Show V version`
 - `V: Update VLS`
 - `V: Restart VLS`
