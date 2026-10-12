@@ -281,8 +281,7 @@
 		]
 	},
 	"activationEvents": [
-		"workspaceContains:**/*.v",
-		"workspaceContains:**/*.vv",
+		"workspaceContains:{**/*.v,**/*.vv,**/*.vsh}",
 		"onLanguage:v",
 		"onTaskType:v"
 	],
