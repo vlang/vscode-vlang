@@ -7,6 +7,7 @@ import { isVlsEnabled, VlsManager } from "langserver"
 import { registerStatusBar } from "./statusBar"
 import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
+import { registerMcpServers } from "mcp"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { installV, isVInstalled } from "./utils"
 import { registerVTasks } from "./vTasks"
@@ -52,6 +53,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	const toolManager = new ToolManager(context, async (update) => update())
 	context.subscriptions.push(toolManager)
 	void toolManager.check()
+
+	// Offer the compiler to agents. Registered before the language server starts so
+	// the two are available at the same time regardless of how startup goes.
+	registerMcpServers(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {

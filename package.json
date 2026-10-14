@@ -31,7 +31,7 @@
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"build:test": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/cInterop.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts src/test/canonicalPath.test.ts src/test/codeActions.test.ts src/test/formatProvider.test.ts src/test/saveDocuments.test.ts src/test/folding.test.ts src/test/statusBar.test.ts src/test/testGutter.test.ts src/test/vCommand.test.ts src/test/selectExecutable.test.ts --bundle --alias:vscode=./src/test/fixtures/vscode.ts --platform=node --target=node24 --format=cjs --outdir=out/test",
+		"build:test": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/cInterop.test.ts src/test/mcp.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts src/test/canonicalPath.test.ts src/test/codeActions.test.ts src/test/formatProvider.test.ts src/test/saveDocuments.test.ts src/test/folding.test.ts src/test/statusBar.test.ts src/test/testGutter.test.ts src/test/vCommand.test.ts src/test/selectExecutable.test.ts --bundle --alias:vscode=./src/test/fixtures/vscode.ts --platform=node --target=node24 --format=cjs --outdir=out/test",
 		"test:logic": "npm run build:test && node --test out/test/*.test.js",
 		"coverage": "npm run build:test -- --sourcemap && node scripts/coverage.cjs",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
@@ -52,6 +52,12 @@
 		"Programming Languages"
 	],
 	"contributes": {
+		"mcpServerDefinitionProviders": [
+			{
+				"id": "vCompiler",
+				"label": "V Compiler"
+			}
+		],
 		"snippets": [
 			{
 				"language": "v",
@@ -210,6 +216,24 @@
 					"default": true,
 					"markdownDeprecationMessage": "Deprecated: use `v.vls.coverage.enabled` instead.",
 					"description": "Deprecated alias of `v.vls.coverage.enabled`. Kept so settings from the former VLS extension keep working."
+				},
+				"v.mcp.enable": {
+					"type": "boolean",
+					"default": true,
+					"scope": "resource",
+					"description": "Offer the V compiler to agents as an MCP server, giving them the compiler's own view of the project: declarations, references, diagnostics and standard library documentation. Needs a V that supports `v mcp`."
+				},
+				"v.mcp.readOnly": {
+					"type": "boolean",
+					"default": true,
+					"scope": "resource",
+					"description": "Start the V MCP server with --read-only, which registers no tool that writes a file. Turning this off also exposes v_rename_symbol, v_format and v_edit_replace. Note that v_edit_replace has no preview: it writes as soon as the range matches the text the agent passed back, so passing that text is what approves the edit."
+				},
+				"v.mcp.root": {
+					"type": "string",
+					"default": "",
+					"scope": "resource",
+					"description": "Directory the V MCP server resolves relative paths against. Empty means each workspace folder. Set it when the V project root differs from the folder you opened."
 				}
 			}
 		},
