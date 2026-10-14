@@ -115,6 +115,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   returns the absolute path to the `v` binary the extension would use for that
   resource, so CI tooling and formatters can stop re-implementing the resolution.
   `golang.go` exports the same kind of surface.
+- `V: Show Environment Status`, which reports which `v` and which VLS the
+  extension resolved, what versions they report, and whether the server is
+  running. Two V extensions exist and either can provide language support, so
+  the answer to "which one am I using" was otherwise hard to find.
 
 ### Fixed
 

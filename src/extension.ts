@@ -113,16 +113,20 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		log("VLS is disabled in settings.")
 	}
 
-	registerVlsCommands(context, async () => {
-		if (!isVlsEnabled()) {
-			void vscode.window.showInformationMessage("VLS is disabled in settings.")
-			return
-		}
-		if (!vlsManager) {
-			vlsManager = new VlsManager(taskManager)
-		}
-		await vlsManager.restart()
-	})
+	registerVlsCommands(
+		context,
+		async () => {
+			if (!isVlsEnabled()) {
+				void vscode.window.showInformationMessage("VLS is disabled in settings.")
+				return
+			}
+			if (!vlsManager) {
+				vlsManager = new VlsManager(taskManager)
+			}
+			await vlsManager.restart()
+		},
+		() => vlsManager?.isRunning() ?? false,
+	)
 
 	const inlayHintsEmitter = new vscode.EventEmitter<void>()
 	context.subscriptions.push(inlayHintsEmitter)
