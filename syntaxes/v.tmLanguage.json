@@ -969,6 +969,9 @@
 					"name": "string.quoted.raw.v",
 					"patterns": [
 						{
+							"include": "#string-interpolation"
+						},
+						{
 							"include": "#string-placeholder"
 						}
 					]
@@ -983,6 +986,9 @@
 					"end": "\"",
 					"name": "string.quoted.raw.v",
 					"patterns": [
+						{
+							"include": "#string-interpolation"
+						},
 						{
 							"include": "#string-placeholder"
 						}
