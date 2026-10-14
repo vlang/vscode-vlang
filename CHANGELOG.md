@@ -119,6 +119,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extension resolved, what versions they report, and whether the server is
   running. Two V extensions exist and either can provide language support, so
   the answer to "which one am I using" was otherwise hard to find.
+- A welcome walkthrough with three steps: install V, build and run a project, and
+  run the check, vet and format gates. Each step completes when the command it
+  describes has been run, so a new user is walked through the extension's own
+  commands rather than left to read the README.
+- `V: Check`, `V: Vet` and `V: Format Check` tasks, running `v -check`,
+  `v vet -W` and `v fmt -verify`. These are the three gates the rest of a change
+  hangs on, and none of them was reachable from the extension before. Each works
+  on the active file when one is open, and on the workspace otherwise, and all
+  three surface through the `vls` problem matcher.
 
 ### Fixed
 

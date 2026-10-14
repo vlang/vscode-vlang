@@ -158,6 +158,20 @@ Every `_test.v` file also appears in the Test Explorer, with one item per
 `VTEST_ONLY_FN` set to the selected function, so the filter the Test Explorer
 already provides is the one V understands.
 
+### Check, vet, and format
+
+Three more tasks run the gates that the rest of a change hangs on. Each works on
+the active file when one is open, and on the workspace otherwise.
+
+- `V: Check` runs `v -check`, which type-checks without producing a binary
+- `V: Vet` runs `v vet -W`, which reports suspicious constructs and treats
+  warnings as errors, so it is the one to use in CI
+- `V: Format Check` runs `v fmt -verify`, which reports whether the formatter
+  would change anything
+
+All three surface through the `vls` problem matcher, so a failure lands in the
+Problems panel at the right line rather than only in the task output.
+
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer
@@ -166,6 +180,12 @@ Windows. See [ROADMAP.md](./ROADMAP.md); please read it before opening a pull
 request so we do not duplicate each other.
 
 ## Usage
+
+The first time you open a V file, the extension offers a three-step walkthrough:
+install V, build and run a project, and run the check, vet and format gates. Each
+step completes when you run the command it describes, so the walkthrough walks you
+through the extension's own commands rather than asking you to read this file
+first.
 
 First you will need to install [Visual Studio Code][vs-code] >= `1.105`.
 In the command palette (`Cmd+Shift+P`) select `Install Extensions` and choose `V`.
@@ -200,6 +220,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Restart VLS`
 - `V: Show Environment Status`
 - `V: Build`, `V: Run`, and `V: Test`
+- `V: Check`, `V: Vet`, and `V: Format Check`
 - `V: Clear Test Coverage`
 
 You can access all of the above commands from the command palette (`Cmd+Shift+P`).
