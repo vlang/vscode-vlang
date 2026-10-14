@@ -864,6 +864,7 @@
 	},
 	"activationEvents": [
 		"workspaceContains:**/*.v",
+		"workspaceContains:**/*.vv",
 		"workspaceContains:**/*.xml",
 		"workspaceContains:**/*.csv",
 		"onLanguage:v",
