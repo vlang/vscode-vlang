@@ -19,6 +19,7 @@ import {
 	workspaceTaskSpec,
 } from "../taskSpec"
 import { configuredCommand, expandConfiguredPath, serverCommand } from "../vCommand"
+import { vDocumentSelector } from "../documentSelector"
 import {
 	canonicalFilePath,
 	coverageArgsForRun,
@@ -118,6 +119,17 @@ describe("VLS VS Code extension", () => {
 		// The extension does not contribute the `c` language, so the extension is
 		// what gates this command rather than a language ID that may not exist.
 		assert.strictEqual(paletteGate("v.translateWithC2v"), "resourceExtname == .c")
+	})
+
+	it("covers unsaved, diff and v.mod documents with V features", () => {
+		assert.deepStrictEqual(vDocumentSelector, [
+			{ language: "v", scheme: "file" },
+			{ language: "v", scheme: "untitled" },
+			{ language: "v", scheme: "git" },
+			{ language: "v.mod", scheme: "file" },
+			{ language: "v.mod", scheme: "untitled" },
+			{ language: "v.mod", scheme: "git" },
+		])
 	})
 
 	it("shows the notices of V in task output as information", () => {

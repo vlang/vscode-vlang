@@ -162,6 +162,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Debugger fails fast with an actionable per-OS install hint when `gdb` is
   not on PATH, instead of a raw spawn error after the compile step.
 
+### Fixed
+
+- Cover unsaved buffers, diff views and `v.mod` files with V language
+  features. The selector was file-scheme `v` only, so none of them got any.
+
 ## 0.2.1
 
 _23 September 2026_
