@@ -56,5 +56,6 @@ describe("V test skeleton", () => {
 		assert.strictEqual(sourceFileName("foo.v"), undefined)
 		assert.strictEqual(sourceFileName("_test.v"), undefined)
 		assert.strictEqual(sourceFileName("foo_test.vv"), undefined)
+		assert.strictEqual(sourceFileName("no_extension"), undefined)
 	})
 })

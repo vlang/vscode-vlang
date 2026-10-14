@@ -85,6 +85,10 @@ and its test file, generating the test file first when it does not exist yet.
 **V: Fill Struct Fields** fills an empty `Name{}` literal with the fields
 of the `struct Name` declared in the same file.
 
+**V: Toggle Test File** walks the same pairing in both directions: from a source
+file it opens its `_test.v` file, and from a `_test.v` file it opens the source
+beside it. Nothing is created, so a missing file is reported rather than written.
+
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer

@@ -34,6 +34,7 @@ import {
 import { removeDuplicateImports, removeUnusedImports, sortImports } from "./importsCleanup"
 import { parseInstalledList, parseModuleInfo, parseSearchList, vpmArgs } from "./vpm"
 import { sharePlaygroundCode } from "./playground"
+import { sourceFileName, testFileName } from "./testSkeleton"
 
 function activeVDocument(): TextDocument | undefined {
 	const document = window.activeTextEditor?.document
@@ -88,6 +89,32 @@ export async function fmt(): Promise<boolean> {
 	}
 }
 
+/** Open the other half of the `foo.v` / `foo_test.v` pair.
+ *
+ * Creating a test file walked the pairing in one direction only, so a test file
+ * had no way back to the source it tests.
+ */
+export async function toggleTestFile(): Promise<void> {
+	const document = activeVDocument()
+	if (!document) {
+		void window.showErrorMessage("No active V file to toggle a test file for.")
+		return
+	}
+	const target = sourceFileName(document.fileName) ?? testFileName(document.fileName)
+	const targetUri = Uri.file(target)
+	const exists = await workspace.fs.stat(targetUri).then(
+		() => true,
+		() => false,
+	)
+	if (!exists) {
+		void window.showErrorMessage(`Could not find ${target}.`)
+		return
+	}
+	// Not a preview: the next toggle must replace neither this tab nor the one
+	// it came from.
+	await window.showTextDocument(targetUri, { preview: false })
+}
+
 export async function ver(): Promise<string | undefined> {
 	try {
 		const version = (await executeV(["version"])).trim()
@@ -105,6 +132,7 @@ export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand("v.run", run),
 		commands.registerCommand("v.fmt", fmt),
+		commands.registerCommand("v.toggleTestFile", toggleTestFile),
 		commands.registerCommand("v.ver", ver),
 		commands.registerCommand("v.generateJsonDecoder", generateJsonDecoder),
 		commands.registerCommand("v.generateXmlDecoder", generateXmlDecoder),
