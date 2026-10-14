@@ -149,6 +149,11 @@ of the `struct Name` declared in the same file.
 file it opens its `_test.v` file, and from a `_test.v` file it opens the source
 beside it. Nothing is created, so a missing file is reported rather than written.
 
+Every `_test.v` file also appears in the Test Explorer, with one item per
+`test_` function. Running a test from there executes `v test` on its file with
+`VTEST_ONLY_FN` set to the selected function, so the filter the Test Explorer
+already provides is the one V understands.
+
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer

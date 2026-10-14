@@ -105,6 +105,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The status view reports which skills are installed where and which copies have
   fallen behind the compiler's, so a project can tell whether a teammate's V is
   older than its own.
+- Test Explorer integration. The extension now registers a `TestController`, so
+  `_test.v` files appear in the Test Explorer panel with one item per `test_`
+  function. Running a test executes `v test` on its file with `VTEST_ONLY_FN` set
+  to the selected function, and the output is parsed to mark each test passed,
+  failed or errored. Discovery is best-effort: a workspace with no `_test.v`
+  files shows an empty tree rather than failing activation.
 
 ### Fixed
 

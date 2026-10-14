@@ -9,6 +9,7 @@ import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
 import { registerSkillCommands } from "skills"
+import { registerTestExplorer } from "testExplorer"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { installV, isVInstalled } from "./utils"
 import { registerVTasks } from "./vTasks"
@@ -61,6 +62,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// This needs the V compiler, which may be absent or older than the command is,
 	// so it reports its own unavailability rather than failing activation.
 	registerSkillCommands(context)
+	// Show the tests in the Test Explorer. Discovery is best-effort, so a workspace
+	// with no `_test.v` files shows an empty tree rather than failing activation.
+	registerTestExplorer(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {
