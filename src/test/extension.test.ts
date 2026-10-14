@@ -26,6 +26,8 @@ import {
 	instrumentCoverageArgs,
 	parseLcovProfile,
 	parseLcovProfileFile,
+	parseCoverageJsonReport,
+	uncoveredFunctionsFor,
 	pruneStaleCoverageFiles,
 	readFileModificationState,
 	recordFileChange,
@@ -104,6 +106,73 @@ describe("VLS VS Code extension", () => {
 			coverageDirectory,
 			...args,
 		])
+	})
+
+	it("reads the untested functions from a v cover JSON report", () => {
+		const report = JSON.stringify({
+			files: [
+				{
+					file: "/w/app/parser.v",
+					points: 71,
+					covered: 42,
+					percent: 59.15,
+					function_points: 12,
+					function_covered: 8,
+					functions: [
+						{ name: "parse_text", line: 3, covered: true, hits: 12 },
+						{ name: "parse_heading", line: 14, covered: false, hits: 0 },
+						{ name: "parse_list", line: 31, covered: false, hits: 0 },
+					],
+				},
+			],
+			totals: {},
+		})
+
+		const parsed = parseCoverageJsonReport(report)
+		// The line numbers become what an editor addresses.
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/parser.v"), [
+			{ name: "parse_heading", line: 13 },
+			{ name: "parse_list", line: 30 },
+		])
+		// A file the report does not hold has nothing untested.
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/other.v"), [])
+	})
+
+	it("drops a malformed file entry from a v cover JSON report", () => {
+		// The report is written by another process, so one bad entry must not
+		// reach the editor as a phantom file.
+		const report = JSON.stringify({
+			files: [
+				{ file: "/w/app/parser.v", functions: [] },
+				{ functions: [] },
+				{ file: "/w/app/broken.v" },
+			],
+		})
+		const parsed = parseCoverageJsonReport(report)
+		assert.deepStrictEqual(
+			parsed.files.map((file) => file.file),
+			["/w/app/parser.v"],
+		)
+	})
+
+	it("keeps only the files a caller asked for out of a v cover JSON report", () => {
+		const report = JSON.stringify({
+			files: [
+				{ file: "/w/app/parser.v", functions: [] },
+				{ file: "/elsewhere/other.v", functions: [] },
+			],
+		})
+		const parsed = parseCoverageJsonReport(report, (filePath) => filePath.startsWith("/w/app"))
+		assert.deepStrictEqual(
+			parsed.files.map((file) => file.file),
+			["/w/app/parser.v"],
+		)
+	})
+
+	it("survives a v cover JSON report that is not JSON", () => {
+		const parsed = parseCoverageJsonReport("not json at all")
+		assert.deepStrictEqual(parsed.files, [])
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/parser.v"), [])
 	})
 
 	it("quotes Windows command wrapper arguments through the command interpreter", () => {
