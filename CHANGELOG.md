@@ -100,6 +100,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onLanguage:v.mod` joins the activation events, because
   `workspaceContains:**/*.v` cannot match a file named `v.mod` and a window
   that holds only one never activated at all.
+- A `v.vls.command` pointing at a language server that is not this extension's
+  own VLS was refused before the client was ever constructed: only version
+  output beginning with `VLS` was recognised, so a server that names itself
+  (`velvet version 0.8.5+abc1234`) was unidentifiable, and the error offered to
+  install VLS over the command the user had chosen. The identity check now
+  accepts a version line that names its server, and a rejection names the
+  command it ran and the shapes it expected. V: Install or Update VLS is still
+  offered, but only for a server that identified itself as an out-of-date VLS.
 - The `Run Test` lens emitted a command nothing handled, so clicking it did
   nothing, and the branch that listed it in the language server middleware was
   unreachable: a CodeLens command runs on the client and never reaches the

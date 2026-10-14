@@ -157,15 +157,25 @@ export class VlsManager implements vscode.Disposable {
 				vlsOutputChannel.error(message)
 				if (error instanceof UnsupportedVlsError) {
 					this.unsupported = true
-					this.status.command = "v.vls.update"
-					void vscode.window
-						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
-						.then((action) => {
-							if (action === "Install or Update VLS")
-								void vscode.commands.executeCommand("v.vls.update")
-							else if (action === "Show Output") vlsOutputChannel.show()
-						})
-					return
+					// Only a server that named itself VLS can be replaced by the install
+					// command. For any other rejection that command would build VLS in
+					// place of whatever `v.vls.command` points at, so those fall through
+					// to the generic error, which offers the settings instead.
+					if (error.updatable) {
+						this.status.command = "v.vls.update"
+						void vscode.window
+							.showErrorMessage(
+								`VLS: ${message}`,
+								"Install or Update VLS",
+								"Show Output",
+							)
+							.then((action) => {
+								if (action === "Install or Update VLS")
+									void vscode.commands.executeCommand("v.vls.update")
+								else if (action === "Show Output") vlsOutputChannel.show()
+							})
+						return
+					}
 				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
