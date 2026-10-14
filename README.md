@@ -113,7 +113,7 @@ The extension adds commands around that rather than a copy of it:
 - `V: Update V Agent Skills` refreshes the ones that have
 
 Nothing is overwritten silently. `v skills add` refuses to replace an installed
-skill unless it is given `--force`, which the command only does when you picked a
+skill unless `--force` is given, which happens only when you picked a
 skill that is already installed and out of date. `v skills update` holds back a
 skill whose files were edited locally, and reports which one and why.
 
