@@ -85,6 +85,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Turning diagnostics or inlay hints off no longer restarts the language
+  server. The manager restarted it for the feature toggles while `activate`
+  pushes the same two values to the running server as a
+  `didChangeConfiguration` notification, so toggling one stopped and started
+  the server to reach the state the notification had already reached: the
+  workspace index was rebuilt, the crash-recovery budget reset and the status
+  bar flapped. Only the settings that name the process still restart it —
+  `v.vls.command`, `v.vls.args`, `v.executablePath` and their `vls.*` aliases.
+- The language server now serves `v.mod` files and unsaved buffers. A
+  `v.mod` file had highlighting, folding and hover but nothing from the
+  server, and the JSON, XML and CSV decoder commands open what they generate
+  as an untitled document, which had no completion or diagnostics either.
+  `onLanguage:v.mod` joins the activation events, because
+  `workspaceContains:**/*.v` cannot match a file named `v.mod` and a window
+  that holds only one never activated at all.
 - The `Run Test` lens emitted a command nothing handled, so clicking it did
   nothing, and the branch that listed it in the language server middleware was
   unreachable: a CodeLens command runs on the client and never reaches the
