@@ -1,5 +1,6 @@
 import { registerCommands, registerNumberHover, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
+import { createExtensionAPI } from "./extensionAPI"
 import { registerDebugger } from "./debugger"
 import { registerFolding } from "./folding"
 import { registerDocumentFormatting } from "./formatProvider"
@@ -22,6 +23,14 @@ import { ToolManager } from "./toolManager"
  * user has disabled it, and `undefined` is what says so.
  */
 let vlsManager: VlsManager | undefined
+
+/** The API other extensions can use to resolve the V compiler.
+ *
+ * Exported rather than registered, because VS Code makes an extension's exports
+ * available to other extensions through `vscode.extensions.getExtension(...)`.
+ * There is nothing to register and nothing to keep in sync.
+ */
+export const api = createExtensionAPI()
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Register output channels so users can open them even without VLS.

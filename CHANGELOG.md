@@ -111,6 +111,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to the selected function, and the output is parsed to mark each test passed,
   failed or errored. Discovery is best-effort: a workspace with no `_test.v`
   files shows an empty tree rather than failing activation.
+- A public API for other extensions. `vscode.extensions.getExtension('vlanguage.vscode-vlang').exports.resolveV(resource)`
+  returns the absolute path to the `v` binary the extension would use for that
+  resource, so CI tooling and formatters can stop re-implementing the resolution.
+  `golang.go` exports the same kind of surface.
 
 ### Fixed
 
