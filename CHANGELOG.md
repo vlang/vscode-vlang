@@ -94,6 +94,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so an agent can look a signature up instead of guessing one.
 - `v.mcp.enable`, `v.mcp.readOnly` and `v.mcp.root` control the server. It starts
   read-only by default, which registers no tool that writes a file.
+- Commands for the agent skills the compiler ships: `V: Install V Agent Skills`,
+  `V: Show V Agent Skill Status` and `V: Update V Agent Skills`. The skills
+  describe the rules that make V code which looks right fail to compile, the
+  build and test loop, testing, concurrency, the memory model, and how to drive
+  `v mcp`.
+- Skills are installed into `.agents/skills`, which VS Code, Claude Code, opencode
+  and Copilot all read, so one install improves every agent. A project install is
+  shared with the team; a user install applies to every project on the machine.
+- The status view reports which skills are installed where and which copies have
+  fallen behind the compiler's, so a project can tell whether a teammate's V is
+  older than its own.
 
 ### Fixed
 
