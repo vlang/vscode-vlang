@@ -6,14 +6,17 @@ import * as vscode from "vscode"
 import {
 	canonicalFilePath,
 	CoverageProfile,
+	CoverageJsonFile,
 	fileModificationStateMatches,
 	FileModificationState,
+	parseCoverageJsonReport,
 	parseLcovProfileFile,
 	pruneStaleCoverageFiles,
 	readFileModificationState,
 	recordFileChange,
 	resetCanonicalPaths,
 	seedDirtyFileInvalidations,
+	UncoveredFunction,
 	visibleCoverageLines,
 } from "./coverageProfile"
 import { processLaunchCommand } from "./processExecution"
@@ -85,6 +88,34 @@ function runCoverageConverter(
 	})
 }
 
+function runUncoveredFunctions(
+	command: string,
+	coverageDirectory: string,
+	reportPath: string,
+	workingDirectory: string,
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const launch = processLaunchCommand(command, [
+			"cover",
+			coverageDirectory,
+			"--json",
+			reportPath,
+			"-P",
+			"false",
+		])
+		execFile(
+			launch.command,
+			launch.args,
+			{
+				cwd: workingDirectory,
+				maxBuffer: 4 * 1024 * 1024,
+				windowsVerbatimArguments: launch.windowsVerbatimArguments,
+			},
+			(error) => (error ? reject(new Error(error.message, { cause: error })) : resolve()),
+		)
+	})
+}
+
 export class CoverageDecorationController implements vscode.Disposable {
 	private readonly coveredDecoration = vscode.window.createTextEditorDecorationType({
 		isWholeLine: true,
@@ -104,6 +135,9 @@ export class CoverageDecorationController implements vscode.Disposable {
 	private readonly disposables: vscode.Disposable[]
 	private profileWatcher: vscode.Disposable | undefined
 	private profile: CoverageProfile = new Map()
+	private uncovered: CoverageJsonFile | undefined
+	private coverageDirectory: string | undefined
+	private coverageRoot: string | undefined
 	private nextGeneration = 0
 	private currentGeneration = 0
 
@@ -126,7 +160,15 @@ export class CoverageDecorationController implements vscode.Disposable {
 				}
 				const filePath = canonicalFilePath(event.document.uri.fsPath)
 				this.changedFiles.set(filePath, this.currentGeneration)
-				if (this.profile.delete(filePath)) {
+				// Editing a file makes both its line coverage and its list of
+				// untested functions unreliable, and one action is offered from the
+				// other, so both go together.
+				let touched = this.profile.delete(filePath)
+				if (this.uncovered?.file === filePath) {
+					this.uncovered = undefined
+					touched = true
+				}
+				if (touched) {
 					this.profileFileStates.delete(filePath)
 					this.refreshVisibleEditors()
 					this.updateStatus()
@@ -222,6 +264,12 @@ export class CoverageDecorationController implements vscode.Disposable {
 				}
 			}
 			this.profile = parsed
+			// The untested functions are read while the coverage directory still
+			// exists, because a code action that writes tests needs both the
+			// directory and what was found in it.
+			await this.readUncovered(run, changedDuringRun)
+			this.coverageDirectory = run.directory
+			this.coverageRoot = run.root
 			this.profileFileStates.clear()
 			for (const filePath of [...this.profile.keys()]) {
 				const state = readFileModificationState(filePath)
@@ -242,14 +290,45 @@ export class CoverageDecorationController implements vscode.Disposable {
 			}
 		} finally {
 			this.disposeRunWatcher(run)
-			this.removeRunDirectory(run)
+			// The directory is kept while it is the current one, so that a code
+			// action can still ask `v cover` which functions are untested. Superseded
+			// and stale directories are removed below.
+			this.removeSupersededDirectories(run)
 		}
+	}
+
+	/** The directory the last coverage run recorded into, if it is still current. */
+	coverageRunDirectory(): string | undefined {
+		return this.coverageDirectory
+	}
+
+	/** The project root the last coverage run recorded for. */
+	coverageRunRoot(): string | undefined {
+		return this.coverageRoot
+	}
+
+	/** The functions of `filePath` that no run entered.
+	 *
+	 * `filePath` is the canonical path the report's own entries use, so a caller
+	 * with an editor URI must canonicalize it first.
+	 */
+	uncoveredFunctions(filePath: string): UncoveredFunction[] {
+		if (!this.uncovered || this.uncovered.file !== filePath) {
+			return []
+		}
+		return this.uncovered.functions
+			.filter((fn) => !fn.covered)
+			.map((fn) => ({ name: fn.name, line: fn.line - 1 }))
+			.sort((left, right) => left.line - right.line)
 	}
 
 	clear(): void {
 		this.currentGeneration = ++this.nextGeneration
 		this.changedFiles.clear()
 		this.clearDecorations()
+		this.uncovered = undefined
+		this.coverageDirectory = undefined
+		this.coverageRoot = undefined
 	}
 
 	dispose(): void {
@@ -271,6 +350,40 @@ export class CoverageDecorationController implements vscode.Disposable {
 			} catch {
 				// The system can clean up an abandoned temporary coverage directory.
 			}
+		}
+	}
+
+	private removeSupersededDirectories(current: CoverageRun): void {
+		for (const directory of this.allocatedDirectories) {
+			if (directory === current.directory) {
+				continue
+			}
+			if (!this.coverageDirectory || directory !== this.coverageDirectory) {
+				this.allocatedDirectories.delete(directory)
+				try {
+					fs.rmSync(directory, { recursive: true, force: true })
+				} catch {
+					// The system can clean up an abandoned temporary coverage directory.
+				}
+			}
+		}
+	}
+
+	private async readUncovered(run: CoverageRun, changedDuringRun: Set<string>): Promise<void> {
+		const reportPath = path.join(run.directory, "coverage.json")
+		try {
+			await runUncoveredFunctions(run.command, run.directory, reportPath, run.root)
+			const content = await fs.promises.readFile(reportPath, "utf8")
+			const report = parseCoverageJsonReport(
+				content,
+				(filePath) => filePath.endsWith(".v") && isPathInside(filePath, run.root),
+			)
+			const entry = report.files.find((file) => !changedDuringRun.has(file.file))
+			this.uncovered = entry
+		} catch {
+			// An untested-functions report is an extra, not the reason a coverage
+			// run was performed. The line decorations stand on their own.
+			this.uncovered = undefined
 		}
 	}
 
@@ -319,6 +432,11 @@ export class CoverageDecorationController implements vscode.Disposable {
 			const filePath = canonicalFilePath(uri.fsPath)
 			if (this.profile.delete(filePath)) {
 				this.profileFileStates.delete(filePath)
+			}
+			if (this.uncovered?.file === filePath) {
+				this.uncovered = undefined
+			}
+			if (!this.profile.has(filePath)) {
 				this.refreshVisibleEditors()
 				this.updateStatus()
 			}
