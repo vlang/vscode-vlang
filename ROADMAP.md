@@ -31,6 +31,8 @@ compare area by area, and what was deliberately not copied.
 - **Docs index.** The content exists (README, troubleshooting guides,
   this file, the comparison); nothing points at it. A short `docs`
   index mirroring the Go wiki spine.
+- **WASM-VLS goal and route.** `docs/WASM-VLS-ROADMAP.md` records the
+  zero-install / web / WASM goal, the options, and the gated phases.
 
 ## Done
 
