@@ -17,10 +17,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        id: uses_checkout_v5
       - uses: actions/setup-node@v5
+        id: uses_setup_node_v5
+        if: ${{ !cancelled() && steps.uses_checkout_v5.outcome == 'success' }}
         with:
           node-version: "24"
       - name: Install dependencies
+        id: install_dependencies
+        if: ${{ !cancelled() && steps.uses_setup_node_v5.outcome == 'success' }}
         run: npm ci
       - name: Check readme linting
+        id: check_readme_linting
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
         run: npm run lint:md

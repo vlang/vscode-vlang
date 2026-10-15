@@ -21,25 +21,38 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        id: uses_checkout_v5
       - uses: actions/setup-node@v5
+        id: uses_setup_node_v5
+        if: ${{ !cancelled() && steps.uses_checkout_v5.outcome == 'success' }}
         with:
           node-version: "24"
           # The lock is the cache key, so every job that installs the same
           # dependencies shares one entry.
           cache: npm
       - name: Validate GitHub Actions workflows
+        id: validate_github_actions_workflows
+        if: ${{ !cancelled() && steps.uses_setup_node_v5.outcome == 'success' }}
         # The list is explicit, not a glob: this job now runs on Windows too, and a
         # glob is not expanded there, so `actionlint .github/workflows/*.yml` would
         # ask it to read a filename containing an asterisk. A new workflow file has
         # to be added here.
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml .github/workflows/docs_ci.yml
       - name: Install dependencies
+        id: install_dependencies
+        if: ${{ !cancelled() && steps.validate_github_actions_workflows.outcome == 'success' }}
         run: npm ci
       - name: Run tests
+        id: run_tests
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
         run: npm test
       - name: Build
+        id: build
+        if: ${{ !cancelled() && steps.run_tests.outcome == 'success' }}
         run: npm run build
       - name: VSCE package
+        id: vsce_package
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: npm run package
 
   code-style:
@@ -47,13 +60,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        id: uses_checkout_v5
       - uses: actions/setup-node@v5
+        id: uses_setup_node_v5
+        if: ${{ !cancelled() && steps.uses_checkout_v5.outcome == 'success' }}
         with:
           node-version: "24"
           cache: npm
       - name: Install dependencies
+        id: install_dependencies
+        if: ${{ !cancelled() && steps.uses_setup_node_v5.outcome == 'success' }}
         run: npm ci
       - name: Check formatting and Markdown
+        id: check_formatting_and_markdown
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
         run: npm run fmt:check && npm run lint:md
 
   grammar-tests:
@@ -61,13 +81,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        id: uses_checkout_v5
       - uses: actions/setup-node@v5
+        id: uses_setup_node_v5
+        if: ${{ !cancelled() && steps.uses_checkout_v5.outcome == 'success' }}
         with:
           node-version: "24"
           cache: npm
       - name: Install dependencies
+        id: install_dependencies
+        if: ${{ !cancelled() && steps.uses_setup_node_v5.outcome == 'success' }}
         run: npm ci
       - name: Run grammar tests
+        id: run_grammar_tests
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
         run: npm run test:grammar
 
   extension-host:
@@ -81,13 +108,19 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        id: uses_checkout_v5
       - uses: actions/setup-node@v5
+        id: uses_setup_node_v5
+        if: ${{ !cancelled() && steps.uses_checkout_v5.outcome == 'success' }}
         with:
           node-version: "24"
           cache: npm
       - name: Install dependencies
+        id: install_dependencies
+        if: ${{ !cancelled() && steps.uses_setup_node_v5.outcome == 'success' }}
         run: npm ci
       - name: Toolchain cache
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
         id: v-toolchain
         uses: actions/cache@v4
         with:
@@ -140,6 +173,7 @@ jobs:
           cd "$RUNNER_TEMP/vls"
           "$RUNNER_TEMP/v/v" -new-compiler .
       - name: Run VS Code integration tests
+        id: run_vs_code_integration_tests
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
           V_BINARY: ${{ runner.temp }}/v/v
