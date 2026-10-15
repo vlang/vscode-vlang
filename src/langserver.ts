@@ -75,8 +75,6 @@ export class VlsManager implements vscode.Disposable {
 		this.status.command = "v.vls.openOutput"
 		this.subscriptions = [
 			this.status,
-			vscode.commands.registerCommand("v.vls.restart", () => this.restart()),
-			vscode.commands.registerCommand("v.vls.openOutput", () => vlsOutputChannel.show()),
 			vscode.window.onDidChangeWindowState((state) => {
 				if (state.focused) this.checkReplacedTools()
 			}),
