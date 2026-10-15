@@ -295,7 +295,7 @@
 		"@typescript-eslint/eslint-plugin": "^8.46",
 		"@typescript-eslint/parser": "^8.46",
 		"@vscode/test-electron": "^3.1.0",
-		"@vscode/vsce": "^3.6.2",
+		"@vscode/vsce": "^4.0.0",
 		"esbuild": "^0.25.10",
 		"eslint": "^9.37.0",
 		"globals": "^15.9.0",
