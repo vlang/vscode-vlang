@@ -251,6 +251,7 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand("v.organizeImports", organizeImports),
 		commands.registerCommand("v.generateCOutput", generateCOutput),
 		commands.registerCommand("v.translateWithC2v", translateWithC2v),
+		commands.registerCommand("v.sharePlayground", sharePlayground),
 	)
 }
 
