@@ -49,6 +49,9 @@ describe("V and C interop", () => {
 			assert.strictEqual(c2vExecutable(temporaryRoot), undefined)
 
 			fs.writeFileSync(path.join(temporaryRoot, "c2v", executableName), "")
+			// The executable bit is what `isExecutable` checks on POSIX:
+			// without it the file is data, not a binary.
+			fs.chmodSync(path.join(temporaryRoot, "c2v", executableName), 0o755)
 			const expected = path.join(temporaryRoot, "c2v", executableName)
 			assert.strictEqual(c2vExecutable(temporaryRoot), expected)
 

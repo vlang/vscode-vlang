@@ -215,7 +215,7 @@ describe("tool revision checks", () => {
 				)
 				assert.deepEqual(
 					await readVlsIdentity(executable, undefined, { args: ["--port", "12345"] }),
-					{ version: "0.0.3" },
+					{ name: "VLS", version: "0.0.3" },
 				)
 			} finally {
 				fs.rmSync(directory, { recursive: true, force: true })

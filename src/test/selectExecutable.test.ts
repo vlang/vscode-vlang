@@ -7,8 +7,10 @@ import { browseEntryLabel, executableCandidates } from "../selectExecutable"
  * de-duplication and the empty case are all testable as data.
  */
 describe("executable candidates", () => {
-	const onPath = path.join("C:", "V", "v.exe")
-	const managed = path.join("C:", "Users", "me", "v-1.2.3", "v.exe")
+	// Built from the filesystem root so `path.isAbsolute` holds on every
+	// platform: a hardcoded `C:` drive is only absolute on Windows.
+	const onPath = path.join(path.parse(process.cwd()).root, "V", "v.exe")
+	const managed = path.join(path.parse(process.cwd()).root, "Users", "me", "v-1.2.3", "v.exe")
 
 	it("puts the current setting first", () => {
 		const candidates = executableCandidates({ configured: onPath, onPath, managed })
