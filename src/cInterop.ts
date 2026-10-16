@@ -46,6 +46,46 @@ function defaultVModulesDirectory(): string {
 	return process.env.VMODULES || path.join(os.homedir(), ".vmodules")
 }
 
+/** The directory c2v lives in once installed: the `c2v` module directory. */
+export function c2vModuleDirectory(vmodulesDirectory = defaultVModulesDirectory()): string {
+	return path.join(vmodulesDirectory, "c2v")
+}
+
+/** The exact arguments that fetch c2v: what V's own C2V CI runs. */
+export function c2vInstallArguments(): string[] {
+	return ["install", "--git", "https://github.com/vlang/c2v"]
+}
+
+/** How to build the fetched c2v: the exact command from `cmd/tools/translate.v`. */
+export interface C2vBuildCommand {
+	args: string[]
+	cwd: string
+}
+
+export function c2vBuildCommand(vmodulesDirectory = defaultVModulesDirectory()): C2vBuildCommand {
+	const moduleDirectory = c2vModuleDirectory(vmodulesDirectory)
+	const executableName = process.platform === "win32" ? "c2v.exe" : "c2v"
+	return {
+		args: [
+			"-o",
+			path.join(moduleDirectory, executableName),
+			"-keepc",
+			"-g",
+			"-experimental",
+			".",
+		],
+		cwd: moduleDirectory,
+	}
+}
+
+/** The install offer on the not-installed error. */
+export const c2vInstallLabel = "Install c2v"
+
+/** A clone plus a C++-heavy build exceeds the 30-second formatter budget;
+ * `translate.v` itself sets no timeout at all.
+ */
+export const c2vInstallTimeoutMs = 600_000
+
 /** The c2v executable, or `undefined` when it is not built.
  *
  * `v install --git https://github.com/vlang/c2v` only clones the source into
@@ -55,7 +95,7 @@ function defaultVModulesDirectory(): string {
  */
 export function c2vExecutable(vmodulesDirectory = defaultVModulesDirectory()): string | undefined {
 	const executableName = process.platform === "win32" ? "c2v.exe" : "c2v"
-	const executable = path.join(vmodulesDirectory, "c2v", executableName)
+	const executable = path.join(c2vModuleDirectory(vmodulesDirectory), executableName)
 	return isExecutable(executable) ? executable : undefined
 }
 

@@ -1,4 +1,5 @@
 import { execFile } from "child_process"
+import * as fs from "fs"
 import * as path from "path"
 import vscode, {
 	commands,
@@ -12,7 +13,12 @@ import vscode, {
 	WorkspaceEdit,
 } from "vscode"
 import {
+	c2vBuildCommand,
 	c2vExecutable,
+	c2vInstallArguments,
+	c2vInstallLabel,
+	c2vInstallTimeoutMs,
+	c2vModuleDirectory,
 	c2vNotInstalledMessage,
 	cOutputFileName,
 	isCFileName,
@@ -201,9 +207,8 @@ export async function translateWithC2v(): Promise<void> {
 		void window.showErrorMessage("No active C file to translate to V.")
 		return
 	}
-	const binary = c2vExecutable()
+	const binary = c2vExecutable() ?? (await offerC2vInstall())
 	if (!binary) {
-		void window.showErrorMessage(c2vNotInstalledMessage)
 		return
 	}
 	try {
@@ -234,6 +239,47 @@ export async function translateWithC2v(): Promise<void> {
 		outputChannel.error(String(error))
 		void window.showErrorMessage(`c2v translation failed: ${String(error)}`)
 	}
+}
+
+/** Offer to fetch and build c2v, then hand back the binary it produced. */
+async function offerC2vInstall(): Promise<string | undefined> {
+	const choice = await window.showErrorMessage(c2vNotInstalledMessage, c2vInstallLabel)
+	if (choice !== c2vInstallLabel) {
+		return undefined
+	}
+	return installC2v()
+}
+
+async function installC2v(): Promise<string | undefined> {
+	try {
+		await window.withProgress(
+			{ location: vscode.ProgressLocation.Notification, title: "Installing c2v" },
+			async () => {
+				// `v install` on an already-cloned module is not an update, so
+				// only fetch when the directory is absent, as `translate.v` does.
+				if (!fs.existsSync(c2vModuleDirectory())) {
+					await executeV(c2vInstallArguments(), undefined, {
+						timeoutMs: c2vInstallTimeoutMs,
+					})
+				}
+				const build = c2vBuildCommand()
+				await executeV(build.args, undefined, {
+					cwd: build.cwd,
+					timeoutMs: c2vInstallTimeoutMs,
+				})
+			},
+		)
+	} catch (error) {
+		outputChannel.error(String(error))
+		void window.showErrorMessage(`c2v installation failed: ${String(error)}`)
+		return undefined
+	}
+	const binary = c2vExecutable()
+	if (!binary) {
+		void window.showErrorMessage(c2vNotInstalledMessage)
+		return undefined
+	}
+	return binary
 }
 
 export function registerCommands(context: ExtensionContext): void {

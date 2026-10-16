@@ -4,7 +4,10 @@ import * as os from "os"
 import * as path from "path"
 import { describe, it } from "node:test"
 import {
+	c2vBuildCommand,
 	c2vExecutable,
+	c2vInstallArguments,
+	c2vModuleDirectory,
 	c2vNotInstalledMessage,
 	cOutputFileName,
 	isCFileName,
@@ -38,6 +41,35 @@ describe("V and C interop", () => {
 		// A message that does not name the commands leaves the user to go and find them.
 		assert.ok(c2vNotInstalledMessage.includes("v install --git https://github.com/vlang/c2v"))
 		assert.ok(c2vNotInstalledMessage.includes("v -g ~/.vmodules/c2v/"))
+	})
+
+	it("derives the module directory c2v is cloned into", () => {
+		assert.strictEqual(c2vModuleDirectory("/w/modules"), path.join("/w/modules", "c2v"))
+	})
+
+	it("installs c2v with the command V's own CI runs", () => {
+		// Anything else installs a different thing than `cmd/tools/translate.v` builds.
+		assert.deepStrictEqual(c2vInstallArguments(), [
+			"install",
+			"--git",
+			"https://github.com/vlang/c2v",
+		])
+	})
+
+	it("builds c2v with the exact command from translate.v", () => {
+		const executableName = process.platform === "win32" ? "c2v.exe" : "c2v"
+		const moduleDirectory = path.join("/w/modules", "c2v")
+		assert.deepStrictEqual(c2vBuildCommand("/w/modules"), {
+			args: [
+				"-o",
+				path.join(moduleDirectory, executableName),
+				"-keepc",
+				"-g",
+				"-experimental",
+				".",
+			],
+			cwd: moduleDirectory,
+		})
 	})
 
 	it("finds a built c2v through VMODULES or an explicit directory", () => {
