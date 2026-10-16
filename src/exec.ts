@@ -12,6 +12,9 @@ const executeFile = promisify(execFile)
 interface VExecutionOptions {
 	input?: string
 	cwd?: string
+	// 30 seconds is the formatter budget: a formatter rejects input quickly or
+	// not at all. Longer operations (clone, build) pass their own.
+	timeoutMs?: number
 }
 
 /** Execute the configured compiler without interpolating source paths into a shell. */
@@ -32,7 +35,7 @@ export async function executeV(
 			folder?.uri.fsPath ??
 			(uri?.scheme === "file" ? path.dirname(uri.fsPath) : undefined),
 		windowsVerbatimArguments: launch.windowsVerbatimArguments,
-		timeout: 30_000,
+		timeout: options.timeoutMs ?? 30_000,
 		maxBuffer: 4 * 1024 * 1024,
 	})
 	// A formatter can reject input before consuming it. Its exit status reports the error.

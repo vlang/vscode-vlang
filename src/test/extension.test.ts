@@ -18,7 +18,8 @@ import {
 	taskWorkingDirectory,
 	workspaceTaskSpec,
 } from "../taskSpec"
-import { serverCommand } from "../vCommand"
+import { configuredCommand, expandConfiguredPath, serverCommand } from "../vCommand"
+import { vDocumentSelector } from "../documentSelector"
 import {
 	canonicalFilePath,
 	coverageArgsForRun,
@@ -26,6 +27,8 @@ import {
 	instrumentCoverageArgs,
 	parseLcovProfile,
 	parseLcovProfileFile,
+	parseCoverageJsonReport,
+	uncoveredFunctionsFor,
 	pruneStaleCoverageFiles,
 	readFileModificationState,
 	recordFileChange,
@@ -38,7 +41,27 @@ import {
 	processTreeKillCommand,
 } from "../processExecution"
 
+const repositoryRoot = path.resolve(__dirname, "..", "..")
+
+function readManifest(): Record<string, any> {
+	return JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"))
+}
+
 describe("VLS VS Code extension", () => {
+	it("exports an API other extensions can resolve the compiler through", () => {
+		// `golang.go` exports a small surface so other extensions can resolve the
+		// toolchain path. V has the same need, and the API is a thin wrapper over
+		// the resolution the tasks already do, so the export is what matters.
+		const source = fs.readFileSync(path.join(repositoryRoot, "src", "extension.ts"), "utf8")
+		assert.ok(
+			source.includes("export const api = createExtensionAPI()"),
+			"extension.ts does not export the API",
+		)
+		const api = fs.readFileSync(path.join(repositoryRoot, "src", "extensionAPI.ts"), "utf8")
+		assert.ok(api.includes("resolveV"), "the API does not expose resolveV")
+		assert.ok(api.includes("version: 1"), "the API does not declare its version")
+	})
+
 	it("contributes build, run, and test commands and tasks", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
 		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
@@ -48,6 +71,26 @@ describe("VLS VS Code extension", () => {
 		for (const command of ["vls.build", "vls.run", "vls.test", "vls.coverage.clear"]) {
 			assert.ok(commands.includes(command))
 		}
+		for (const command of [
+			"v.run",
+			"v.fmt",
+			"v.prod",
+			"v.generateTestFile",
+			"v.toggleTestFile",
+			"v.fillStruct",
+			"v.sharePlayground",
+			"v.debugMain",
+			"v.generateJsonDecoder",
+			"v.generateXmlDecoder",
+			"v.generateCsvDecoder",
+			"v.convertEncoding",
+			"v.organizeImports",
+			"v.vpmSearch",
+			"v.vpmList",
+			"v.ver",
+		]) {
+			assert.ok(commands.includes(command), `missing manifest command ${command}`)
+		}
 
 		const taskDefinition = manifest.contributes.taskDefinitions[0]
 		assert.strictEqual(taskDefinition.type, "v")
@@ -56,12 +99,91 @@ describe("VLS VS Code extension", () => {
 			"run",
 			"test",
 			"prod",
+			"check",
+			"vet",
+			"fmt",
 		])
+		// Every enum entry needs a description, or a user picking one from a task
+		// picker sees a bare word with no idea what it runs.
+		assert.strictEqual(
+			taskDefinition.properties.action.enumDescriptions.length,
+			taskDefinition.properties.action.enum.length,
+		)
 		assert.ok(manifest.contributes.configuration.properties["v.executablePath"])
 		assert.strictEqual(
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
 			true,
 		)
+	})
+
+	it("gates the interop commands to the file they can translate", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const commands = manifest.contributes.commands.map((entry: { command: string }) => {
+			return entry.command
+		})
+		assert.ok(commands.includes("v.generateCOutput"))
+		assert.ok(commands.includes("v.translateWithC2v"))
+
+		const paletteGate = (command: string): string | undefined => {
+			return manifest.contributes.menus.commandPalette.find(
+				(entry: { command: string }) => entry.command === command,
+			)?.when
+		}
+		assert.strictEqual(paletteGate("v.generateCOutput"), "editorLangId == v")
+		// The extension does not contribute the `c` language, so the extension is
+		// what gates this command rather than a language ID that may not exist.
+		assert.strictEqual(paletteGate("v.translateWithC2v"), "resourceExtname == .c")
+	})
+
+	it("covers unsaved, diff and v.mod documents with V features", () => {
+		assert.deepStrictEqual(vDocumentSelector, [
+			{ language: "v", scheme: "file" },
+			{ language: "v", scheme: "untitled" },
+			{ language: "v", scheme: "git" },
+			{ language: "v.mod", scheme: "file" },
+			{ language: "v.mod", scheme: "untitled" },
+			{ language: "v.mod", scheme: "git" },
+		])
+	})
+
+	it("ships a walkthrough whose steps point at files that exist", () => {
+		const manifest = readManifest()
+		const walkthroughs = manifest.contributes.walkthroughs
+		assert.ok(walkthroughs.length > 0, "no walkthrough is contributed")
+		const declared = new Set<string>(
+			manifest.contributes.commands.map((entry: { command: string }) => entry.command),
+		)
+
+		for (const walkthrough of walkthroughs) {
+			assert.ok(walkthrough.title, `${walkthrough.id} has no title`)
+			assert.ok(walkthrough.steps.length > 0, `${walkthrough.id} has no steps`)
+			for (const step of walkthrough.steps) {
+				assert.ok(step.title, `${walkthrough.id}.${step.id} has no title`)
+				assert.ok(step.description, `${walkthrough.id}.${step.id} has no description`)
+				// A step whose media file is missing renders as a broken card, so the
+				// path is checked against the repository rather than trusted.
+				const media = step.media?.markdown
+				assert.ok(media, `${walkthrough.id}.${step.id} has no media`)
+				assert.ok(
+					fs.existsSync(path.join(repositoryRoot, media)),
+					`${walkthrough.id}.${step.id} points at a missing file: ${media}`,
+				)
+				// A completion event naming an undeclared command never fires, which
+				// leaves the step permanently incomplete.
+				for (const event of step.completionEvents ?? []) {
+					const command = event.startsWith("onCommand:")
+						? event.slice("onCommand:".length)
+						: ""
+					if (command) {
+						assert.ok(
+							declared.has(command),
+							`${walkthrough.id}.${step.id} completes on undeclared command ${command}`,
+						)
+					}
+				}
+			}
+		}
 	})
 
 	it("shows the notices of V in task output as information", () => {
@@ -104,6 +226,73 @@ describe("VLS VS Code extension", () => {
 			coverageDirectory,
 			...args,
 		])
+	})
+
+	it("reads the untested functions from a v cover JSON report", () => {
+		const report = JSON.stringify({
+			files: [
+				{
+					file: "/w/app/parser.v",
+					points: 71,
+					covered: 42,
+					percent: 59.15,
+					function_points: 12,
+					function_covered: 8,
+					functions: [
+						{ name: "parse_text", line: 3, covered: true, hits: 12 },
+						{ name: "parse_heading", line: 14, covered: false, hits: 0 },
+						{ name: "parse_list", line: 31, covered: false, hits: 0 },
+					],
+				},
+			],
+			totals: {},
+		})
+
+		const parsed = parseCoverageJsonReport(report)
+		// The line numbers become what an editor addresses.
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/parser.v"), [
+			{ name: "parse_heading", line: 13 },
+			{ name: "parse_list", line: 30 },
+		])
+		// A file the report does not hold has nothing untested.
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/other.v"), [])
+	})
+
+	it("drops a malformed file entry from a v cover JSON report", () => {
+		// The report is written by another process, so one bad entry must not
+		// reach the editor as a phantom file.
+		const report = JSON.stringify({
+			files: [
+				{ file: "/w/app/parser.v", functions: [] },
+				{ functions: [] },
+				{ file: "/w/app/broken.v" },
+			],
+		})
+		const parsed = parseCoverageJsonReport(report)
+		assert.deepStrictEqual(
+			parsed.files.map((file) => file.file),
+			["/w/app/parser.v"],
+		)
+	})
+
+	it("keeps only the files a caller asked for out of a v cover JSON report", () => {
+		const report = JSON.stringify({
+			files: [
+				{ file: "/w/app/parser.v", functions: [] },
+				{ file: "/elsewhere/other.v", functions: [] },
+			],
+		})
+		const parsed = parseCoverageJsonReport(report, (filePath) => filePath.startsWith("/w/app"))
+		assert.deepStrictEqual(
+			parsed.files.map((file) => file.file),
+			["/w/app/parser.v"],
+		)
+	})
+
+	it("survives a v cover JSON report that is not JSON", () => {
+		const parsed = parseCoverageJsonReport("not json at all")
+		assert.deepStrictEqual(parsed.files, [])
+		assert.deepStrictEqual(uncoveredFunctionsFor(parsed, "/w/app/parser.v"), [])
 	})
 
 	it("quotes Windows command wrapper arguments through the command interpreter", () => {
@@ -358,6 +547,24 @@ describe("VLS VS Code extension", () => {
 			args: ["-nocolor", "test", "."],
 			name: "Test",
 		})
+		// The three gates the rest of a change hangs on. `v -check` type-checks
+		// without producing a binary, `v vet -W` treats warnings as errors, and
+		// `v fmt -verify` reports whether the formatter would change anything.
+		assert.deepStrictEqual(workspaceTaskSpec("check"), {
+			action: "check",
+			args: ["-nocolor", "-check", "."],
+			name: "Check",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("vet"), {
+			action: "vet",
+			args: ["-nocolor", "vet", "-W", "."],
+			name: "Vet",
+		})
+		assert.deepStrictEqual(workspaceTaskSpec("fmt"), {
+			action: "fmt",
+			args: ["-nocolor", "fmt", "-verify", "."],
+			name: "Format Check",
+		})
 	})
 
 	it("builds optimized modules with literal shell characters and protects option-like paths", () => {
@@ -500,5 +707,42 @@ describe("VLS VS Code extension", () => {
 		)
 		const missing = path.join("/missing", "custom-v")
 		assert.strictEqual(serverCommand(missing, "/workspace"), missing)
+	})
+
+	it("expands ~ in the configured VLS server command", () => {
+		// vlang/vls#484: `v.vls.command` set to `~/bin/vls` must resolve
+		// against the home directory. `langserver.ts` resolves the setting
+		// through `resolvedCommand` -> `configuredCommand`, so pinning the
+		// expansion here pins the server path too.
+		const home = os.homedir()
+		assert.strictEqual(
+			expandConfiguredPath(path.join("~", "bin", "vls")),
+			path.join(home, "bin", "vls"),
+		)
+		assert.strictEqual(
+			configuredCommand(path.join("~", "bin", "vls"), "/workspace"),
+			path.join(home, "bin", "vls"),
+		)
+	})
+
+	it("declares deprecated vls.* aliases for migrated settings", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const properties = manifest.contributes.configuration.properties
+		const aliases: Array<[string, string]> = [
+			["vls.command", "v.vls.command"],
+			["vls.args", "v.vls.args"],
+			["vls.vCommand", "v.executablePath"],
+			["vls.inlayHints.enabled", "v.vls.inlayHints.enabled"],
+			["vls.diagnostics.enabled", "v.vls.diagnostics"],
+			["vls.coverage.enabled", "v.vls.coverage.enabled"],
+		]
+		for (const [alias, replacement] of aliases) {
+			assert.ok(properties[alias], `missing declaration for ${alias}`)
+			assert.ok(
+				properties[alias].markdownDeprecationMessage?.includes(replacement),
+				`${alias} must name ${replacement}`,
+			)
+		}
 	})
 })
