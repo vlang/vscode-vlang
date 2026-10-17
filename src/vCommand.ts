@@ -24,8 +24,38 @@ function executableNames(bin: string): string[] {
 	return [bin, ...extensions.map((extension) => `${bin}${extension.toLowerCase()}`)]
 }
 
+/** A PATH hit, memoised by the PATH it was found in.
+ *
+ * The lookup stats every PATH directory against every extension, and the same
+ * binaries are resolved again for every task-list refresh and every server
+ * start. Keying on PATH itself means a changed PATH cannot return a stale hit.
+ *
+ * Only hits are kept. A miss is cached nowhere on purpose: it is the case where
+ * the answer changes — a tool the user installs while the session is running has
+ * to be found on the next call, not after a restart — and a miss is exactly what
+ * the next call would otherwise have to pay for again.
+ */
+const pathLookupCache = new Map<string, string>()
+const pathLookupCacheLimit = 512
+
 export function findInPath(bin: string): string | undefined {
 	const envPath = process.env.PATH || ""
+	const cacheKey = `${envPath}\n${bin}`
+	const cached = pathLookupCache.get(cacheKey)
+	if (cached !== undefined) {
+		return cached
+	}
+	const found = findInPathUncached(bin, envPath)
+	if (found !== undefined) {
+		if (pathLookupCache.size >= pathLookupCacheLimit) {
+			pathLookupCache.clear()
+		}
+		pathLookupCache.set(cacheKey, found)
+	}
+	return found
+}
+
+function findInPathUncached(bin: string, envPath: string): string | undefined {
 	for (const rawDirectory of envPath.split(path.delimiter)) {
 		const directory = rawDirectory.replace(/^"|"$/g, "")
 		if (!directory) {
@@ -39,6 +69,11 @@ export function findInPath(bin: string): string | undefined {
 		}
 	}
 	return undefined
+}
+
+/** Drop the PATH memo, so the next lookup goes back to the filesystem. */
+export function resetPathLookupCache(): void {
+	pathLookupCache.clear()
 }
 
 export function expandConfiguredPath(value: string, workspaceFolder?: string): string {
