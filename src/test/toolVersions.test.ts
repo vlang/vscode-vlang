@@ -66,7 +66,7 @@ describe("tool revision checks", () => {
 			"master",
 			"9007199254740992.0.0",
 		]) {
-			assert.equal(isSupportedVlsVersion(version), false, version)
+			assert.equal(isSupportedVlsVersion(version), false, `must reject ${String(version)}`)
 		}
 	})
 
