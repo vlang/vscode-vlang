@@ -5,6 +5,7 @@ import * as vscode from "vscode"
 import { runFormattingRegressionTests } from "./formatting.integration"
 import { runIssue523Checks } from "./issue523.integration"
 import {
+	assertEveryInitializedVlsConfigured,
 	assertVlsStartupConfiguration,
 	currentVlsSettings,
 	type ServerEvent,
@@ -607,6 +608,6 @@ export async function run(): Promise<void> {
 		"VLS configuration restored after formatting checks",
 	)
 	await assertVlsReady(restored.pid, main)
-	assertVlsStartupConfiguration(serverEvents())
-	console.log("VLS configuration was sent once per initialized server without racing shutdown")
+	assertEveryInitializedVlsConfigured(serverEvents())
+	console.log("Every initialized VLS received its own startup configuration")
 }
