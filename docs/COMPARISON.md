@@ -24,17 +24,17 @@ each of these has had years of dedicated work.
 
 ## Where V stands
 
-| Area | Go | rust-analyzer | Zig | V |
-|---|---|---|---|---|
-| Toolchain | auto-installs | bundled binary | version mgr | managed installs |
-| Tasks | via commands | cargo definitions | none | `v` provider plus gates |
-| Tests | explorer, pprof | runnables | none | explorer, coverage |
-| Debugging | Delve | delegates | CodeLLDB | own `type: v` |
-| Actions | stubs, tests, fill | ~100 assists | none | test skeleton only |
-| Snippets | 0 (server) | 0 (server) | 0 | 50 TextMate snippets |
-| Toggle tests | yes | peek tests | no | generate only |
-| Docs | wiki spine | book | README | README plus guides |
-| Agents | none | none | none | MCP server plus skills |
+| Area         | Go                 | rust-analyzer     | Zig         | V                       |
+| ------------ | ------------------ | ----------------- | ----------- | ----------------------- |
+| Toolchain    | auto-installs      | bundled binary    | version mgr | managed installs        |
+| Tasks        | via commands       | cargo definitions | none        | `v` provider plus gates |
+| Tests        | explorer, pprof    | runnables         | none        | explorer, coverage      |
+| Debugging    | Delve              | delegates         | CodeLLDB    | own `type: v`           |
+| Actions      | stubs, tests, fill | ~100 assists      | none        | test skeleton only      |
+| Snippets     | 0 (server)         | 0 (server)        | 0           | 50 TextMate snippets    |
+| Toggle tests | yes                | peek tests        | no          | generate only           |
+| Docs         | wiki spine         | book              | README      | README plus guides      |
+| Agents       | none               | none              | none        | MCP server plus skills  |
 
 ## Criticism
 
