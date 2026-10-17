@@ -36,3 +36,22 @@ export function assertVlsStartupConfiguration(events: { event: string; pid: numb
 		)
 	}
 }
+
+/** Two senders push configuration: one per client start, one per later setting change. A server
+ * that outlives a setting change therefore has more than one notification by the end of a run,
+ * so the end-of-run invariant can only require that no initialized server was left unconfigured.
+ */
+export function assertEveryInitializedVlsConfigured(
+	events: { event: string; pid: number }[],
+): void {
+	const initializedPids = new Set(
+		events.filter((event) => event.event === "initialized").map((event) => event.pid),
+	)
+	assert.ok(initializedPids.size, "the fixture must initialize before checking configuration")
+	for (const pid of initializedPids) {
+		assert.ok(
+			events.some((event) => event.pid === pid && event.event === "settings"),
+			`VLS ${pid} must receive its startup configuration`,
+		)
+	}
+}
