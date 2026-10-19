@@ -75,9 +75,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         server: [fixture, real]
+        exclude:
+          # VLS is built from source with the pinned compiler. That bootstrap does
+          # not run on Windows yet, so only the fixture server is covered there.
+          - os: windows-latest
+            server: real
     runs-on: ${{ matrix.os }}
+    # Windows currently fails one restart case the other platforms do not
+    # exercise. Report it without gating a merge until that is fixed.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -96,8 +104,9 @@ jobs:
           # pinned revisions: the other server variants then restore this build
           # instead of re-running it.
           key: v-toolchain-${{ runner.os }}-01eb66904707b68fca95091ba820672b2a2611eb-475a2bd7ec4bed7061721816afb46580c4fe0a5b
-      - name: Build V compiler
-        if: steps.v-toolchain.outputs.cache-hit != 'true'
+      - name: Build V compiler from the pinned source
+        if: steps.v-toolchain.outputs.cache-hit != 'true' && matrix.os != 'windows-latest'
+        shell: bash
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
@@ -112,6 +121,24 @@ jobs:
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
           make -C "$RUNNER_TEMP/v" v1
+      - name: Fetch the official V release
+        # There is no GNU make on the Windows runner, so V comes from the official
+        # build of the same version the pinned source produces.
+        if: steps.v-toolchain.outputs.cache-hit != 'true' && matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          V_VERSION: "0.5.2"
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'v_windows.zip'
+          Invoke-WebRequest -Uri "https://github.com/vlang/v/releases/download/$env:V_VERSION/v_windows.zip" -OutFile $archive
+          # The archive has a top-level v/ directory, so unpacking into RUNNER_TEMP
+          # leaves the compiler at RUNNER_TEMP/v/v.exe, which is the path the test
+          # step passes as V_BINARY and the path the toolchain cache keys on.
+          Expand-Archive -Path $archive -DestinationPath $env:RUNNER_TEMP -Force
+          $v = Join-Path $env:RUNNER_TEMP 'v/v.exe'
+          if (-not (Test-Path $v)) { throw "v.exe not found at $v" }
+          Write-Host "V compiler: $v"
+          & $v version
       - name: VLS toolchain cache
         if: matrix.server == 'real'
         id: vls-toolchain
@@ -140,9 +167,10 @@ jobs:
           cd "$RUNNER_TEMP/vls"
           "$RUNNER_TEMP/v/v" -new-compiler .
       - name: Run VS Code integration tests
+        shell: bash
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
-          V_BINARY: ${{ runner.temp }}/v/v
+          V_BINARY: ${{ matrix.os == 'windows-latest' && format('{0}/v/v.exe', runner.temp) || format('{0}/v/v', runner.temp) }}
           VLS_BINARY: ${{ matrix.server == 'real' && format('{0}/vls/vls', runner.temp) || '' }}
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
