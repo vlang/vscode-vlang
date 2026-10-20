@@ -64,6 +64,26 @@ describe("VLS VS Code extension", () => {
 		)
 	})
 
+	it("gates the interop commands to the file they can translate", () => {
+		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
+		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))
+		const commands = manifest.contributes.commands.map((entry: { command: string }) => {
+			return entry.command
+		})
+		assert.ok(commands.includes("v.generateCOutput"))
+		assert.ok(commands.includes("v.translateWithC2v"))
+
+		const paletteGate = (command: string): string | undefined => {
+			return manifest.contributes.menus.commandPalette.find(
+				(entry: { command: string }) => entry.command === command,
+			)?.when
+		}
+		assert.strictEqual(paletteGate("v.generateCOutput"), "editorLangId == v")
+		// The extension does not contribute the `c` language, so the extension is
+		// what gates this command rather than a language ID that may not exist.
+		assert.strictEqual(paletteGate("v.translateWithC2v"), "resourceExtname == .c")
+	})
+
 	it("shows the notices of V in task output as information", () => {
 		const packagePath = path.resolve(__dirname, "..", "..", "package.json")
 		const manifest = JSON.parse(fs.readFileSync(packagePath, "utf8"))

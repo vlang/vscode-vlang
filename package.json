@@ -31,7 +31,7 @@
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js",
+		"test:logic": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/cInterop.test.ts --bundle --platform=node --target=node24 --format=cjs --outdir=out/test && node --test out/test/extension.test.js out/test/testSkeleton.test.js out/test/cInterop.test.js",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
 		"vscode:prepublish": "npm run build:prod",
 		"package": "npm run build:prod && vsce package",
@@ -239,6 +239,16 @@
 				"category": "V"
 			},
 			{
+				"command": "v.generateCOutput",
+				"title": "Generate C Output",
+				"category": "V"
+			},
+			{
+				"command": "v.translateWithC2v",
+				"title": "Translate C File to V with c2v",
+				"category": "V"
+			},
+			{
 				"command": "v.ver",
 				"title": "Show V version",
 				"category": "V"
@@ -267,6 +277,14 @@
 				{
 					"command": "v.prod",
 					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.generateCOutput",
+					"when": "editorLangId == v"
+				},
+				{
+					"command": "v.translateWithC2v",
+					"when": "resourceExtname == .c"
 				},
 				{
 					"command": "v.vls.restart",
