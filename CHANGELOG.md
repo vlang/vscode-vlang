@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- Test Explorer integration. The extension now registers a `TestController`, so
+  `_test.v` files appear in the Test Explorer panel with one item per `test_`
+  function. Running a test executes `v test` on its file with `VTEST_ONLY_FN` set
+  to the selected function, and the output is parsed to mark each test passed,
+  failed or errored. Discovery is best-effort: a workspace with no `_test.v`
+  files shows an empty tree rather than failing activation.
 
 ## 0.2.1
 

@@ -2,6 +2,7 @@ import { registerCommands, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
+import { registerTestExplorer } from "testExplorer"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 import { installV, isVInstalled } from "./utils"
@@ -93,6 +94,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Offer a code action that generates a test skeleton. Registered here so it is
 	// available as soon as a V file is opened, without waiting for anything else.
 	registerCodeActions(context)
+	// Show the tests in the Test Explorer. Discovery is best-effort, so a workspace
+	// with no `_test.v` files shows an empty tree rather than failing activation.
+	registerTestExplorer(context)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {
