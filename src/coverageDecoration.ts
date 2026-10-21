@@ -12,6 +12,7 @@ import {
 	pruneStaleCoverageFiles,
 	readFileModificationState,
 	recordFileChange,
+	resetCanonicalPaths,
 	seedDirtyFileInvalidations,
 	visibleCoverageLines,
 } from "./coverageProfile"
@@ -195,6 +196,10 @@ export class CoverageDecorationController implements vscode.Disposable {
 		}
 
 		try {
+			// A finished run is the point where the workspace may have been
+			// restructured, so the memoised paths are dropped before the new
+			// profile is keyed by them.
+			resetCanonicalPaths()
 			if (!hasCounterFile(run.directory)) {
 				return
 			}

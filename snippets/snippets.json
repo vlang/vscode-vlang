@@ -31,7 +31,7 @@
 	},
 	"snippet.const.multiply": {
 		"body": ["const (", "\t$0", ")"],
-		"description": "Code snippet for multiply 'const'",
+		"description": "Code snippet for block 'const'",
 		"prefix": "cons",
 		"scope": "v,vlang"
 	},
@@ -73,13 +73,13 @@
 	},
 	"snippet.fn.eprint": {
 		"body": ["eprint('${1:text}')"],
-		"description": "Code snippet for standart based function 'eprint'",
+		"description": "Code snippet for standard function 'eprint'",
 		"prefix": "epr",
 		"scope": "v,vlang"
 	},
 	"snippet.fn.eprintln": {
 		"body": ["eprintln('${1:text}')"],
-		"description": "Code snippet for standart based function 'eprintln'",
+		"description": "Code snippet for standard function 'eprintln'",
 		"prefix": "eprl",
 		"scope": "v,vlang"
 	},
@@ -97,7 +97,7 @@
 	},
 	"snippet.fn.print": {
 		"body": ["print('${1:text}')"],
-		"description": "Code snippet for standart based function 'print'",
+		"description": "Code snippet for standard function 'print'",
 		"prefix": "pr",
 		"scope": "v,vlang"
 	},
@@ -109,14 +109,14 @@
 	},
 	"snippet.for": {
 		"body": ["for {", "\t$0", "}"],
-		"description": "Code snippet for pure infinity loop 'for'",
+		"description": "Code snippet for infinite loop 'for'",
 		"prefix": "for",
 		"scope": "v,vlang"
 	},
 	"snippet.for.index": {
 		"body": ["for ${1:i} := 0; $1 < ${3:count}; $1++ {", "\t$0", "}"],
 		"description": "Code snippet for index loop 'for'",
-		"prefix": "for",
+		"prefix": "fori",
 		"scope": "v,vlang"
 	},
 	"snippet.foreach": {
@@ -128,7 +128,7 @@
 	"snippet.foreach.index": {
 		"body": ["for ${1:_}, ${2:variable} in ${3:array} {", "\t$0", "}"],
 		"description": "Code snippet for index based loop 'for'",
-		"prefix": "fore",
+		"prefix": "forei",
 		"scope": "v,vlang"
 	},
 	"snippet.function": {
@@ -180,7 +180,7 @@
 		"scope": "v,vlang"
 	},
 	"snippet.interface": {
-		"body": ["interface ${1:name} {$0}"],
+		"body": ["interface ${1:name} {", "\t${2:method}() $0", "}"],
 		"description": "Code snippet for 'interface'",
 		"prefix": "inte",
 		"scope": "v,vlang"
@@ -192,7 +192,7 @@
 		"scope": "v,vlang"
 	},
 	"snippet.match": {
-		"body": ["match ${1:expression} {", "\t$0", "}"],
+		"body": ["match ${1:expression} {", "\t${2:value} { $0 }", "\telse {}", "}"],
 		"description": "Code snippet for 'match' statement",
 		"prefix": "ma",
 		"scope": "v,vlang"
@@ -216,7 +216,7 @@
 		"scope": "v,vlang"
 	},
 	"snippet.struct": {
-		"body": ["struct ${1:Name} {", "\t$0", "}"],
+		"body": ["struct ${1:Name} {", "\tpub ${2:field} ${3:type}", "\t$0", "}"],
 		"description": "Code snippet for 'struct'",
 		"prefix": "stru",
 		"scope": "v,vlang"
@@ -248,7 +248,7 @@
 	"snippet.type.f32": {
 		"body": ["f32"],
 		"description": "Code snippet for 32-bit FloatingPoint",
-		"prefix": "float",
+		"prefix": "f32",
 		"scope": "v,vlang"
 	},
 	"snippet.type.f64": {
@@ -321,6 +321,96 @@
 		"body": ["charptr"],
 		"description": "Code snippet for char*",
 		"prefix": "cptr",
+		"scope": "v,vlang"
+	},
+	"snippet.or": {
+		"body": ["or {", "\t$0", "}"],
+		"description": "Code snippet for 'or' block on Option/Result",
+		"prefix": "or",
+		"scope": "v,vlang"
+	},
+	"snippet.or.return": {
+		"body": ["or { return ${1:err} }"],
+		"description": "Code snippet for propagating an error with 'or'",
+		"prefix": "orer",
+		"scope": "v,vlang"
+	},
+	"snippet.test.fn": {
+		"body": ["fn test_${1:name}() {", "\t$0", "}"],
+		"description": "Code snippet for a test function",
+		"prefix": "test",
+		"scope": "v,vlang"
+	},
+	"snippet.error": {
+		"body": ["error('${1:message}')"],
+		"description": "Code snippet for returning an error",
+		"prefix": "err",
+		"scope": "v,vlang"
+	},
+	"snippet.none": {
+		"body": ["none"],
+		"description": "Code snippet for the empty Option value",
+		"prefix": "none",
+		"scope": "v,vlang"
+	},
+	"snippet.panic": {
+		"body": ["panic('${1:message}')"],
+		"description": "Code snippet for panicking with a message",
+		"prefix": "panic",
+		"scope": "v,vlang"
+	},
+	"snippet.chan": {
+		"body": ["chan ${1:type}{cap: ${2:cap}}"],
+		"description": "Code snippet for a buffered channel type",
+		"prefix": "chan",
+		"scope": "v,vlang"
+	},
+	"snippet.select": {
+		"body": ["select {", "\t${1:ch} <- ${2:value} {", "\t\t$0", "\t}", "}"],
+		"description": "Code snippet for channel 'select'",
+		"prefix": "select",
+		"scope": "v,vlang"
+	},
+	"snippet.spawn": {
+		"body": ["spawn ${1:function}($0)"],
+		"description": "Code snippet for spawning a thread",
+		"prefix": "spawn",
+		"scope": "v,vlang"
+	},
+	"snippet.shared": {
+		"body": ["shared ${1:name} := ${2:value}"],
+		"description": "Code snippet for a shared variable",
+		"prefix": "shared",
+		"scope": "v,vlang"
+	},
+	"snippet.lock": {
+		"body": ["lock ${1:mutex} {", "\t$0", "}"],
+		"description": "Code snippet for a 'lock' block",
+		"prefix": "lock",
+		"scope": "v,vlang"
+	},
+	"snippet.sql": {
+		"body": ["sql ${1:db} {", "\tselect * from ${2:table}", "}"],
+		"description": "Code snippet for an ORM 'sql' block",
+		"prefix": "sql",
+		"scope": "v,vlang"
+	},
+	"snippet.comptime.for": {
+		"body": ["\\$for ${1:variable} in ${2:collection} {", "\t$0", "}"],
+		"description": "Code snippet for compile time '$for'",
+		"prefix": "$for",
+		"scope": "v,vlang"
+	},
+	"snippet.attribute": {
+		"body": ["@[${1:name}]"],
+		"description": "Code snippet for an attribute",
+		"prefix": "attr",
+		"scope": "v,vlang"
+	},
+	"snippet.unsafe": {
+		"body": ["unsafe {", "\t$0", "}"],
+		"description": "Code snippet for an 'unsafe' block",
+		"prefix": "unsafe",
 		"scope": "v,vlang"
 	}
 }
