@@ -8,25 +8,12 @@ import {
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
 import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
+import { requiresServerRestart } from "./serverRestart"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
 import type { ToolName } from "./toolInstallation"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
-
-const serverSettings = [
-	"v.vls.enable",
-	"v.vls.command",
-	"v.vls.args",
-	"v.executablePath",
-	"v.vls.inlayHints.enabled",
-	"v.vls.diagnostics",
-	"vls.command",
-	"vls.args",
-	"vls.vCommand",
-	"vls.inlayHints.enabled",
-	"vls.diagnostics.enabled",
-]
 
 function featureEnabled(feature: "inlayHints.enabled" | "diagnostics"): boolean {
 	return migratedSetting(
@@ -93,10 +80,7 @@ export class VlsManager implements vscode.Disposable {
 				if (state.focused) this.checkReplacedTools()
 			}),
 			vscode.workspace.onDidChangeConfiguration((event) => {
-				if (
-					!this.updatingConfiguration &&
-					serverSettings.some((setting) => event.affectsConfiguration(setting))
-				) {
+				if (!this.updatingConfiguration && requiresServerRestart(event)) {
 					void this.restart()
 				}
 			}),
@@ -293,6 +277,20 @@ export class VlsManager implements vscode.Disposable {
 		vlsOutputChannel.info(`Starting ${command}`)
 		await nextClient.start()
 		await sendSettings(nextClient)
+	}
+
+	/** Send the current feature settings to the running server.
+	 *
+	 * The manager owns the client, so it owns the channel: a caller that holds a
+	 * client of its own can send settings to one that has already been replaced.
+	 * Nothing is sent while no server is running, because `initialize` is what
+	 * carries the settings on start.
+	 */
+	async sendSettingsNow(): Promise<void> {
+		await this.pending
+		if (this.client) {
+			await sendSettings(this.client)
+		}
 	}
 
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {

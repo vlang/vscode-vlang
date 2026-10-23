@@ -4,6 +4,7 @@ import {
 	activeBuildTaskSpec,
 	activeRunTaskSpec,
 	codeLensTaskSpec,
+	saveDocuments,
 	shouldSaveTaskDocument,
 	taskCoverageRoot,
 	taskWorkingDirectory,
@@ -294,12 +295,7 @@ async function saveTaskDocuments(
 			})
 		)
 	})
-	for (const document of documents) {
-		if (!(await document.save())) {
-			return false
-		}
-	}
-	return true
+	return saveDocuments(documents)
 }
 
 function taskFolder(task: vscode.Task): vscode.WorkspaceFolder | undefined {
