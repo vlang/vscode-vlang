@@ -90,9 +90,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(outputChannel, vlsOutputChannel)
 	const taskManager = registerVTasks(context)
 
-	// Offer a code action that generates a test skeleton. Registered here so it is
-	// available as soon as a V file is opened, without waiting for anything else.
-	registerCodeActions(context)
+	// Offer code actions that generate tests. The coverage-aware one reads the
+	// controller the V test task drives, so it is registered where that task is.
+	registerCodeActions(context, taskManager.coverage)
 
 	// Check for V only if it's not installed
 	if (!(await isVInstalled())) {
