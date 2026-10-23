@@ -123,17 +123,38 @@ describe("tool revision checks", () => {
 		assert.equal(urls.length, 4)
 	})
 
-	it("reads only explicit VLS version output, optionally with its build commit", () => {
-		assert.deepEqual(parseVlsIdentity("VLS 0.0.3\n"), { version: "0.0.3" })
+	it("reads a version line that names its server, optionally with its build commit", () => {
+		assert.deepEqual(parseVlsIdentity("VLS 0.0.3\n"), { name: "VLS", version: "0.0.3" })
 		assert.deepEqual(parseVlsIdentity(`VLS 0.0.3 ${latest.toUpperCase()}`), {
+			name: "VLS",
 			version: "0.0.3",
 			revision: latest,
 		})
+		// Another server names itself in words, and may carry its build commit in
+		// the version itself.
+		assert.deepEqual(parseVlsIdentity("velvet version 0.8.5\n"), {
+			name: "velvet",
+			version: "0.8.5",
+		})
+		assert.deepEqual(parseVlsIdentity("velvet version 0.8.5+abc1234"), {
+			name: "velvet",
+			version: "0.8.5+abc1234",
+		})
+		assert.deepEqual(parseVlsIdentity("Velvet version 0.8.5 b583c01"), {
+			name: "Velvet",
+			version: "0.8.5",
+			revision: "b583c01",
+		})
+		assert.deepEqual(parseVlsIdentity("VLS version 0.0.3"), { name: "VLS", version: "0.0.3" })
 		for (const output of [
 			"VLS revision abc1234",
 			"VLS 0.0.3 (commit abc1234)",
 			"0.0.3",
 			"V 0.5.2 abc1234",
+			"velvet 0.8.5",
+			"velvet version master",
+			"velvet version 0.8",
+			"velvet version 0.8.5.1",
 			"VLS 0.00.3",
 			"VLS 0.0.3-01",
 			"VLS 0.0.3 abc123",
@@ -155,7 +176,25 @@ describe("tool revision checks", () => {
 			)
 			assert.deepEqual(
 				await readVlsIdentity(process.execPath, undefined, { args: [script] }),
-				{ version: "0.0.3" },
+				{ name: "VLS", version: "0.0.3" },
+			)
+		} finally {
+			fs.rmSync(directory, { recursive: true, force: true })
+		}
+	})
+
+	it("identifies another server that names itself in its version output", async () => {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "velvet-version-"))
+		const script = path.join(directory, "velvet.cjs")
+		try {
+			fs.writeFileSync(
+				script,
+				"if (process.argv.at(-1) !== '--version') process.exit(1);" +
+					"process.stdout.write('velvet version 0.8.5+abc1234\\n');",
+			)
+			assert.deepEqual(
+				await readVlsIdentity(process.execPath, undefined, { args: [script] }),
+				{ name: "velvet", version: "0.8.5+abc1234" },
 			)
 		} finally {
 			fs.rmSync(directory, { recursive: true, force: true })

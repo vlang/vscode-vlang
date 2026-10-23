@@ -173,15 +173,25 @@ export class VlsManager implements vscode.Disposable {
 				vlsOutputChannel.error(message)
 				if (error instanceof UnsupportedVlsError) {
 					this.unsupported = true
-					this.status.command = "v.vls.update"
-					void vscode.window
-						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
-						.then((action) => {
-							if (action === "Install or Update VLS")
-								void vscode.commands.executeCommand("v.vls.update")
-							else if (action === "Show Output") vlsOutputChannel.show()
-						})
-					return
+					// Only a server that named itself VLS can be replaced by the install
+					// command. For any other rejection that command would build VLS in
+					// place of whatever `v.vls.command` points at, so those fall through
+					// to the generic error, which offers the settings instead.
+					if (error.updatable) {
+						this.status.command = "v.vls.update"
+						void vscode.window
+							.showErrorMessage(
+								`VLS: ${message}`,
+								"Install or Update VLS",
+								"Show Output",
+							)
+							.then((action) => {
+								if (action === "Install or Update VLS")
+									void vscode.commands.executeCommand("v.vls.update")
+								else if (action === "Show Output") vlsOutputChannel.show()
+							})
+						return
+					}
 				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
@@ -293,6 +303,20 @@ export class VlsManager implements vscode.Disposable {
 		vlsOutputChannel.info(`Starting ${command}`)
 		await nextClient.start()
 		await sendSettings(nextClient)
+	}
+
+	/** Send the current feature settings to the running server.
+	 *
+	 * The manager owns the client, so it owns the channel: a caller that holds a
+	 * client of its own can send settings to one that has already been replaced.
+	 * Nothing is sent while no server is running, because `initialize` is what
+	 * carries the settings on start.
+	 */
+	async sendSettingsNow(): Promise<void> {
+		await this.pending
+		if (this.client) {
+			await sendSettings(this.client)
+		}
 	}
 
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {
