@@ -73,9 +73,6 @@
 			"include": "#storage"
 		},
 		{
-			"include": "#numbers"
-		},
-		{
 			"include": "#strings"
 		},
 		{
@@ -86,6 +83,12 @@
 		},
 		{
 			"include": "#variable-assign"
+		},
+		{
+			"include": "#identifier"
+		},
+		{
+			"include": "#numbers"
 		},
 		{
 			"include": "#function-decl"
@@ -813,6 +816,10 @@
 					"match": "\\?"
 				}
 			]
+		},
+		"identifier": {
+			"match": "\\b[A-Za-z_]\\w*\\b",
+			"name": "variable.other.v"
 		},
 		"numbers": {
 			"patterns": [
