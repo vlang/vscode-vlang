@@ -19,6 +19,7 @@ import {
 	workspaceTaskSpec,
 } from "../taskSpec"
 import { serverCommand } from "../vCommand"
+import { vDocumentSelector } from "../documentSelector"
 import {
 	canonicalFilePath,
 	coverageArgsForRun,
@@ -62,6 +63,17 @@ describe("VLS VS Code extension", () => {
 			manifest.contributes.configuration.properties["v.vls.coverage.enabled"].default,
 			true,
 		)
+	})
+
+	it("covers unsaved, diff and v.mod documents with V features", () => {
+		assert.deepStrictEqual(vDocumentSelector, [
+			{ language: "v", scheme: "file" },
+			{ language: "v", scheme: "untitled" },
+			{ language: "v", scheme: "git" },
+			{ language: "v.mod", scheme: "file" },
+			{ language: "v.mod", scheme: "untitled" },
+			{ language: "v.mod", scheme: "git" },
+		])
 	})
 
 	it("shows the notices of V in task output as information", () => {

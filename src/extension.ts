@@ -1,5 +1,6 @@
 import { registerCommands, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
+import { vDocumentSelector } from "./documentSelector"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
@@ -50,7 +51,7 @@ async function createAndStartClient(taskManager: ReturnType<typeof registerVTask
 	}
 
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: "file", language: "v" }],
+		documentSelector: [...vDocumentSelector],
 		outputChannel: vlsOutputChannel,
 		synchronize: {
 			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.v"),
@@ -145,13 +146,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	const inlayHintsEmitter = new vscode.EventEmitter<void>()
 	context.subscriptions.push(inlayHintsEmitter)
 	context.subscriptions.push(
-		vscode.languages.registerInlayHintsProvider(
-			{ scheme: "file", language: "v" },
-			{
-				onDidChangeInlayHints: inlayHintsEmitter.event,
-				provideInlayHints: () => [],
-			},
-		),
+		vscode.languages.registerInlayHintsProvider([...vDocumentSelector], {
+			onDidChangeInlayHints: inlayHintsEmitter.event,
+			provideInlayHints: () => [],
+		}),
 	)
 
 	// React to configuration changes: enable/disable or request restart.
