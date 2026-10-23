@@ -118,6 +118,20 @@ The extension is distributed under [GPL-2.0-only](./LICENSE) because its
 task and coverage implementation comes from the VLS VS Code extension.
 Existing files covered by the [MIT license](./LICENSE.MIT) retain that license.
 
+## API
+
+Other extensions can resolve the V compiler through the extension's exports:
+
+```ts
+const v = vscode.extensions.getExtension('vlanguage.vscode-vlang')?.exports
+const compiler = v?.resolveV(resource)
+```
+
+`resolveV` returns the absolute path to the `v` binary the extension would use
+for that resource, including the settings kept from the former VLS extension.
+It returns `undefined` when the compiler cannot be resolved, which is not the
+same as it being absent.
+
 <!-- Links -->
 
 [vs-code]: https://code.visualstudio.com/

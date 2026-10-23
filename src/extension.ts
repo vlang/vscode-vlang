@@ -1,5 +1,6 @@
 import { registerCommands, registerVlsCommands } from "commands"
 import { registerCodeActions } from "./codeActions"
+import { createExtensionAPI } from "./extensionAPI"
 import { getVls, isVlsEnabled } from "langserver"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
@@ -9,6 +10,14 @@ import { migratedSetting } from "./settings"
 import { registerVTasks, runCodeLensCommand, vCommandForServer } from "./vTasks"
 
 export let client: LanguageClient | undefined
+
+/** The API other extensions can use to resolve the V compiler.
+ *
+ * Exported rather than registered, because VS Code makes an extension's exports
+ * available to other extensions through `vscode.extensions.getExtension(...)`.
+ * There is nothing to register and nothing to keep in sync.
+ */
+export const api = createExtensionAPI()
 
 function isInlayHintsEnabled(): boolean {
 	return migratedSetting("v.vls", "inlayHints.enabled", "vls", "inlayHints.enabled", true)
