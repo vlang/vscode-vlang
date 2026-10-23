@@ -44,6 +44,39 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Agents: the V compiler as an MCP server
+
+The extension offers the V compiler to agents over the
+[Model Context Protocol](https://modelcontextprotocol.io), one server per
+workspace folder. `v mcp serve` calls the V parser, checker and formatter in
+process, so its answers hold for code that does not compile yet — which a
+language server working from a failed parse cannot manage. It also carries the
+standard library documentation, so an agent can look up a signature instead of
+guessing one.
+
+This needs a V that supports `v mcp`. The extension probes `v mcp tools` once
+per compiler and quietly offers nothing when the compiler is too old. Nothing
+is started until an agent calls a tool.
+
+The server starts read-only by default, which registers no tool that writes a
+file. Three of the eighteen tools write: `v_rename_symbol`, which defaults to a
+dry run listing every position it would change; `v_format`, which reports its
+diff before writing; and `v_edit_replace`, which has no preview at all — it
+writes as soon as the range matches the text the agent passed back, so passing
+that text is what approves the edit. Set `v.mcp.readOnly` to `false` to offer
+them.
+
+The settings are:
+
+- `v.mcp.enable`: offer the compiler to agents (default `true`)
+- `v.mcp.readOnly`: start read-only, withholding the three writing tools
+  (default `true`)
+- `v.mcp.root`: directory the server resolves paths against; empty means each
+  workspace folder
+
+Agents outside VS Code can use the same server, and the skills the compiler
+ships, without this extension. See `v mcp --help` and `v skills --help`.
+
 ### Build, run, and test
 
 Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
