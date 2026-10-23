@@ -154,13 +154,19 @@
 							"build",
 							"run",
 							"test",
-							"prod"
+							"prod",
+							"check",
+							"vet",
+							"fmt"
 						],
 						"enumDescriptions": [
 							"Build the workspace with v .",
 							"Run the workspace with v run .",
 							"Test the workspace with v test .",
-							"Build an optimized executable with v -prod ."
+							"Build an optimized executable with v -prod .",
+							"Type-check the workspace with v -check, without producing a binary.",
+							"Report suspicious constructs with v vet -W, warnings as errors.",
+							"Report whether the formatter would change the workspace with v fmt -verify."
 						]
 					}
 				}
@@ -211,6 +217,21 @@
 			{
 				"command": "vls.test",
 				"title": "Test",
+				"category": "V"
+			},
+			{
+				"command": "vls.check",
+				"title": "Check",
+				"category": "V"
+			},
+			{
+				"command": "vls.vet",
+				"title": "Vet",
+				"category": "V"
+			},
+			{
+				"command": "vls.fmt",
+				"title": "Format Check",
 				"category": "V"
 			},
 			{
@@ -277,6 +298,56 @@
 		"breakpoints": [
 			{
 				"language": "v"
+			}
+		],
+		"walkthroughs": [
+			{
+				"id": "vWelcome",
+				"title": "Get Started with V",
+				"description": "Install V, build and run a project, run the checks that gate a change, debug it, and set up agents.",
+				"steps": [
+					{
+						"id": "installV",
+						"title": "Install V",
+						"description": "The extension needs the V compiler. Check whether you have it, and install it if you do not.",
+						"media": {
+							"markdown": "walkthrough/installV.md"
+						},
+						"completionEvents": [
+							"onCommand:v.ver"
+						]
+					},
+					{
+						"id": "buildRunTest",
+						"title": "Build, run, and test",
+						"description": "Build the workspace, run the open module or script, and run the tests with coverage.",
+						"media": {
+							"markdown": "walkthrough/buildRunTest.md"
+						},
+						"completionEvents": [
+							"onCommand:vls.build"
+						]
+					},
+					{
+						"id": "checkVetFmt",
+						"title": "Check, vet, and format",
+						"description": "Run the three gates that the rest of a change hangs on.",
+						"media": {
+							"markdown": "walkthrough/checkVetFmt.md"
+						},
+						"completionEvents": [
+							"onCommand:vls.check"
+						]
+					},
+					{
+						"id": "debugging",
+						"title": "Debug a program",
+						"description": "Start a debug session from the Run and Debug view, then check this step off.",
+						"media": {
+							"markdown": "walkthrough/debugging.md"
+						}
+					}
+				]
 			}
 		]
 	},

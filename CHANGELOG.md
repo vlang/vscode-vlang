@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `test_` function per public function, each with a placeholder assertion. V
   has no test framework, so the file layout is the whole contract and this
   creates it without the user having to remember the convention.
+- A welcome walkthrough with three steps: install V, build and run a project, and
+  run the check, vet and format gates. Each step completes when the command it
+  describes has been run, so a new user is walked through the extension's own
+  commands rather than left to read the README.
+- `V: Check`, `V: Vet` and `V: Format Check` tasks, running `v -check`,
+  `v vet -W` and `v fmt -verify`. These are the three gates the rest of a change
+  hangs on, and none of them was reachable from the extension before. Each works
+  on the active file when one is open, and on the workspace otherwise, and all
+  three surface through the `vls` problem matcher.
 
 ## 0.2.1
 
