@@ -29,6 +29,101 @@ export interface CoverageLineRange {
 
 type CoverageFileFilter = (filePath: string) => boolean
 
+/** One function of a source file, as `v cover --json` reports it. */
+export interface CoverageFunction {
+	name: string
+	/** 1-based line of the declaration, as the source spells it. */
+	line: number
+	covered: boolean
+	hits: number
+}
+
+/** One file of a `v cover --json` report. */
+export interface CoverageJsonFile {
+	file: string
+	points: number
+	covered: number
+	percent: number
+	functions: CoverageFunction[]
+	function_points: number
+	function_covered: number
+}
+
+/** The whole `v cover --json` report. */
+export interface CoverageJsonReport {
+	files: CoverageJsonFile[]
+	totals: CoverageJsonFile
+}
+
+/** A function no test run entered, addressed the way an editor addresses a line. */
+export interface UncoveredFunction {
+	name: string
+	/** 0-based line of the declaration. */
+	line: number
+}
+
+function isCoverageJsonFile(value: unknown): value is CoverageJsonFile {
+	if (typeof value !== "object" || value === null) {
+		return false
+	}
+	const file = value as Partial<CoverageJsonFile>
+	return typeof file.file === "string" && Array.isArray(file.functions)
+}
+
+function emptyCoverageJsonFile(file: string): CoverageJsonFile {
+	return {
+		file,
+		points: 0,
+		covered: 0,
+		percent: 0,
+		functions: [],
+		function_points: 0,
+		function_covered: 0,
+	}
+}
+
+/** Read a `v cover --json` report, keeping only the files the caller wants.
+ *
+ * A report is written by another process, so it is treated as untrusted input:
+ * a file entry without a path or a functions list is dropped rather than
+ * reaching an editor as an empty record.
+ */
+export function parseCoverageJsonReport(
+	content: string,
+	includeFile?: CoverageFileFilter,
+): CoverageJsonReport {
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(content)
+	} catch {
+		return { files: [], totals: emptyCoverageJsonFile("") }
+	}
+	const report = parsed as Partial<CoverageJsonReport>
+	const files = Array.isArray(report.files) ? report.files : []
+	return {
+		files: files
+			.filter(isCoverageJsonFile)
+			.filter((file) => !includeFile || includeFile(file.file))
+			.map((file) => ({ ...file, functions: file.functions.filter((fn) => !!fn?.name) })),
+		totals: isCoverageJsonFile(report.totals) ? report.totals : emptyCoverageJsonFile(""),
+	}
+}
+
+/** The functions of `filePath` that no run entered, in source order. */
+export function uncoveredFunctionsFor(
+	report: CoverageJsonReport,
+	filePath: string,
+): UncoveredFunction[] {
+	const file = report.files.find((entry) => entry.file === filePath)
+	if (!file) {
+		return []
+	}
+	return file.functions
+		.filter((fn) => !fn.covered)
+		.map((fn) => ({ name: fn.name, line: fn.line - 1 }))
+		.sort((left, right) => left.line - right.line)
+}
+
 class LcovProfileParser {
 	private readonly hitsByFile = new Map<string, Map<number, number>>()
 	private currentFile: string | undefined
@@ -84,7 +179,22 @@ class LcovProfileParser {
 	}
 }
 
+/** Resolving the real path of a file is a syscall walk up the tree, and this runs on
+ * every keystroke through the coverage decoration listener. A path keeps its canonical
+ * form until the filesystem is restructured, so the answer is memoised. `baseDirectory`
+ * is part of the key because it decides what a relative path resolves against. The cache
+ * is dropped wholesale once it grows past the limit rather than evicting, which keeps a
+ * long editing session bounded.
+ */
+const canonicalPathCache = new Map<string, string>()
+const canonicalPathCacheLimit = 4096
+
 export function canonicalFilePath(filePath: string, baseDirectory = process.cwd()): string {
+	const cacheKey = `${baseDirectory}\n${filePath}`
+	const cached = canonicalPathCache.get(cacheKey)
+	if (cached !== undefined) {
+		return cached
+	}
 	let absolutePath = path.isAbsolute(filePath)
 		? path.normalize(filePath)
 		: path.resolve(baseDirectory, filePath)
@@ -102,7 +212,22 @@ export function canonicalFilePath(filePath: string, baseDirectory = process.cwd(
 			existingPath = parent
 		}
 	}
-	return process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath
+	const canonical = process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath
+	if (canonicalPathCache.size >= canonicalPathCacheLimit) {
+		canonicalPathCache.clear()
+	}
+	canonicalPathCache.set(cacheKey, canonical)
+	return canonical
+}
+
+/** Drop the path memo.
+ *
+ * Called when a coverage run finishes or is cleared: a run is the moment the user may
+ * have restructured the workspace, so any canonical path recorded before it cannot be
+ * relied on afterwards.
+ */
+export function resetCanonicalPaths(): void {
+	canonicalPathCache.clear()
 }
 
 export function instrumentCoverageArgs(args: string[], coverageDirectory: string): string[] {

@@ -8,25 +8,13 @@ import {
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
 import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
+import { requiresServerRestart } from "./serverRestart"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
 import type { ToolName } from "./toolInstallation"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
-
-const serverSettings = [
-	"v.vls.enable",
-	"v.vls.command",
-	"v.vls.args",
-	"v.executablePath",
-	"v.vls.inlayHints.enabled",
-	"v.vls.diagnostics",
-	"vls.command",
-	"vls.args",
-	"vls.vCommand",
-	"vls.inlayHints.enabled",
-	"vls.diagnostics.enabled",
-]
+import { vDocumentSelector } from "./documentSelector"
 
 function featureEnabled(feature: "inlayHints.enabled" | "diagnostics"): boolean {
 	return migratedSetting(
@@ -87,16 +75,11 @@ export class VlsManager implements vscode.Disposable {
 		this.status.command = "v.vls.openOutput"
 		this.subscriptions = [
 			this.status,
-			vscode.commands.registerCommand("v.vls.restart", () => this.restart()),
-			vscode.commands.registerCommand("v.vls.openOutput", () => vlsOutputChannel.show()),
 			vscode.window.onDidChangeWindowState((state) => {
 				if (state.focused) this.checkReplacedTools()
 			}),
 			vscode.workspace.onDidChangeConfiguration((event) => {
-				if (
-					!this.updatingConfiguration &&
-					serverSettings.some((setting) => event.affectsConfiguration(setting))
-				) {
+				if (!this.updatingConfiguration && requiresServerRestart(event)) {
 					void this.restart()
 				}
 			}),
@@ -173,15 +156,25 @@ export class VlsManager implements vscode.Disposable {
 				vlsOutputChannel.error(message)
 				if (error instanceof UnsupportedVlsError) {
 					this.unsupported = true
-					this.status.command = "v.vls.update"
-					void vscode.window
-						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
-						.then((action) => {
-							if (action === "Install or Update VLS")
-								void vscode.commands.executeCommand("v.vls.update")
-							else if (action === "Show Output") vlsOutputChannel.show()
-						})
-					return
+					// Only a server that named itself VLS can be replaced by the install
+					// command. For any other rejection that command would build VLS in
+					// place of whatever `v.vls.command` points at, so those fall through
+					// to the generic error, which offers the settings instead.
+					if (error.updatable) {
+						this.status.command = "v.vls.update"
+						void vscode.window
+							.showErrorMessage(
+								`VLS: ${message}`,
+								"Install or Update VLS",
+								"Show Output",
+							)
+							.then((action) => {
+								if (action === "Install or Update VLS")
+									void vscode.commands.executeCommand("v.vls.update")
+								else if (action === "Show Output") vlsOutputChannel.show()
+							})
+						return
+					}
 				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
@@ -232,7 +225,7 @@ export class VlsManager implements vscode.Disposable {
 		)
 		this.notifiedReplacement = false
 		const options: LanguageClientOptions = {
-			documentSelector: [{ scheme: "file", language: "v" }],
+			documentSelector: [...vDocumentSelector],
 			outputChannel: vlsOutputChannel,
 			// Configuration changes restart the client through our queue. Send settings
 			// after startup only; an independent synchronizer can race the old shutdown.
@@ -293,6 +286,30 @@ export class VlsManager implements vscode.Disposable {
 		vlsOutputChannel.info(`Starting ${command}`)
 		await nextClient.start()
 		await sendSettings(nextClient)
+	}
+
+	/** Send the current feature settings to the running server.
+	 *
+	 * The manager owns the client, so it owns the channel: a caller that holds a
+	 * client of its own can send settings to one that has already been replaced.
+	 * Nothing is sent while no server is running, because `initialize` is what
+	 * carries the settings on start.
+	 */
+	async sendSettingsNow(): Promise<void> {
+		await this.pending
+		if (this.client) {
+			await sendSettings(this.client)
+		}
+	}
+
+	/** Whether a server is actually running.
+	 *
+	 * A client that exists is not necessarily running: it can be starting, or
+	 * stopping. Consumers ask this to defer to the server rather than duplicate
+	 * it, so the answer has to mean "it can answer a request now".
+	 */
+	isRunning(): boolean {
+		return this.client?.state === State.Running
 	}
 
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {

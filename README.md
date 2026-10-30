@@ -20,6 +20,7 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 - runnable CodeLens actions for `main` and tests
 - workspace build, run, and test tasks
 - test coverage highlighting and a status bar summary
+- code folding for blocks, import runs, and `//#region` markers
 
 ### V Language Server
 
@@ -44,6 +45,86 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Generate from JSON
+
+On a JSON file, **V: Generate JSON Decoder** infers V structs for the
+document and opens them as an untitled V file, with a decode example
+using `json2`. **V: Generate XML Decoder** and **V: Generate CSV
+Decoder** do the same from XML (strict subset, struct shape only —
+vlib has no struct decoder, so the example loads the document for the
+query API) and CSV (columns typed across rows) files. TOML and YAML
+share the same core and follow once their parsers land as declared
+dependencies.
+
+Protobuf, ASN.1, PEM, CBOR and raw binary payloads carry no field
+names without a schema, so struct inference does not apply to them;
+base64, hex, base32 and base58 are encodings, covered by
+**V: Convert Selection Encoding** instead.
+
+### Agents: the V compiler as an MCP server
+
+The extension offers the V compiler to agents over the
+[Model Context Protocol](https://modelcontextprotocol.io), one server per
+workspace folder. `v mcp serve` calls the V parser, checker and formatter in
+process, so its answers hold for code that does not compile yet — which a
+language server working from a failed parse cannot manage. It also carries the
+standard library documentation, so an agent can look up a signature instead of
+guessing one.
+
+This needs a V that supports `v mcp`. The extension probes `v mcp tools` once
+per compiler and quietly offers nothing when the compiler is too old. Nothing
+is started until an agent calls a tool.
+
+The server starts read-only by default, which registers no tool that writes a
+file. Three of the eighteen tools write: `v_rename_symbol`, which defaults to a
+dry run listing every position it would change; `v_format`, which reports its
+diff before writing; and `v_edit_replace`, which has no preview at all — it
+writes as soon as the range matches the text the agent passed back, so passing
+that text is what approves the edit. Set `v.mcp.readOnly` to `false` to offer
+them.
+
+The settings are:
+
+- `v.mcp.enable`: offer the compiler to agents (default `true`)
+- `v.mcp.readOnly`: start read-only, withholding the three writing tools
+  (default `true`)
+- `v.mcp.root`: directory the server resolves paths against; empty means each
+  workspace folder
+
+Agents outside VS Code can use the same server, and the skills the compiler
+ships, without this extension. See `v mcp --help` and `v skills --help`.
+
+### Agents: the bundled V agent skills
+
+The compiler ships agent skills — the rules that make V code which looks right
+fail to compile, the build and test loop, testing conventions, concurrency, the
+memory model, and how to drive the MCP server. `v skills` installs them into
+`.agents/skills/<name>/`, which VS Code, Claude Code, opencode and Copilot
+already read, so one install improves every agent you use. A project install
+lands in the repository and is shared with your team; a user install lands in
+`~/.agents/skills` and applies to every project on the machine.
+
+The extension adds commands around that rather than a copy of it:
+
+- `V: Install V Agent Skills` reads the compiler's catalog, lets you pick skills
+  and a scope, and runs the install
+- `V: Show V Agent Skill Status` says what is installed where and which copies
+  have fallen behind the compiler's
+- `V: Update V Agent Skills` refreshes the ones that have
+
+Nothing is overwritten silently. `v skills add` refuses to replace an installed
+skill unless `--force` is given, which happens only when you picked a
+skill that is already installed and out of date. `v skills update` holds back a
+skill whose files were edited locally, and reports which one and why.
+
+These commands need a V that supports `v skills`. On an older compiler they
+report that rather than doing nothing. Skills also work with agents outside VS
+Code, without this extension; see `v skills --help`.
+
+`V: Show Environment Status` reports which `v` and which VLS the extension
+resolved, what versions they report, and whether the server is running. The
+answer is written to a document so it can be copied into a bug report.
+
 ### Build, run, and test
 
 Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
@@ -63,7 +144,33 @@ item or run `V: Clear Test Coverage` to remove the highlights.
 To create a test file from a source file, run **V: Generate Test File**. It
 creates the `_test.v` file beside the source with one `test_` function per public
 function, each with a placeholder assertion to replace. It refuses to overwrite
-an existing test file.
+an existing test file. **V: Toggle Test File** jumps between a source file
+and its test file, generating the test file first when it does not exist yet.
+**V: Fill Struct Fields** fills an empty `Name{}` literal with the fields
+of the `struct Name` declared in the same file.
+
+**V: Toggle Test File** walks the same pairing in both directions: from a source
+file it opens its `_test.v` file, and from a `_test.v` file it opens the source
+beside it. Nothing is created, so a missing file is reported rather than written.
+
+Every `_test.v` file also appears in the Test Explorer, with one item per
+`test_` function. Running a test from there executes `v test` on its file with
+`VTEST_ONLY_FN` set to the selected function, so the filter the Test Explorer
+already provides is the one V understands.
+
+### Check, vet, and format
+
+Three more tasks run the gates that the rest of a change hangs on. Each works on
+the active file when one is open, and on the workspace otherwise.
+
+- `V: Check` runs `v -check`, which type-checks without producing a binary
+- `V: Vet` runs `v vet -W`, which reports suspicious constructs and treats
+  warnings as errors, so it is the one to use in CI
+- `V: Format Check` runs `v fmt -verify`, which reports whether the formatter
+  would change anything
+
+All three surface through the `vls` problem matcher, so a failure lands in the
+Problems panel at the right line rather than only in the task output.
 
 ## Roadmap
 
@@ -73,6 +180,12 @@ Windows. See [ROADMAP.md](./ROADMAP.md); please read it before opening a pull
 request so we do not duplicate each other.
 
 ## Usage
+
+The first time you open a V file, the extension offers a three-step walkthrough:
+install V, build and run a project, and run the check, vet and format gates. Each
+step completes when you run the command it describes, so the walkthrough walks you
+through the extension's own commands rather than asking you to read this file
+first.
 
 First you will need to install [Visual Studio Code][vs-code] >= `1.105`.
 In the command palette (`Cmd+Shift+P`) select `Install Extensions` and choose `V`.
@@ -88,10 +201,26 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
+- `V: Toggle Test File`
+- `V: Fill Struct Fields`
+- `V: Share on Playground`
+- `V: Generate JSON Decoder`
+- `V: Generate XML Decoder`
+- `V: Generate CSV Decoder`
+- `V: Convert Selection Encoding`
+- `V: Organize Imports`
+- `V: Search VPM Modules`
+- `V: List Installed VPM Modules`
+- `V: Install V Agent Skills`
+- `V: Show V Agent Skill Status`
+- `V: Update V Agent Skills`
 - `V: Show V version`
+- `V: Select V executable`
 - `V: Update VLS`
 - `V: Restart VLS`
+- `V: Show Environment Status`
 - `V: Build`, `V: Run`, and `V: Test`
+- `V: Check`, `V: Vet`, and `V: Format Check`
 - `V: Clear Test Coverage`
 
 You can access all of the above commands from the command palette (`Cmd+Shift+P`).
@@ -100,6 +229,9 @@ You can access all of the above commands from the command palette (`Cmd+Shift+P`
 
 Clone this repository and run `npm install` to install the dependencies.
 Then press `F5` to open a new VS Code window with the extension loaded.
+
+The build, test, and grammar-test commands, and the layout of `src/`, are
+described in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Open the output console (`Cmd+Shift+U`) to see the debug output from the extension.
 
@@ -112,11 +244,63 @@ a local VS Code test build if `CODE_EXECUTABLE` is unset. Set `VLS_BINARY` and
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
 
+## Debugging
+
+V programs can be debugged from the Run and Debug view. The extension contributes
+a `type: "v"` debugger: it compiles the program with `-g`, then hands the
+session to the C/C++ extension's `cppdbg` adapter, which requires both
+`ms-vscode.cpptools` and `gdb` on PATH. A missing piece shows an install
+hint instead of failing silently.
+
+A default launch configuration is provided, so starting a debug session does not
+require writing a `launch.json` by hand. The `program` field is the V source file
+to debug; `args`, `stopAtEntry` and `cwd` are optional. `miDebuggerPath` names
+the MI debugger (a path or a command on PATH, with `~` expanded) and `MIMode`
+selects `gdb` or `lldb`; both default to gdb on PATH, which is what unblocks
+macOS debugging where gdb is effectively unavailable. `setupCommands` passes
+extra MI commands through after the printer setup, `environment` and `envFile`
+set the program environment, and `externalConsole` runs it outside the
+integrated terminal. See `docs/TROUBLESHOOTING-DEBUGGING.md` when a session
+misbehaves.
+
+Attach works the same way with `"request": "attach"`: `program` names the
+running binary for symbols (nothing is compiled), `processId` takes a PID
+or `${command:pickProcess}` for the adapter's picker, and `sourceFileMap`,
+`miDebuggerServerAddress` and `pipeTransport` reach remote targets.
+
+A `Debug Main` lens over `fn main` starts the same pipeline without a
+launch configuration. Panics stop in the debugger instead of exiting:
+debug builds trap on panic while a debugger is attached.
+
+Hexadecimal display is per variable, not a launch option: in the Debug
+Console, `-exec -var-set-format <name> hex` reformats a value (the
+adapter has no showHex-style setting). Core dumps stay out of scope;
+open one with a hand-written `cppdbg` config using `coreDumpPath`.
+
+Each session loads GDB pretty printers for V values: strings show as text,
+`Option` and `Result` show their payload, and arrays and maps summarize
+their lengths. This needs a GDB with Python support; without it the session
+still runs, only without the pretty display.
+
 ## License
 
 The extension is distributed under [GPL-2.0-only](./LICENSE) because its
 task and coverage implementation comes from the VLS VS Code extension.
 Existing files covered by the [MIT license](./LICENSE.MIT) retain that license.
+
+## API
+
+Other extensions can resolve the V compiler through the extension's exports:
+
+```ts
+const v = vscode.extensions.getExtension("vlanguage.vscode-vlang")?.exports
+const compiler = v?.resolveV(resource)
+```
+
+`resolveV` returns the absolute path to the `v` binary the extension would use
+for that resource, including the settings kept from the former VLS extension.
+It returns `undefined` when the compiler cannot be resolved, which is not the
+same as it being absent.
 
 <!-- Links -->
 
