@@ -11,6 +11,7 @@ import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
 import { PathIntellisenseProvider } from "./pathIntellisense"
+import { ImportCostController } from "./importCost"
 import { ErrorLensController } from "./errorLens"
 import { registerVlsMcpServers } from "./vlsMcp"
 import { registerSkillCommands } from "skills"
@@ -85,6 +86,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	const errorLens = new ErrorLensController()
 	context.subscriptions.push(errorLens)
+
+	const importCost = new ImportCostController()
+	context.subscriptions.push(importCost)
 	context.subscriptions.push(
 		vscode.commands.registerCommand("v.errorLens.toggle", async () => {
 			const config = vscode.workspace.getConfiguration("v.errorLens")

@@ -274,6 +274,21 @@
 					"default": {},
 					"description": "Custom path mappings, e.g. {\"/\": \"${workspaceFolder}\"}."
 				},
+				"v.importCost.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show inline source size for V imports."
+				},
+				"v.importCost.includeTests": {
+					"type": "boolean",
+					"default": false,
+					"description": "Include _test.v files when measuring an imported module."
+				},
+				"v.importCost.cacheTtlMs": {
+					"type": "number",
+					"default": 60000,
+					"description": "Cache TTL in milliseconds for import size measurements."
+				},
 				"vls.command": {
 					"type": "string",
 					"default": "",
