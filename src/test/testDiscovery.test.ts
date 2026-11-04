@@ -1,6 +1,6 @@
 import * as assert from "assert"
 import { describe, it } from "node:test"
-import { parseTestFile, parseTestOutput, testRunArgs } from "../testDiscovery"
+import { parseTestFile, parseTestOutput, selectionForItemId, testRunArgs } from "../testDiscovery"
 
 const testFile = [
 	"module main",
@@ -84,5 +84,24 @@ describe("V test discovery", () => {
 			"-run-only",
 			"test_foo",
 		])
+	})
+
+	it("reads a run selection from the item id, not the label", () => {
+		// A file item's label is its basename, which matches no test: using it
+		// as a `-run-only` filter ran nothing and errored every test.
+		assert.deepStrictEqual(selectionForItemId("file:/w/app/foo_test.v"), {
+			filePath: "/w/app/foo_test.v",
+		})
+		assert.deepStrictEqual(selectionForItemId("test:/w/app/foo_test.v::test_foo"), {
+			filePath: "/w/app/foo_test.v",
+			name: "test_foo",
+		})
+		assert.deepStrictEqual(selectionForItemId("test:C:\\w\\foo_test.v::test_foo"), {
+			filePath: "C:\\w\\foo_test.v",
+			name: "test_foo",
+		})
+		assert.strictEqual(selectionForItemId("file:"), undefined)
+		assert.strictEqual(selectionForItemId("test:/w/app/foo_test.v"), undefined)
+		assert.strictEqual(selectionForItemId("other:/w/app/foo_test.v"), undefined)
 	})
 })

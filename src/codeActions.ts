@@ -14,6 +14,7 @@ import {
 } from "./testGeneration"
 import { generateTestSkeleton, testFileName } from "./testSkeleton"
 import { processLaunchCommand } from "./processExecution"
+import { vCommandFor as vCommandForFolder } from "./vExecutable"
 
 /** A code action that generates a test skeleton for a V source file.
  *
@@ -371,14 +372,13 @@ async function revealTestFile(testPath: string): Promise<boolean> {
 	return true
 }
 
-/** The V executable a folder's settings name, falling back to PATH. */
+/** The V executable a folder's settings name, resolved like every other caller.
+ *
+ * Falls back to PATH when the file is outside any workspace folder.
+ */
 function vCommandFor(uri: vscode.Uri): string {
 	const folder = vscode.workspace.getWorkspaceFolder(uri)
-	return (
-		vscode.workspace.getConfiguration("v", folder).get<string>("executablePath") ||
-		vscode.workspace.getConfiguration("vls", folder).get<string>("vCommand") ||
-		"v"
-	)
+	return folder ? vCommandForFolder(folder) : "v"
 }
 
 /** Register the test actions.

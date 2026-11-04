@@ -107,6 +107,11 @@ export const workspace = {
 	onDidGrantWorkspaceTrust(_callback: () => void) {
 		return { dispose() {} }
 	},
+	onDidChangeConfiguration(
+		_callback: (event: { affectsConfiguration(section: string): boolean }) => void,
+	) {
+		return { dispose() {} }
+	},
 	getConfiguration(section: string, _resource?: unknown) {
 		return {
 			get<T>(key: string, fallback?: T): T {

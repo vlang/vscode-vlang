@@ -6,6 +6,7 @@ import { describe, it } from "node:test"
 import {
 	c2vExecutable,
 	c2vNotInstalledMessage,
+	cOutputArgs,
 	cOutputFileName,
 	isCFileName,
 	vOutputFileName,
@@ -18,6 +19,12 @@ describe("V and C interop", () => {
 		assert.strictEqual(cOutputFileName("/w/app/src/main.v"), "/w/app/src/main.c")
 		assert.strictEqual(cOutputFileName("/w/app/deploy.vsh"), "/w/app/deploy.c")
 		assert.strictEqual(cOutputFileName("no_extension"), "no_extension.c")
+	})
+
+	it("builds the C-output arguments with an explicit source file", () => {
+		// V compiles files, not stdin: `v -o -` with no input file fails outright.
+		assert.deepStrictEqual(cOutputArgs("hello.v"), ["-o", "-", "hello.v"])
+		assert.deepStrictEqual(cOutputArgs("/w/app/src/main.v"), ["-o", "-", "/w/app/src/main.v"])
 	})
 
 	it("names the V file c2v writes for a C source", () => {

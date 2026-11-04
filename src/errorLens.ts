@@ -107,10 +107,9 @@ function makeRangeDecoration(severity: string): vscode.TextEditorDecorationType 
 	})
 }
 
-const inlineDecorationType = vscode.window.createTextEditorDecorationType({})
-
 export class ErrorLensController implements vscode.Disposable {
 	private readonly decorations = new Map<string, vscode.TextEditorDecorationType>()
+	private readonly inlineDecoration = vscode.window.createTextEditorDecorationType({})
 	private readonly timers = new Map<string, ReturnType<typeof setTimeout>>()
 	private disposables: vscode.Disposable[] = []
 
@@ -141,7 +140,7 @@ export class ErrorLensController implements vscode.Disposable {
 		this.timers.clear()
 		for (const decoration of this.decorations.values()) decoration.dispose()
 		this.decorations.clear()
-		inlineDecorationType.dispose()
+		this.inlineDecoration.dispose()
 		for (const disposable of this.disposables) disposable.dispose()
 		this.disposables = []
 	}
@@ -178,7 +177,7 @@ export class ErrorLensController implements vscode.Disposable {
 		for (const decoration of this.decorations.values()) {
 			editor.setDecorations(decoration, [])
 		}
-		editor.setDecorations(inlineDecorationType, [])
+		editor.setDecorations(this.inlineDecoration, [])
 
 		if (!config.enabled || editor.document.languageId !== "v") {
 			return
@@ -205,6 +204,11 @@ export class ErrorLensController implements vscode.Disposable {
 		for (const diagnostic of diagnostics) {
 			const severity = severityName(diagnostic.severity)
 			const line = diagnostic.range.start.line
+			// Diagnostics can outlive the edit that moved their line: skip
+			// rather than throwing the whole update away on one stale range.
+			if (line < 0 || line >= editor.document.lineCount) {
+				continue
+			}
 			const lineEnd = editor.document.lineAt(line).range.end
 			const wholeLine = new vscode.Range(line, 0, line, lineEnd.character)
 			if (!lineRanges[severity]!.some((range) => range.start.line === line)) {
@@ -233,6 +237,8 @@ export class ErrorLensController implements vscode.Disposable {
 
 		if (config.messageEnabled) {
 			const inlineOptions: vscode.DecorationOptions[] = []
+			// Every key passed the range guard in the loop above, so lineAt
+			// cannot throw here.
 			for (const [line, entry] of messagesByLine) {
 				const lineEnd = editor.document.lineAt(line).range.end
 				inlineOptions.push({
@@ -246,7 +252,7 @@ export class ErrorLensController implements vscode.Disposable {
 					},
 				})
 			}
-			editor.setDecorations(inlineDecorationType, inlineOptions)
+			editor.setDecorations(this.inlineDecoration, inlineOptions)
 		}
 	}
 }

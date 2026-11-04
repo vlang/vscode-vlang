@@ -19,7 +19,7 @@ import { registerSkillCommands } from "skills"
 import { registerTestExplorer } from "testExplorer"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { installV, isVInstalled } from "./utils"
-import { registerVTasks } from "./vTasks"
+import { registerVTasks, VTaskManager } from "./vTasks"
 import { registerTestGutter } from "./testGutter"
 import { ToolManager } from "./toolManager"
 
@@ -37,6 +37,49 @@ let vlsManager: VlsManager | undefined
  * There is nothing to register and nothing to keep in sync.
  */
 export const api = createExtensionAPI()
+
+/** Whether the window is worth starting the toolchain for.
+ *
+ * The extension also activates for JSON, XML and CSV files (decoder commands),
+ * where starting VLS, probing for updates and prompting to install V would be
+ * pure overhead. Those commands stay registered; only the heavy startup waits
+ * until a V document is open or the workspace holds V sources.
+ */
+async function workspaceTouchesV(): Promise<boolean> {
+	if (
+		vscode.workspace.textDocuments.some(
+			(document) => document.languageId === "v" || document.languageId === "v.mod",
+		)
+	) {
+		return true
+	}
+	if (!vscode.workspace.workspaceFolders?.length) {
+		return false
+	}
+	const hits = await vscode.workspace.findFiles(
+		"{**/*.v,**/*.vsh,**/*.vh,**/*.vv,**/v.mod}",
+		null,
+		1,
+	)
+	return hits.length > 0
+}
+
+/** Start the language server, reporting the failures its own recovery cannot. */
+async function startVls(taskManager: VTaskManager): Promise<boolean> {
+	const manager = new VlsManager(taskManager)
+	try {
+		await manager.restart()
+		vlsManager = manager
+		return true
+	} catch (error) {
+		// Starting the client failing is not fatal: non-LSP features still work,
+		// and the manager has already reported it through the status bar.
+		log(`Failed to start VLS: ${error instanceof Error ? error.message : String(error)}`)
+		vlsOutputChannel.show()
+		manager.dispose()
+		return false
+	}
+}
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Register output channels so users can open them even without VLS.
@@ -66,7 +109,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// by the VLS start, tasks, and run commands below.
 	const toolManager = new ToolManager(context, async (update) => update())
 	context.subscriptions.push(toolManager)
-	void toolManager.check()
+	// The update check phones home, so it waits for a V window like the rest
+	// of the heavy startup below.
+	const vRelevant = await workspaceTouchesV()
+	if (vRelevant) {
+		void toolManager.check()
+	}
 
 	// Offer the compiler to agents. Registered before the language server starts so
 	// the two are available at the same time regardless of how startup goes.
@@ -134,8 +182,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// controller the V test task drives, so it is registered where that task is.
 	registerCodeActions(context, taskManager.coverage)
 
-	// Check for V only if it's not installed
-	if (!(await isVInstalled())) {
+	// Check for V only if it's not installed and this window wants it.
+	if (vRelevant && !(await isVInstalled())) {
 		const selection = await vscode.window.showInformationMessage(
 			"The V programming language is not detected on this system. Would you like to install it?",
 			{ modal: true }, // Modal makes the user have to choose before continuing
@@ -154,19 +202,28 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Only start the language server if the user enabled it in settings.
 	// VlsManager owns the client: it version-gates the server, serializes starts
 	// and configuration changes, and recovers a crashed server instead of leaving
-	// no intellisense with only an error toast. The failure path here is the one
-	// it cannot recover from on its own.
+	// no intellisense with only an error toast. The failure path lives in
+	// `startVls`, for the errors recovery cannot handle on its own. In a window
+	// with no V relevance the start waits for the first V document instead of
+	// paying for a server nothing will talk to.
 	if (isVlsEnabled()) {
-		vlsManager = new VlsManager(taskManager)
-		try {
-			await vlsManager.restart()
-		} catch (error) {
-			// Starting the client failing is not fatal: non-LSP features still work,
-			// and the manager has already reported it through the status bar.
-			log(`Failed to start VLS: ${error instanceof Error ? error.message : String(error)}`)
-			vlsOutputChannel.show()
-			vlsManager.dispose()
-			vlsManager = undefined
+		if (vRelevant) {
+			await startVls(taskManager)
+		} else {
+			const opener = vscode.workspace.onDidOpenTextDocument(async (document) => {
+				if (document.languageId !== "v" && document.languageId !== "v.mod") {
+					return
+				}
+				if (vlsManager || !isVlsEnabled()) {
+					return
+				}
+				// A failed start keeps the trigger: the next V document retries,
+				// and V: Restart VLS is always available in between.
+				if (await startVls(taskManager)) {
+					opener.dispose()
+				}
+			})
+			context.subscriptions.push(opener)
 		}
 	} else {
 		log("VLS is disabled in settings.")
@@ -230,17 +287,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			if (e.affectsConfiguration("v.vls.enable")) {
 				if (vlsEnabled && !vlsManager) {
 					// Start the client now that the user enabled it.
-					vlsManager = new VlsManager(taskManager)
-					try {
-						await vlsManager.restart()
-					} catch (error) {
-						log(
-							`Failed to start VLS: ${error instanceof Error ? error.message : String(error)}`,
-						)
-						vlsOutputChannel.show()
-						vlsManager.dispose()
-						vlsManager = undefined
-					}
+					await startVls(taskManager)
 				} else if (!vlsEnabled && vlsManager) {
 					// Stop the client if it was running and the user disabled it.
 					vlsManager.dispose()

@@ -40,7 +40,17 @@ function catalogFor(vCommand: string): Promise<McpToolCatalog | undefined> {
 	if (cached !== undefined) {
 		return cached
 	}
-	const pending = probeCatalog(vCommand)
+	// Only a compiler that actually answered is trusted: a failure is the case
+	// where the answer changes — the user installs a newer V while the session
+	// is running — and caching it would mute MCP until a restart.
+	const pending = probeCatalog(vCommand).then((catalog) => {
+		if (catalog === undefined) {
+			if (catalogCache.get(vCommand) === pending) {
+				catalogCache.delete(vCommand)
+			}
+		}
+		return catalog
+	})
 	catalogCache.set(vCommand, pending)
 	return pending
 }
@@ -64,21 +74,27 @@ interface FolderServer {
 /** The server to offer for each open folder.
  *
  * Each folder gets its own, because the server's tools answer about one project.
+ * `v.mcp.*` are resource-scoped, so each folder reads its own read-only mode
+ * and root: one project's agent must not inherit another's write access.
  * An empty list means MCP is switched off.
  */
 function foldersToServe(): FolderServer[] {
-	const settings = workspace.getConfiguration("v.mcp")
-	if (!settings.get<boolean>("enable", true)) {
-		return []
-	}
-	const readOnly = settings.get<boolean>("readOnly", true)
-	const rootOverride = settings.get<string>("root", "").trim()
-	return (workspace.workspaceFolders ?? []).map((folder) => ({
-		folder,
-		vCommand: vCommandFor(folder),
-		root: rootOverride || folder.uri.fsPath,
-		readOnly,
-	}))
+	return (workspace.workspaceFolders ?? []).flatMap((folder) => {
+		const settings = workspace.getConfiguration("v.mcp", folder.uri)
+		if (!settings.get<boolean>("enable", true)) {
+			return []
+		}
+		const readOnly = settings.get<boolean>("readOnly", true)
+		const rootOverride = settings.get<string>("root", "").trim()
+		return [
+			{
+				folder,
+				vCommand: vCommandFor(folder),
+				root: rootOverride || folder.uri.fsPath,
+				readOnly,
+			},
+		]
+	})
 }
 
 /** Offer the V compiler as an MCP server for every workspace folder.

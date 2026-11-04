@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import { effectiveToolSetting } from "./managedTools"
+import { migratedSetting } from "./settings"
 
 /** What the status bar item reports.
  *
@@ -57,12 +58,26 @@ export function statusBarText(state: StatusBarState): StatusBarText {
 export function registerStatusBar(context: vscode.ExtensionContext): void {
 	const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
 	item.name = "V compiler"
-	const text = statusBarText(resolveToolState("v", vscode.workspace.workspaceFolders?.[0]))
-	item.text = text.text
-	item.tooltip = text.tooltip
-	item.command = text.command
-	item.show()
-	context.subscriptions.push(item)
+	const refresh = () => {
+		const text = statusBarText(resolveToolState("v", vscode.workspace.workspaceFolders?.[0]))
+		item.text = text.text
+		item.tooltip = text.tooltip
+		item.command = text.command
+		item.show()
+	}
+	refresh()
+	context.subscriptions.push(
+		item,
+		vscode.workspace.onDidChangeConfiguration((event) => {
+			// The legacy alias feeds the same resolution, so it refreshes too.
+			if (
+				event.affectsConfiguration("v.executablePath") ||
+				event.affectsConfiguration("vls.vCommand")
+			) {
+				refresh()
+			}
+		}),
+	)
 }
 
 /** Whether the configured tool resolves, read the way the task path reads it.
@@ -72,9 +87,9 @@ export function registerStatusBar(context: vscode.ExtensionContext): void {
  */
 function resolveToolState(tool: "v" | "vls", folder?: vscode.WorkspaceFolder): StatusBarState {
 	const configured =
-		vscode.workspace
-			.getConfiguration("v", folder)
-			.get<string>(tool === "v" ? "executablePath" : "vls.command") ?? ""
+		tool === "v"
+			? migratedSetting("v", "executablePath", "vls", "vCommand", "v", folder?.uri)
+			: migratedSetting("v.vls", "command", "vls", "command", "", folder?.uri)
 	const resolved = effectiveToolSetting(tool, configured)
 	return resolved.trim() === ""
 		? { status: "missing", tool, name: "" }

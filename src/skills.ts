@@ -244,15 +244,28 @@ async function installSkills(): Promise<void> {
 	}
 
 	// A skill already installed is only overwritten when it has fallen behind the
-	// compiler's copy. `add` refuses otherwise, so this is the one case where
-	// `--force` is what the user asked for by picking the skill at all.
-	const names = chosen.map((item) => item.label)
-	const force = chosen.some((item) => item.description === "already installed")
-	const run = await vscode.window.withProgress(
-		{ location: vscode.ProgressLocation.Notification, title: "Installing V agent skills..." },
-		() => runV(vCommand, folder, skillAddArgs(names, scope, force)),
-	)
-	await report(`V skills install finished (exit ${run.code}).`, run)
+	// compiler's copy. `add` refuses otherwise, so `--force` applies to exactly
+	// the skills the user picked that are already there: passing it for the
+	// whole batch would overwrite user-modified skills they only meant to keep.
+	const installedNames = chosen
+		.filter((item) => item.description === "already installed")
+		.map((item) => item.label)
+	const newNames = chosen
+		.filter((item) => item.description !== "already installed")
+		.map((item) => item.label)
+	for (const [names, force, title] of [
+		[newNames, false, "Installing V agent skills..."],
+		[installedNames, true, "Reinstalling V agent skills..."],
+	] as const) {
+		if (names.length === 0) {
+			continue
+		}
+		const run = await vscode.window.withProgress(
+			{ location: vscode.ProgressLocation.Notification, title },
+			() => runV(vCommand, folder, skillAddArgs(names, scope, force)),
+		)
+		await report(`V skills install finished (exit ${run.code}).`, run)
+	}
 }
 
 /** `V: Remove V Agent Skills` */

@@ -165,7 +165,9 @@ auto-detected) or in dedicated `.jsx`/`.tsx` files.
   names without a schema, so struct inference does not apply to them;
   base64, hex, base32 and base58 are encodings, covered by
   **V: Convert Selection Encoding** instead.
-- **V: Generate C Output** shows the C the compiler emits for the active file.
+- **V: Generate C Output** saves the active file, then shows the C the
+  compiler emits for it (`v -o - <file>`); V compiles files rather than
+  standard input, so an unsaved buffer cannot be translated as-is.
 - **V: Translate C File to V with c2v** translates the active `.c` file,
   offering to install `c2v` when it is missing.
 - **V: Organize Imports** sorts (and de-duplicates, where safe) the import
@@ -205,9 +207,12 @@ language server working from a failed parse cannot manage. It also carries the
 standard library documentation, so an agent can look up a signature instead of
 guessing one.
 
-This needs a V that supports `v mcp`. The extension probes `v mcp tools` once
-per compiler and quietly offers nothing when the compiler is too old. Nothing
-is started until an agent calls a tool.
+This needs a V that supports `v mcp`. The extension probes `v mcp tools` per
+compiler and quietly offers nothing when the compiler is too old; a failed
+probe is retried rather than cached, so installing a newer V mid-session is
+picked up. Nothing is started until an agent calls a tool. `v.mcp.*` are
+resource-scoped, so each workspace folder carries its own enable flag,
+read-only mode, and root.
 
 The server starts read-only by default, which registers no tool that writes a
 file. Three of the eighteen tools write: `v_rename_symbol`, which defaults to a
@@ -230,11 +235,14 @@ ships, without this extension. See `v mcp --help` and `v skills --help`.
 
 ### Agents: VLS as an MCP server
 
-VLS also speaks MCP over stdio (`vls --mcp`): compile checks, hover,
-definitions, references, rename, symbols, and completion. The extension offers
-one VLS server per workspace folder behind `v.vls.mcp.enable` (default
-`false`, resource-scoped). Both MCP providers (`V Compiler`, `V Language
-Server`) appear in VS Code once enabled.
+VLS is offered as an MCP server over stdio (`vls --mcp`) when the configured
+VLS answers an MCP handshake: compile checks, hover, definitions, references,
+rename, symbols, and completion. The extension probes the binary before
+registering anything, and quietly offers nothing when the installed VLS
+cannot serve MCP (no VLS verified so far answers the handshake). One VLS
+server per workspace folder sits behind `v.vls.mcp.enable` (default `false`,
+resource-scoped). Both MCP providers (`V Compiler`, `V Language Server`)
+appear in VS Code once enabled.
 
 ### Agents: the bundled V agent skills
 
@@ -257,9 +265,11 @@ The extension adds commands around that rather than a copy of it:
   (`v skills remove`, new in recent V)
 
 Nothing is overwritten silently. `v skills add` refuses to replace an installed
-skill unless `--force` is given, which happens only when you picked a
-skill that is already installed and out of date. `v skills update` holds back a
-skill whose files were edited locally, and reports which one and why.
+skill unless `--force` is given, which the extension passes only for the
+picked skills that are already installed; freshly picked skills install
+without it, so one reinstall cannot overwrite the rest. `v skills update`
+holds back a skill whose files were edited locally, and reports which one
+and why.
 
 These commands need a V that supports `v skills`. On an older compiler they
 report that rather than doing nothing. Skills also work with agents outside VS

@@ -21,15 +21,44 @@ export function readConfig(): ImportCostConfig {
 	}
 }
 
+/** An import line without its trailing `//` comment.
+ *
+ * Import statements carry no strings, so the first `//` always starts a
+ * comment rather than a URL or a literal.
+ */
+function withoutLineComment(line: string): string {
+	const comment = line.indexOf("//")
+	return (comment < 0 ? line : line.slice(0, comment)).trimEnd()
+}
+
 export function parseImports(text: string): { line: number; module: string }[] {
 	const result: { line: number; module: string }[] = []
 	const lines = text.split(/\r?\n/)
+	let inGroup = false
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i] ?? ""
 		const trimmed = line.trim()
-		if (!trimmed.startsWith("import ")) continue
-		// import foo, import foo as bar, import foo { ... }, import (
-		const match = /^import\s+([A-Za-z0-9_.]+)/.exec(trimmed)
+		if (!inGroup) {
+			// A trailing comment does not change the statement: `import ( //
+			// comment` still opens a group.
+			const code = withoutLineComment(trimmed)
+			if (code === "import (") {
+				inGroup = true
+				continue
+			}
+			if (!trimmed.startsWith("import ")) continue
+			// import foo, import foo as bar, import foo { ... }
+			const match = /^import\s+([A-Za-z0-9_.]+)/.exec(trimmed)
+			if (match?.[1]) {
+				result.push({ line: i, module: match[1] })
+			}
+			continue
+		}
+		if (trimmed === ")") {
+			inGroup = false
+			continue
+		}
+		const match = /^([A-Za-z0-9_.]+)/.exec(trimmed)
 		if (match?.[1]) {
 			result.push({ line: i, module: match[1] })
 		}
@@ -110,15 +139,20 @@ function formatSize(bytes: number): string {
 	return `${(bytes / 1024).toFixed(1)} KB`
 }
 
-const decorationType = vscode.window.createTextEditorDecorationType({})
-
 interface CacheEntry {
 	text: string
 	at: number
 }
 
+/** Bound the measurement cache: one project can import hundreds of modules,
+ * and the entries are per project, so an unbounded map grows with every
+ * workspace folder opened in the session.
+ */
+const cacheLimit = 512
+
 export class ImportCostController implements vscode.Disposable {
 	private readonly cache = new Map<string, CacheEntry>()
+	private readonly decoration = vscode.window.createTextEditorDecorationType({})
 	private disposables: vscode.Disposable[] = []
 
 	constructor() {
@@ -133,7 +167,7 @@ export class ImportCostController implements vscode.Disposable {
 	}
 
 	dispose(): void {
-		decorationType.dispose()
+		this.decoration.dispose()
 		for (const disposable of this.disposables) disposable.dispose()
 		this.disposables = []
 	}
@@ -146,7 +180,7 @@ export class ImportCostController implements vscode.Disposable {
 	}
 
 	private updateEditor(editor: vscode.TextEditor, config: ImportCostConfig): void {
-		editor.setDecorations(decorationType, [])
+		editor.setDecorations(this.decoration, [])
 		if (!config.enabled || editor.document.languageId !== "v") return
 
 		const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
@@ -158,7 +192,10 @@ export class ImportCostController implements vscode.Disposable {
 		const options: vscode.DecorationOptions[] = []
 
 		for (const imp of imports) {
-			const cacheKey = `${imp.module}:${config.includeTests}`
+			// The same module name resolves differently per project, per file
+			// location and per compiler: sharing an entry across any of those
+			// would decorate one project with another's sizes.
+			const cacheKey = `${folder?.uri.fsPath ?? documentDir}\n${vExecutable}\n${imp.module}:${config.includeTests}`
 			let entry = this.cache.get(cacheKey)
 			if (!entry || now - entry.at > config.cacheTtlMs) {
 				const dir = resolveModuleDirectory(
@@ -172,6 +209,9 @@ export class ImportCostController implements vscode.Disposable {
 					? `// ${formatSize(measured.bytes)} (${measured.lines} lines, ${measured.files} files)`
 					: "// (unresolved)"
 				entry = { text, at: now }
+				if (this.cache.size >= cacheLimit) {
+					this.cache.clear()
+				}
 				this.cache.set(cacheKey, entry)
 			}
 			const lineEnd = editor.document.lineAt(imp.line).range.end
@@ -186,6 +226,6 @@ export class ImportCostController implements vscode.Disposable {
 			})
 		}
 
-		editor.setDecorations(decorationType, options)
+		editor.setDecorations(this.decoration, options)
 	}
 }

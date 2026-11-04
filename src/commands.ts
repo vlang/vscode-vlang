@@ -14,6 +14,7 @@ import vscode, {
 import {
 	c2vExecutable,
 	c2vNotInstalledMessage,
+	cOutputArgs,
 	cOutputFileName,
 	isCFileName,
 	vOutputFileName,
@@ -145,9 +146,10 @@ export async function ver(): Promise<string | undefined> {
 
 /** Translate the active V document to a sibling `.c` file.
  *
- * `-o -` puts the C on stdout, so the buffer is translated without being saved.
- * This is the same stdin path `fmt` uses, and the working directory is still the
- * document's own, which is what resolves its imports.
+ * `-o -` puts the C on stdout, so the translation is captured without V writing
+ * beside the source itself. V compiles files rather than stdin, so the document
+ * is saved first: translating the buffer without saving would compile the
+ * on-disk copy instead of what the user is looking at.
  */
 export async function generateCOutput(): Promise<void> {
 	const document = activeVDocument()
@@ -156,17 +158,17 @@ export async function generateCOutput(): Promise<void> {
 		return
 	}
 	try {
-		const version = document.version
-		const generated = await executeV(["-o", "-"], document.uri, {
-			input: document.getText(),
-			cwd: path.dirname(document.fileName),
-		})
-		if (document.isClosed || document.version !== version) {
+		// V compiles files rather than stdin, so the on-disk copy is what gets
+		// translated: a failed save leaves nothing current to translate.
+		if (!(await document.save())) {
 			void window.showWarningMessage(
-				"V: The document changed while translating. Run Generate C Output again.",
+				"V: Could not save the file, so there is nothing to translate.",
 			)
 			return
 		}
+		const generated = await executeV(cOutputArgs(document.fileName), document.uri, {
+			cwd: path.dirname(document.fileName),
+		})
 		if (generated.length === 0) {
 			void window.showErrorMessage(
 				"V produced no C for this file. See the V output channel for details.",

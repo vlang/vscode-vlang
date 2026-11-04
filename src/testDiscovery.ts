@@ -95,7 +95,7 @@ export function parseTestOutput(output: string): TestOutcome[] {
 
 /** The argument list for `v test` on one file, with an optional name filter.
  *
- * `-nocolor` keeps the output parseable. `VTEST_ONLY_FN` is the filter the Test
+ * `-nocolor` keeps the output parseable. `-run-only` is the filter the Test
  * Explorer's selection maps onto, so it is set from the request rather than
  * hard-coded.
  */
@@ -105,4 +105,37 @@ export function testRunArgs(filePath: string, nameFilter?: string): string[] {
 		args.push("-run-only", nameFilter)
 	}
 	return args
+}
+
+/** One selected test run, addressed the way the Test Explorer addresses it.
+ *
+ * `filePath` is the `_test.v` file; an absent `name` means the whole file.
+ */
+export interface TestSelection {
+	filePath: string
+	name?: string
+}
+
+/** Read a Test Explorer selection back from a test item id.
+ *
+ * Ids are built by the explorer as `file:<path>` and `test:<path>::<name>`,
+ * so the label — a display name — is never the filter. Returns `undefined`
+ * for ids the explorer did not build.
+ */
+export function selectionForItemId(id: string): TestSelection | undefined {
+	if (id.startsWith("file:")) {
+		const filePath = id.slice("file:".length)
+		return filePath ? { filePath } : undefined
+	}
+	if (id.startsWith("test:")) {
+		const rest = id.slice("test:".length)
+		const separator = rest.lastIndexOf("::")
+		if (separator < 0) {
+			return undefined
+		}
+		const filePath = rest.slice(0, separator)
+		const name = rest.slice(separator + 2)
+		return filePath && name ? { filePath, name } : undefined
+	}
+	return undefined
 }

@@ -51,9 +51,18 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 }
 
 /** Compile a V program to a binary with debug info. */
-async function compileForDebug(vCommand: string, program: string, cwd: string): Promise<string> {
+async function compileForDebug(
+	vCommand: string,
+	program: string,
+	cwd: string,
+	signal?: AbortSignal,
+): Promise<string> {
 	const binary = debugBinaryPath(program)
-	await execFile(vCommand, debugCompileArgs(program, binary), { cwd, timeout: compileTimeoutMs })
+	await execFile(vCommand, debugCompileArgs(program, binary), {
+		cwd,
+		timeout: compileTimeoutMs,
+		signal,
+	})
 	return binary
 }
 
@@ -141,26 +150,47 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			})
 		}
 		return vscode.window.withProgress(
-			{ location: vscode.ProgressLocation.Window, title: "Compiling V for debugging..." },
-			async () => {
-				const binary = await compileForDebug(vCommand, vConfiguration.program, cwd)
-				return cppdbgLaunchConfig({
-					name: configuration.name,
-					binary,
-					args: vConfiguration.args ?? [],
-					cwd,
-					stopAtEntry: vConfiguration.stopAtEntry ?? false,
-					printersPath: vPrintersPath(__dirname),
-					miMode,
-					miDebuggerPath: debuggerPath,
-					setupCommands: vConfiguration.setupCommands,
-					environment: vConfiguration.environment,
-					envFile: vConfiguration.envFile,
-					externalConsole: vConfiguration.externalConsole,
-					sourceFileMap: vConfiguration.sourceFileMap,
-					miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
-					pipeTransport: vConfiguration.pipeTransport,
-				})
+			{
+				location: vscode.ProgressLocation.Window,
+				title: "Compiling V for debugging...",
+				cancellable: true,
+			},
+			async (_progress, token) => {
+				if (token.isCancellationRequested) {
+					return undefined
+				}
+				const controller = new AbortController()
+				const cancellation = token.onCancellationRequested(() => controller.abort())
+				try {
+					const binary = await compileForDebug(
+						vCommand,
+						vConfiguration.program,
+						cwd,
+						controller.signal,
+					)
+					if (token.isCancellationRequested) {
+						return undefined
+					}
+					return cppdbgLaunchConfig({
+						name: configuration.name,
+						binary,
+						args: vConfiguration.args ?? [],
+						cwd,
+						stopAtEntry: vConfiguration.stopAtEntry ?? false,
+						printersPath: vPrintersPath(__dirname),
+						miMode,
+						miDebuggerPath: debuggerPath,
+						setupCommands: vConfiguration.setupCommands,
+						environment: vConfiguration.environment,
+						envFile: vConfiguration.envFile,
+						externalConsole: vConfiguration.externalConsole,
+						sourceFileMap: vConfiguration.sourceFileMap,
+						miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+						pipeTransport: vConfiguration.pipeTransport,
+					})
+				} finally {
+					cancellation.dispose()
+				}
 			},
 		)
 	}

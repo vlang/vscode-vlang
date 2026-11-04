@@ -22,6 +22,16 @@ export function cOutputFileName(sourceFileName: string): string {
 	return replaceExtension(sourceFileName, ".c")
 }
 
+/** The argument list that translates a saved V file to C on stdout.
+ *
+ * `-o -` writes the C to stdout instead of a file, so the caller decides where
+ * it lands. The source file is passed explicitly: V compiles files, not stdin,
+ * and `v -o -` with no input file fails with "no input file".
+ */
+export function cOutputArgs(sourceFilePath: string): string[] {
+	return ["-o", "-", sourceFilePath]
+}
+
 /** The V file c2v writes for a C source file.
  *
  * c2v names its output after its input, so `hello.c` becomes `hello.v` beside
