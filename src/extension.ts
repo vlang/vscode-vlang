@@ -11,6 +11,7 @@ import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
 import { PathIntellisenseProvider } from "./pathIntellisense"
+import { detectTemplateScriptKind, isVebTemplateFile, parseVebDirective } from "./vebTemplate"
 import { ImportCostController } from "./importCost"
 import { ErrorLensController } from "./errorLens"
 import { registerVlsMcpServers } from "./vlsMcp"
@@ -82,6 +83,30 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			"'",
 			"`",
 		),
+		vscode.languages.registerCompletionItemProvider(
+			{ language: "html" },
+			new PathIntellisenseProvider(),
+			"/",
+			"\\",
+			'"',
+			"'",
+		),
+		vscode.languages.registerHoverProvider({ language: "html" }, {
+			provideHover(document, position) {
+				if (!isVebTemplateFile(document.uri.fsPath)) return undefined
+				const line = document.lineAt(position.line).text
+				const directive = parseVebDirective(line, position.line)
+				if (!directive) return undefined
+				const kind = vscode.workspace
+					.getConfiguration("v.templates")
+					.get<boolean>("jsxAutoDetect", true)
+					? detectTemplateScriptKind(document.uri.fsPath, document.getText())
+					: "html"
+				return new vscode.Hover(
+					`VEB \`${directive.kind}\`${directive.value ? ` — ${directive.value}` : ""} (template script: ${kind})`,
+				)
+			},
+		}),
 	)
 
 	const errorLens = new ErrorLensController()

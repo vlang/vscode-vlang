@@ -50,6 +50,26 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Web templates (HTML/CSS/JS, React, Tailwind)
+
+Template files stay HTML — the extension injects VEB directive highlighting
+(`@if`, `@for`, `@else`, `@end`, `@include`, `@var`, `${...}`, `@{...}`) into
+`text.html.basic` instead of replacing the language. Emmet, Tailwind CSS,
+Prettier, ESLint and React extensions keep working.
+
+Recognized templates: `.html` under `templates/`, plus `.vhtml` and `.vtml`
+(which default to HTML via `files.associations`).
+
+Settings:
+
+- `v.templates.jsxAutoDetect`: auto-detect JSX/TSX in template script blocks
+- `v.templates.enableEmmet`: recommend Emmet for HTML templates
+- `v.templates.enableTailwind`: recommend Tailwind CSS IntelliSense
+
+For Tailwind, include `./templates/**/*.{html,vhtml,vtml}` in your `content`
+glob. React works inside `<script type="text/babel">` blocks (JSX
+auto-detected) or in dedicated `.jsx`/`.tsx` files.
+
 ### Generate from JSON
 
 On a JSON file, **V: Generate JSON Decoder** infers V structs for the

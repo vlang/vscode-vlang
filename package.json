@@ -31,7 +31,7 @@
 		"fmt": "prettier -w .",
 		"fmt:check": "prettier --check .",
 		"test": "npm run typecheck && npm run lint && npm run test:logic",
-		"build:test": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/cInterop.test.ts src/test/mcp.test.ts src/test/agent.test.ts src/test/testDiscovery.test.ts src/test/envStatus.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts src/test/canonicalPath.test.ts src/test/codeActions.test.ts src/test/formatProvider.test.ts src/test/saveDocuments.test.ts src/test/folding.test.ts src/test/statusBar.test.ts src/test/testGutter.test.ts src/test/documentMemo.test.ts src/test/vCommand.test.ts src/test/selectExecutable.test.ts src/test/exec.test.ts src/test/lifecycle.test.ts src/test/serverRestart.test.ts src/test/toolInstallation.test.ts src/test/toolProvisioning.test.ts src/test/toolVersions.test.ts src/test/vlsSupport.test.ts src/test/testGeneration.test.ts --bundle --alias:vscode=./src/test/fixtures/vscode.ts --platform=node --target=node24 --format=cjs --outdir=out/test",
+		"build:test": "esbuild src/test/extension.test.ts src/test/testSkeleton.test.ts src/test/cInterop.test.ts src/test/mcp.test.ts src/test/agent.test.ts src/test/testDiscovery.test.ts src/test/envStatus.test.ts src/test/debugCompile.test.ts src/test/playground.test.ts src/test/fillStruct.test.ts src/test/decodeStruct.test.ts src/test/convert.test.ts src/test/vpm.test.ts src/test/numberHover.test.ts src/test/docTables.test.ts src/test/importsCleanup.test.ts src/test/canonicalPath.test.ts src/test/codeActions.test.ts src/test/formatProvider.test.ts src/test/saveDocuments.test.ts src/test/folding.test.ts src/test/statusBar.test.ts src/test/testGutter.test.ts src/test/documentMemo.test.ts src/test/vCommand.test.ts src/test/selectExecutable.test.ts src/test/exec.test.ts src/test/lifecycle.test.ts src/test/serverRestart.test.ts src/test/toolInstallation.test.ts src/test/toolProvisioning.test.ts src/test/toolVersions.test.ts src/test/vlsSupport.test.ts src/test/testGeneration.test.ts src/test/vebTemplate.test.ts --bundle --alias:vscode=./src/test/fixtures/vscode.ts --platform=node --target=node24 --format=cjs --outdir=out/test",
 		"test:logic": "npm run build:test && node --test out/test/*.test.js",
 		"coverage": "npm run build:test -- --sourcemap && node scripts/coverage.cjs",
 		"test:vscode": "npm run build && esbuild src/test/vscode.integration.ts --bundle --external:vscode --platform=node --target=node24 --format=cjs --outfile=out/test/vscode.integration.js && node scripts/test-vscode.cjs",
@@ -116,6 +116,14 @@
 				"language": "v.mod",
 				"scopeName": "v.mod",
 				"path": "syntaxes/v.mod.tmLanguage.json"
+			},
+			{
+				"scopeName": "inline.veb",
+				"path": "syntaxes/veb-injection.tmLanguage.json",
+				"injectTo": ["text.html.basic"],
+				"embeddedLanguages": {
+					"meta.embedded.expression.veb": "v"
+				}
 			}
 		],
 		"configuration": {
@@ -289,6 +297,21 @@
 					"default": 60000,
 					"description": "Cache TTL in milliseconds for import size measurements."
 				},
+				"v.templates.jsxAutoDetect": {
+					"type": "boolean",
+					"default": true,
+					"description": "Auto-detect JSX/TSX inside template script blocks for React support. Language stays HTML; detection only guides hover/completion helpers."
+				},
+				"v.templates.enableEmmet": {
+					"type": "boolean",
+					"default": true,
+					"description": "Recommend Emmet for template files. Writes emmet.includeLanguages for html only, never overrides your setting."
+				},
+				"v.templates.enableTailwind": {
+					"type": "boolean",
+					"default": true,
+					"description": "Recommend Tailwind CSS IntelliSense for template files via tailwindCSS.includeLanguages."
+				},
 				"vls.command": {
 					"type": "string",
 					"default": "",
@@ -432,6 +455,16 @@
 		"configurationDefaults": {
 			"[v]": {
 				"editor.insertSpaces": false
+			},
+			"emmet.includeLanguages": {
+				"html": "html"
+			},
+			"tailwindCSS.includeLanguages": {
+				"html": "html"
+			},
+			"files.associations": {
+				"*.vhtml": "html",
+				"*.vtml": "html"
 			}
 		},
 		"keybindings": [
