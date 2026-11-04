@@ -661,6 +661,11 @@
 				"category": "V"
 			},
 			{
+				"command": "v.skills.remove",
+				"title": "Remove V Agent Skills",
+				"category": "V"
+			},
+			{
 				"command": "v.skills.update",
 				"title": "Update V Agent Skills",
 				"category": "V"

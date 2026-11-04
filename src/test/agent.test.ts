@@ -5,6 +5,7 @@ import {
 	SkillCatalog,
 	skillAddArgs,
 	SkillEntry,
+	skillRemoveArgs,
 	skillState,
 	skillUpdateArgs,
 	summarize,
@@ -134,5 +135,20 @@ describe("V agent skills", () => {
 		// given, so it is never passed through from here.
 		assert.deepStrictEqual(skillUpdateArgs("project"), ["skills", "update"])
 		assert.deepStrictEqual(skillUpdateArgs("global"), ["skills", "update", "--global"])
+	})
+
+	it("removes installed skills per scope", () => {
+		assert.deepStrictEqual(skillRemoveArgs(["v-lang"], "project"), [
+			"skills",
+			"remove",
+			"v-lang",
+		])
+		assert.deepStrictEqual(skillRemoveArgs(["v-lang", "v-tools"], "global"), [
+			"skills",
+			"remove",
+			"v-lang",
+			"v-tools",
+			"--global",
+		])
 	})
 })

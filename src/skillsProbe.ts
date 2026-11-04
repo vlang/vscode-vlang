@@ -149,6 +149,20 @@ export function skillUpdateArgs(scope: SkillScope): string[] {
 	return scope === "global" ? ["skills", "update", "--global"] : ["skills", "update"]
 }
 
+/** The argument list for `v skills remove`.
+ *
+ * `remove` deletes an installed skill. `--global` selects `~/.agents/skills`,
+ * otherwise the project directory is used. `--dry-run` is not passed here:
+ * removal is explicit from the picker, and the compiler reports what it did.
+ */
+export function skillRemoveArgs(names: string[], scope: SkillScope): string[] {
+	const args = ["skills", "remove", ...names]
+	if (scope === "global") {
+		args.push("--global")
+	}
+	return args
+}
+
 export interface SkillSummary {
 	installed: number
 	stale: number

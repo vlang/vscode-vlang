@@ -253,6 +253,8 @@ The extension adds commands around that rather than a copy of it:
 - `V: Show V Agent Skill Status` says what is installed where and which copies
   have fallen behind the compiler's
 - `V: Update V Agent Skills` refreshes the ones that have
+- `V: Remove V Agent Skills` removes installed skills per scope
+  (`v skills remove`, new in recent V)
 
 Nothing is overwritten silently. `v skills add` refuses to replace an installed
 skill unless `--force` is given, which happens only when you picked a
@@ -313,6 +315,7 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 - `V: Install V Agent Skills`
 - `V: Show V Agent Skill Status`
 - `V: Update V Agent Skills`
+- `V: Remove V Agent Skills`
 - `V: Toggle Error Lens`
 - `V: Show V version`
 - `V: Select V executable`

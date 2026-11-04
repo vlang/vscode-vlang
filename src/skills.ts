@@ -8,6 +8,7 @@ import {
 	SkillCatalog,
 	SkillScope,
 	skillAddArgs,
+	skillRemoveArgs,
 	skillState,
 	skillUpdateArgs,
 	summarize,
@@ -254,6 +255,62 @@ async function installSkills(): Promise<void> {
 	await report(`V skills install finished (exit ${run.code}).`, run)
 }
 
+/** `V: Remove V Agent Skills` */
+async function removeSkills(): Promise<void> {
+	const folder = activeFolder()
+	if (!folder) {
+		void vscode.window.showErrorMessage("Open a folder to remove its V agent skills.")
+		return
+	}
+	const vCommand = vCommandFor(folder)
+	const catalog = await vscode.window.withProgress(
+		{ location: vscode.ProgressLocation.Window, title: "Reading V agent skills..." },
+		() => catalogFor(vCommand, folder),
+	)
+	if (!catalog) {
+		void vscode.window.showWarningMessage(
+			`This V has no \`v skills\`. ${vCommand} may be older than the feature.`,
+		)
+		return
+	}
+	const scope = await pickScope(folder.uri.fsPath)
+	if (!scope) {
+		return
+	}
+	const installed = catalog.skills.filter((entry) => {
+		const state = skillState(entry)
+		return scope === "global" ? state.global : state.project
+	})
+	if (installed.length === 0) {
+		void vscode.window.showInformationMessage(
+			scope === "global"
+				? "No user V agent skills installed."
+				: "No project V agent skills installed.",
+		)
+		return
+	}
+	const chosen = await vscode.window.showQuickPick(
+		installed.map((entry) => ({ label: entry.name, detail: entry.description })),
+		{ title: "Which V agent skills should be removed?", canPickMany: true },
+	)
+	if (!chosen || chosen.length === 0) {
+		return
+	}
+	const run = await vscode.window.withProgress(
+		{ location: vscode.ProgressLocation.Notification, title: "Removing V agent skills..." },
+		() =>
+			runV(
+				vCommand,
+				folder,
+				skillRemoveArgs(
+					chosen.map((item) => item.label),
+					scope,
+				),
+			),
+	)
+	await report(`V skills remove finished (exit ${run.code}).`, run)
+}
+
 /** Offer the compiler's skills from the editor.
  *
  * The skills themselves are not contributed to VS Code. `.agents/skills` is an
@@ -265,6 +322,7 @@ export function registerSkillCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand("v.skills.install", () => installSkills()),
 		vscode.commands.registerCommand("v.skills.status", () => showStatus()),
+		vscode.commands.registerCommand("v.skills.remove", () => removeSkills()),
 		vscode.commands.registerCommand("v.skills.update", () => {
 			const folder = activeFolder()
 			if (!folder) {
