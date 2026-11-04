@@ -35,7 +35,12 @@ The available VLS settings are:
 - `v.vls.command`: path or command name for the VLS executable
 - `v.vls.args`: additional command-line arguments
 - `v.vls.inlayHints.enabled`: enable or disable inlay hints
+- `v.vls.inlayHints.variableTypes`: show inlay type hints
+- `v.vls.inlayHints.parameterNames`: show inlay parameter-name hints
 - `v.vls.diagnostics`: enable or disable live diagnostics
+- `v.vls.defines`: compile-time defines VLS checks with, e.g. `["-d", "flag"]`
+- `v.vls.coverageDirectory`: directory a `v -coverage` run recorded into; enables
+  VLS "Generate test" actions for untested functions
 - `v.vls.coverage.enabled`: collect coverage during test tasks and highlight
   covered and uncovered executable lines
 - `v.executablePath`: V compiler used by VLS and tasks; supports absolute

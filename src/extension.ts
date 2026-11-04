@@ -10,6 +10,7 @@ import { registerStatusBar } from "./statusBar"
 import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
+import { registerVlsMcpServers } from "./vlsMcp"
 import { registerSkillCommands } from "skills"
 import { registerTestExplorer } from "testExplorer"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
@@ -66,6 +67,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Offer the compiler to agents. Registered before the language server starts so
 	// the two are available at the same time regardless of how startup goes.
 	registerMcpServers(context)
+	registerVlsMcpServers(context)
 	// This needs the V compiler, which may be absent or older than the command is,
 	// so it reports its own unavailability rather than failing activation.
 	registerSkillCommands(context)
@@ -129,6 +131,16 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		() => vlsManager?.isRunning() ?? false,
 	)
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand("v.vls.generateTest", async () => {
+			if (vlsManager) {
+				await vlsManager.generateTests()
+			} else {
+				void vscode.window.showInformationMessage("VLS is not running.")
+			}
+		}),
+	)
+
 	const inlayHintsEmitter = new vscode.EventEmitter<void>()
 	context.subscriptions.push(inlayHintsEmitter)
 	context.subscriptions.push(
@@ -144,8 +156,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			const vlsEnabled = isVlsEnabled()
 
 			if (
-				e.affectsConfiguration("v.vls.inlayHints.enabled") ||
-				e.affectsConfiguration("vls.inlayHints.enabled")
+				e.affectsConfiguration("v.vls.inlayHints") ||
+				e.affectsConfiguration("vls.inlayHints")
 			) {
 				inlayHintsEmitter.fire()
 			}

@@ -56,6 +56,10 @@
 			{
 				"id": "vCompiler",
 				"label": "V Compiler"
+			},
+			{
+				"id": "vLanguageServer",
+				"label": "V Language Server"
 			}
 		],
 		"snippets": [
@@ -170,11 +174,41 @@
 					"default": true,
 					"description": "Enable live diagnostics from VLS."
 				},
+				"v.vls.defines": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "Compile-time defines VLS checks with, e.g. [\"-d\", \"flag\"] or [\"-dflag\"]. VLS reads vls.json too; the editor setting wins."
+				},
+				"v.vls.coverageDirectory": {
+					"type": "string",
+					"default": "",
+					"scope": "resource",
+					"description": "Directory a `v -coverage` run recorded into. VLS reads it to offer Generate test actions for untested functions."
+				},
+				"v.vls.inlayHints.variableTypes": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show inlay type hints from VLS."
+				},
+				"v.vls.inlayHints.parameterNames": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show inlay parameter-name hints from VLS."
+				},
 				"v.vls.coverage.enabled": {
 					"type": "boolean",
 					"default": true,
 					"scope": "resource",
 					"description": "Collect test coverage and highlight covered and uncovered executable lines after V test tasks."
+				},
+				"v.vls.mcp.enable": {
+					"type": "boolean",
+					"default": false,
+					"scope": "resource",
+					"description": "Offer VLS as an MCP server to agents, exposing compile checks, hover, definitions, references, rename, symbols and completion."
 				},
 				"vls.command": {
 					"type": "string",
@@ -209,6 +243,33 @@
 					"default": true,
 					"markdownDeprecationMessage": "Deprecated: use `v.vls.diagnostics` instead.",
 					"description": "Deprecated alias of `v.vls.diagnostics`. Kept so settings from the former VLS extension keep working."
+				},
+				"vls.defines": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.defines` instead.",
+					"description": "Deprecated alias of `v.vls.defines`."
+				},
+				"vls.coverageDirectory": {
+					"type": "string",
+					"default": "",
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.coverageDirectory` instead.",
+					"description": "Deprecated alias of `v.vls.coverageDirectory`."
+				},
+				"vls.inlayHints.variableTypes": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.inlayHints.variableTypes` instead.",
+					"description": "Deprecated alias of `v.vls.inlayHints.variableTypes`."
+				},
+				"vls.inlayHints.parameterNames": {
+					"type": "boolean",
+					"default": true,
+					"markdownDeprecationMessage": "Deprecated: use `v.vls.inlayHints.parameterNames` instead.",
+					"description": "Deprecated alias of `v.vls.inlayHints.parameterNames`."
 				},
 				"vls.coverage.enabled": {
 					"scope": "resource",
@@ -414,6 +475,11 @@
 			{
 				"command": "v.vls.restart",
 				"title": "Restart VLS",
+				"category": "V"
+			},
+			{
+				"command": "v.vls.generateTest",
+				"title": "Generate Test from Coverage",
 				"category": "V"
 			},
 			{

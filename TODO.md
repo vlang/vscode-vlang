@@ -175,6 +175,14 @@ panics_break_into_debugger` traps under a debugger (SIGTRAP
 | `feat/debug-attach-map`                                    | D2-1 attach, D2-3 remote                                                |
 | `feat/debug-codelens-panic`                                | D2-2 CodeLens, D2-4 panic traps                                         |
 
+## VLS master tuning (showcase)
+- [x] Layered config: send `defines`, `coverageDirectory`, inlay-hint
+      sub-toggles to VLS via `didChangeConfiguration`.
+- [x] Declare the new settings and deprecated aliases in `package.json`.
+- [x] Expose `v.vls.generateTest` (coverage-based test generation).
+- [x] Offer VLS as an MCP server behind `v.vls.mcp.enable`.
+- [x] Document the new settings in `README.md`.
+
 ## Not doing
 
 - Hot-Code-Replace equivalent (recompile-restart is the V story).

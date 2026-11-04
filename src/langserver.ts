@@ -42,13 +42,61 @@ export function getVls(folder?: vscode.WorkspaceFolder): string {
 	return resolved
 }
 
+function migratedArraySetting(
+	section: string,
+	key: string,
+	aliasSection: string,
+	aliasKey: string,
+	folder?: vscode.Uri,
+): string[] {
+	return migratedSetting(section, key, aliasSection, aliasKey, [] as string[], folder)
+}
+
 async function sendSettings(client: LanguageClient): Promise<void> {
+	const folder = vscode.workspace.workspaceFolders?.[0]?.uri
+	const inlayHints = {
+		enabled: featureEnabled("inlayHints.enabled"),
+		variableTypes: migratedSetting(
+			"v.vls",
+			"inlayHints.variableTypes",
+			"vls",
+			"inlayHints.variableTypes",
+			true,
+			folder,
+		),
+		parameterNames: migratedSetting(
+			"v.vls",
+			"inlayHints.parameterNames",
+			"vls",
+			"inlayHints.parameterNames",
+			true,
+			folder,
+		),
+	}
 	await client.sendNotification("workspace/didChangeConfiguration", {
 		settings: {
 			vls: {
-				inlayHints: { enabled: featureEnabled("inlayHints.enabled") },
+				inlayHints,
 				diagnostics: { enabled: featureEnabled("diagnostics") },
+				defines: migratedArraySetting("v.vls", "defines", "vls", "defines", folder),
+				coverageDirectory: migratedSetting(
+					"v.vls",
+					"coverageDirectory",
+					"vls",
+					"coverageDirectory",
+					"",
+					folder,
+				),
 			},
+			defines: migratedArraySetting("v.vls", "defines", "vls", "defines", folder),
+			coverageDirectory: migratedSetting(
+				"v.vls",
+				"coverageDirectory",
+				"vls",
+				"coverageDirectory",
+				"",
+				folder,
+			),
 		},
 	})
 }
@@ -310,6 +358,29 @@ export class VlsManager implements vscode.Disposable {
 	 */
 	isRunning(): boolean {
 		return this.client?.state === State.Running
+	}
+
+	/** Ask VLS to generate tests for the active file from a coverage run. */
+	async generateTests(): Promise<void> {
+		if (!this.isRunning() || !this.client) {
+			void vscode.window.showInformationMessage("VLS is not running.")
+			return
+		}
+		const editor = vscode.window.activeTextEditor
+		if (!editor || editor.document.languageId !== "v") {
+			void vscode.window.showInformationMessage("Open a V file to generate tests for.")
+			return
+		}
+		try {
+			await this.client.sendRequest("workspace/executeCommand", {
+				command: "vls.generateTest",
+				arguments: [editor.document.uri.toString()],
+			})
+		} catch (error) {
+			void vscode.window.showErrorMessage(
+				`VLS: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
 	}
 
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {

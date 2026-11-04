@@ -734,7 +734,11 @@ describe("VLS VS Code extension", () => {
 			["vls.args", "v.vls.args"],
 			["vls.vCommand", "v.executablePath"],
 			["vls.inlayHints.enabled", "v.vls.inlayHints.enabled"],
+			["vls.inlayHints.variableTypes", "v.vls.inlayHints.variableTypes"],
+			["vls.inlayHints.parameterNames", "v.vls.inlayHints.parameterNames"],
 			["vls.diagnostics.enabled", "v.vls.diagnostics"],
+			["vls.defines", "v.vls.defines"],
+			["vls.coverageDirectory", "v.vls.coverageDirectory"],
 			["vls.coverage.enabled", "v.vls.coverage.enabled"],
 		]
 		for (const [alias, replacement] of aliases) {
