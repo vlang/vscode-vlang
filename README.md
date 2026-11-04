@@ -13,14 +13,21 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 
 ### Code Editing
 
-- syntax highlighting
-- code snippets for quick coding
-- completion, diagnostics, navigation, inlay hints, and other language
+- Syntax highlighting for `.v`, `.vsh`, `.vh`, `.vv`, plus `v.mod` files
+- Code snippets for quick coding, including a dozen `veb` snippets
+  (`vapp`, `vget`, `vpst`, `vpar`, `vctx`, `vtml`, `vif`, `vfor`, `vinc`,
+  `vjsn`, `vmid`, `vctl`)
+- Completion, diagnostics, navigation, inlay hints, and other language
   features via VLS
-- runnable CodeLens actions for `main` and tests
-- workspace build, run, and test tasks
-- test coverage highlighting and a status bar summary
-- code folding for blocks, import runs, and `//#region` markers
+- Runnable CodeLens actions for `main` and tests (`Run Main`, `Run File`,
+  `Run Test`, `Debug Main`)
+- Workspace build, run, and test tasks
+- Test coverage highlighting and a status bar summary
+- Code folding for blocks, import runs, and `//#region` markers
+- Document formatting with the configured compiler, deferring to VLS
+  while the server is running
+- Works in unsaved (`untitled`), diff (`git`), and `v.mod` documents,
+  not just saved `.v` files
 
 ### V Language Server
 
@@ -28,6 +35,12 @@ Install [VLS](https://github.com/vlang/vls) and ensure the `vls`
 executable is in PATH. Alternatively, set `v.vls.command` to its
 absolute path. The extension starts VLS over stdio when a V workspace
 is opened.
+
+The VLS owner version-gates the server, serializes starts and restarts,
+recovers a crashed server, and reports the state on the status bar.
+`V: Restart VLS` restarts it; `V: Open V Language Server Output` shows
+its log. An unsupported server version offers `V: Update VLS` when the
+server names itself VLS, otherwise it points at the settings.
 
 The available VLS settings are:
 
@@ -50,6 +63,72 @@ Settings from the former VLS extension (`vls.command`, `vls.args`,
 `vls.vCommand`, and its inlay hint, diagnostics, and coverage toggles) remain
 effective until replaced by the corresponding `v.*` settings.
 
+### Build, run, and test
+
+Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
+task from `Tasks: Run Task`. Build, Run, and Test operate on the workspace;
+Run uses the active V module or script when one is open, and Test uses the
+active `_test.v` file. The extension saves modified V files in the target
+before running.
+
+`V: Run current file` uses the same run task. For a `.v` file, it runs the
+containing module; for a `.vsh` file, it runs the script. `V: Build an
+optimized executable from current file` builds the active file with `v -prod`.
+
+VLS CodeLens actions such as `Run Main`, `Run File`, and `Run Test` use the
+same tasks. Test runs collect coverage by default. Covered executable lines
+are highlighted green and uncovered lines red. Click the coverage status
+item or run `V: Clear Test Coverage` to remove the highlights.
+
+Three more tasks run the gates that the rest of a change hangs on. Each works on
+the active file when one is open, and on the workspace otherwise.
+
+- `V: Check` runs `v -check`, which type-checks without producing a binary
+- `V: Vet` runs `v vet -W`, which reports suspicious constructs and treats
+  warnings as errors, so it is the one to use in CI
+- `V: Format Check` runs `v fmt -verify`, which reports whether the formatter
+  would change anything
+
+All three surface through the `vls` problem matcher, so a failure lands in the
+Problems panel at the right line rather than only in the task output.
+
+### Tests: generate, toggle, fill, explore
+
+- **V: Generate Test File** creates the `_test.v` file beside the source with
+  one `test_` function per public function, each with a placeholder assertion.
+  It asks before overwriting an existing test file.
+- **V: Toggle Test File** jumps both directions: from a source file it opens
+  its `_test.v` file, and from a `_test.v` file it opens the source beside it.
+- **V: Generate Tests for Untested Functions** plans new tests from a coverage
+  run: point `v.vls.coverageDirectory` (or `vls.json`) at a `v -coverage`
+  directory and it appends one `test_` per untested function.
+- **V: Generate Test from Coverage** asks the running VLS (`vls.generateTest`,
+  via `v cover --write-tests`) to write tests for the active file.
+- **V: Fill Struct Fields** fills an empty `Name{}` literal with the fields
+  of the `struct Name` declared in the same file.
+- Every `_test.v` file also appears in the Test Explorer, with one item per
+  `test_` function. Running a test from there executes `v test` on its file with
+  `VTEST_ONLY_FN` set to the selected function. A gutter lens over each
+  `fn test_` runs it through the same task path.
+
+### Editor helpers: Error Lens, paths, import cost
+
+- **Error Lens** (`v.errorLens.*`, `V: Toggle Error Lens`) decorates V
+  diagnostics inline: full-line backgrounds per severity, problem-range
+  highlights, and the message appended at the end of the line. Settings:
+  `enabled`, `enabledDiagnosticLevels` (`error`, `warning`, `info`, `hint`),
+  `messageEnabled`, `messageMaxChars`, `messageTemplate`
+  (`$message`, `$severity`, `$source`, `$code`), and `delay`.
+- **Path Intellisense** (`v.pathIntellisense.*`) completes file names inside
+  string literals in `.v` files and inside template files. Settings:
+  `enabled`, `showHiddenFiles`, `autoSlashAfterDirectory`,
+  `autoTriggerNextSuggestion`, `absolutePathToWorkspace`, and `mappings`
+  (supports `${workspaceFolder}` / `${workspaceRoot}`).
+- **Import Cost** (`v.importCost.*`) annotates each `import` line with the
+  module's source size, e.g. `// 14.2 KB (312 lines, 6 files)`. V compiles
+  whole programs, so this is module size, not a tree-shaken bundle delta.
+  Settings: `enabled`, `includeTests`, `cacheTtlMs`.
+
 ### Web templates (HTML/CSS/JS, React, Tailwind)
 
 Template files stay HTML — the extension injects VEB directive highlighting
@@ -58,7 +137,9 @@ Template files stay HTML — the extension injects VEB directive highlighting
 Prettier, ESLint and React extensions keep working.
 
 Recognized templates: `.html` under `templates/`, plus `.vhtml` and `.vtml`
-(which default to HTML via `files.associations`).
+(which default to HTML via `files.associations`). Hovering a directive shows
+its kind and the auto-detected script flavor; path completion works inside
+template strings too.
 
 Settings:
 
@@ -70,21 +151,49 @@ For Tailwind, include `./templates/**/*.{html,vhtml,vtml}` in your `content`
 glob. React works inside `<script type="text/babel">` blocks (JSX
 auto-detected) or in dedicated `.jsx`/`.tsx` files.
 
-### Generate from JSON
+### Data tools: decoders, encodings, C interop
 
-On a JSON file, **V: Generate JSON Decoder** infers V structs for the
-document and opens them as an untitled V file, with a decode example
-using `json2`. **V: Generate XML Decoder** and **V: Generate CSV
-Decoder** do the same from XML (strict subset, struct shape only —
-vlib has no struct decoder, so the example loads the document for the
-query API) and CSV (columns typed across rows) files. TOML and YAML
-share the same core and follow once their parsers land as declared
-dependencies.
+- On a JSON file, **V: Generate JSON Decoder** infers V structs for the
+  document and opens them as an untitled V file, with a decode example
+  using `json2`. **V: Generate XML Decoder** and **V: Generate CSV
+  Decoder** do the same from XML (strict subset, struct shape only —
+  vlib has no struct decoder, so the example loads the document for the
+  query API) and CSV (columns typed across rows) files. TOML and YAML
+  share the same core and follow once their parsers land as declared
+  dependencies.
+- Protobuf, ASN.1, PEM, CBOR and raw binary payloads carry no field
+  names without a schema, so struct inference does not apply to them;
+  base64, hex, base32 and base58 are encodings, covered by
+  **V: Convert Selection Encoding** instead.
+- **V: Generate C Output** shows the C the compiler emits for the active file.
+- **V: Translate C File to V with c2v** translates the active `.c` file,
+  offering to install `c2v` when it is missing.
+- **V: Organize Imports** sorts (and de-duplicates, where safe) the import
+  block; **V: Fill Struct Fields** is also available as a refactor action.
+- Hovering a non-decimal literal (`0x`, `0o`, `0b`) shows its decimal value.
 
-Protobuf, ASN.1, PEM, CBOR and raw binary payloads carry no field
-names without a schema, so struct inference does not apply to them;
-base64, hex, base32 and base58 are encodings, covered by
-**V: Convert Selection Encoding** instead.
+### VPM and playground
+
+- **V: Search VPM Modules**, **V: List Installed VPM Modules** search and list
+  modules from the V package manager.
+- **V: Share on Playground** posts the active file to the V playground share
+  API and copies/opens the link.
+
+### Toolchain: install, update, status
+
+- **V: Install or Update V** and **V: Update VLS** build the pinned revision
+  from source (managed builds, preferred over PATH once installed).
+- **V: Select V executable** picks between the configured value, the compiler
+  on PATH, and a managed build.
+- **V: Show V version** prints `v version`.
+- **V: Show Environment Status** reports which `v` and which VLS the extension
+  resolved, what versions they report, and whether the server is running. The
+  answer is written to a document so it can be copied into a bug report.
+- **V: Check for Updates** checks once a day (workspace trust required).
+- Settings: `v.tools.updateChannel` (`master` follows the latest commit,
+  `release` follows the latest tag), `v.tools.checkForUpdates`.
+- The status bar shows the resolved V and VLS separately, because VLS can be
+  down while V works; a missing tool offers the fix on click.
 
 ### Agents: the V compiler as an MCP server
 
@@ -119,6 +228,14 @@ The settings are:
 Agents outside VS Code can use the same server, and the skills the compiler
 ships, without this extension. See `v mcp --help` and `v skills --help`.
 
+### Agents: VLS as an MCP server
+
+VLS also speaks MCP over stdio (`vls --mcp`): compile checks, hover,
+definitions, references, rename, symbols, and completion. The extension offers
+one VLS server per workspace folder behind `v.vls.mcp.enable` (default
+`false`, resource-scoped). Both MCP providers (`V Compiler`, `V Language
+Server`) appear in VS Code once enabled.
+
 ### Agents: the bundled V agent skills
 
 The compiler ships agent skills — the rules that make V code which looks right
@@ -146,57 +263,6 @@ These commands need a V that supports `v skills`. On an older compiler they
 report that rather than doing nothing. Skills also work with agents outside VS
 Code, without this extension; see `v skills --help`.
 
-`V: Show Environment Status` reports which `v` and which VLS the extension
-resolved, what versions they report, and whether the server is running. The
-answer is written to a document so it can be copied into a bug report.
-
-### Build, run, and test
-
-Use `V: Build`, `V: Run`, or `V: Test` in the Command Palette, or select a V
-task from `Tasks: Run Task`. Build, Run, and Test operate on the workspace;
-Run uses the active V module or script when one is open, and Test uses the
-active `_test.v` file. The extension saves modified V files in the target
-before running.
-
-`V: Run current file` uses the same run task. For a `.v` file, it runs the
-containing module; for a `.vsh` file, it runs the script.
-
-VLS CodeLens actions such as `Run Main`, `Run File`, and `Run Test` use the
-same tasks. Test runs collect coverage by default. Covered executable lines
-are highlighted green and uncovered lines red. Click the coverage status
-item or run `V: Clear Test Coverage` to remove the highlights.
-
-To create a test file from a source file, run **V: Generate Test File**. It
-creates the `_test.v` file beside the source with one `test_` function per public
-function, each with a placeholder assertion to replace. It refuses to overwrite
-an existing test file. **V: Toggle Test File** jumps between a source file
-and its test file, generating the test file first when it does not exist yet.
-**V: Fill Struct Fields** fills an empty `Name{}` literal with the fields
-of the `struct Name` declared in the same file.
-
-**V: Toggle Test File** walks the same pairing in both directions: from a source
-file it opens its `_test.v` file, and from a `_test.v` file it opens the source
-beside it. Nothing is created, so a missing file is reported rather than written.
-
-Every `_test.v` file also appears in the Test Explorer, with one item per
-`test_` function. Running a test from there executes `v test` on its file with
-`VTEST_ONLY_FN` set to the selected function, so the filter the Test Explorer
-already provides is the one V understands.
-
-### Check, vet, and format
-
-Three more tasks run the gates that the rest of a change hangs on. Each works on
-the active file when one is open, and on the workspace otherwise.
-
-- `V: Check` runs `v -check`, which type-checks without producing a binary
-- `V: Vet` runs `v vet -W`, which reports suspicious constructs and treats
-  warnings as errors, so it is the one to use in CI
-- `V: Format Check` runs `v fmt -verify`, which reports whether the formatter
-  would change anything
-
-All three surface through the `vls` problem matcher, so a failure lands in the
-Problems panel at the right line rather than only in the task output.
-
 ## Roadmap
 
 Known gaps and what would close them, cheapest first — the missing Test Explorer
@@ -222,31 +288,40 @@ in Visual Studio Code (`File -> Auto Save`) when using this extension.
 
 ## Commands
 
+- `V: Build`, `V: Run`, and `V: Test`
+- `V: Check`, `V: Vet`, and `V: Format Check`
 - `V: Run current file`
 - `V: Format current file`
 - `V: Build an optimized executable from current file`
 - `V: Generate Test File`
 - `V: Toggle Test File`
+- `V: Generate Tests for Untested Functions`
+- `V: Generate Test from Coverage`
 - `V: Fill Struct Fields`
-- `V: Share on Playground`
+- `V: Organize Imports`
+- `V: Clear Test Coverage`
+- `V: Debug Main`
 - `V: Generate JSON Decoder`
 - `V: Generate XML Decoder`
 - `V: Generate CSV Decoder`
 - `V: Convert Selection Encoding`
-- `V: Organize Imports`
+- `V: Generate C Output`
+- `V: Translate C File to V with c2v`
+- `V: Share on Playground`
 - `V: Search VPM Modules`
 - `V: List Installed VPM Modules`
 - `V: Install V Agent Skills`
 - `V: Show V Agent Skill Status`
 - `V: Update V Agent Skills`
+- `V: Toggle Error Lens`
 - `V: Show V version`
 - `V: Select V executable`
+- `V: Install or Update V`
 - `V: Update VLS`
 - `V: Restart VLS`
+- `V: Open V Language Server Output`
 - `V: Show Environment Status`
-- `V: Build`, `V: Run`, and `V: Test`
-- `V: Check`, `V: Vet`, and `V: Format Check`
-- `V: Clear Test Coverage`
+- `V: Check for Updates`
 
 You can access all of the above commands from the command palette (`Cmd+Shift+P`).
 
