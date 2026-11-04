@@ -10,6 +10,7 @@ import { registerStatusBar } from "./statusBar"
 import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
+import { ErrorLensController } from "./errorLens"
 import { registerVlsMcpServers } from "./vlsMcp"
 import { registerSkillCommands } from "skills"
 import { registerTestExplorer } from "testExplorer"
@@ -68,6 +69,16 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// the two are available at the same time regardless of how startup goes.
 	registerMcpServers(context)
 	registerVlsMcpServers(context)
+
+	const errorLens = new ErrorLensController()
+	context.subscriptions.push(errorLens)
+	context.subscriptions.push(
+		vscode.commands.registerCommand("v.errorLens.toggle", async () => {
+			const config = vscode.workspace.getConfiguration("v.errorLens")
+			const current = config.get<boolean>("enabled", true)
+			await config.update("enabled", !current, vscode.ConfigurationTarget.Global)
+		}),
+	)
 	// This needs the V compiler, which may be absent or older than the command is,
 	// so it reports its own unavailability rather than failing activation.
 	registerSkillCommands(context)

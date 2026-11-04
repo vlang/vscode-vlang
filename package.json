@@ -210,6 +210,40 @@
 					"scope": "resource",
 					"description": "Offer VLS as an MCP server to agents, exposing compile checks, hover, definitions, references, rename, symbols and completion."
 				},
+				"v.errorLens.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show inline diagnostic messages and line highlighting for V files."
+				},
+				"v.errorLens.enabledDiagnosticLevels": {
+					"type": "array",
+					"default": ["error", "warning", "info"],
+					"items": {
+						"type": "string",
+						"enum": ["error", "warning", "info", "hint"]
+					},
+					"description": "Diagnostic severities to decorate."
+				},
+				"v.errorLens.messageEnabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show inline diagnostic messages."
+				},
+				"v.errorLens.messageMaxChars": {
+					"type": "number",
+					"default": 500,
+					"description": "Maximum characters of an inline diagnostic message."
+				},
+				"v.errorLens.messageTemplate": {
+					"type": "string",
+					"default": "$message",
+					"description": "Template for inline messages. Variables: $message, $severity, $source, $code."
+				},
+				"v.errorLens.delay": {
+					"type": "number",
+					"default": 0,
+					"description": "Delay in milliseconds before showing decorations."
+				},
 				"vls.command": {
 					"type": "string",
 					"default": "",
@@ -480,6 +514,11 @@
 			{
 				"command": "v.vls.generateTest",
 				"title": "Generate Test from Coverage",
+				"category": "V"
+			},
+			{
+				"command": "v.errorLens.toggle",
+				"title": "Toggle Error Lens",
 				"category": "V"
 			},
 			{
