@@ -34,7 +34,11 @@ export function parseVebDirective(line: string, lineNumber: number): VebDirectiv
 	}
 	const interpolation = /\$\{([^}]+)\}|@\{([^}]+)\}/.exec(line)
 	if (interpolation) {
-		return { kind: "interpolation", value: (interpolation[1] ?? interpolation[2] ?? "").trim(), line: lineNumber }
+		return {
+			kind: "interpolation",
+			value: (interpolation[1] ?? interpolation[2] ?? "").trim(),
+			line: lineNumber,
+		}
 	}
 	return undefined
 }

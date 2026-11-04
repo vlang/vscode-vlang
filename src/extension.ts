@@ -91,22 +91,25 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			'"',
 			"'",
 		),
-		vscode.languages.registerHoverProvider({ language: "html" }, {
-			provideHover(document, position) {
-				if (!isVebTemplateFile(document.uri.fsPath)) return undefined
-				const line = document.lineAt(position.line).text
-				const directive = parseVebDirective(line, position.line)
-				if (!directive) return undefined
-				const kind = vscode.workspace
-					.getConfiguration("v.templates")
-					.get<boolean>("jsxAutoDetect", true)
-					? detectTemplateScriptKind(document.uri.fsPath, document.getText())
-					: "html"
-				return new vscode.Hover(
-					`VEB \`${directive.kind}\`${directive.value ? ` — ${directive.value}` : ""} (template script: ${kind})`,
-				)
+		vscode.languages.registerHoverProvider(
+			{ language: "html" },
+			{
+				provideHover(document, position) {
+					if (!isVebTemplateFile(document.uri.fsPath)) return undefined
+					const line = document.lineAt(position.line).text
+					const directive = parseVebDirective(line, position.line)
+					if (!directive) return undefined
+					const kind = vscode.workspace
+						.getConfiguration("v.templates")
+						.get<boolean>("jsxAutoDetect", true)
+						? detectTemplateScriptKind(document.uri.fsPath, document.getText())
+						: "html"
+					return new vscode.Hover(
+						`VEB \`${directive.kind}\`${directive.value ? ` — ${directive.value}` : ""} (template script: ${kind})`,
+					)
+				},
 			},
-		}),
+		),
 	)
 
 	const errorLens = new ErrorLensController()

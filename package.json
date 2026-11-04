@@ -120,7 +120,9 @@
 			{
 				"scopeName": "inline.veb",
 				"path": "syntaxes/veb-injection.tmLanguage.json",
-				"injectTo": ["text.html.basic"],
+				"injectTo": [
+					"text.html.basic"
+				],
 				"embeddedLanguages": {
 					"meta.embedded.expression.veb": "v"
 				}
@@ -225,10 +227,19 @@
 				},
 				"v.errorLens.enabledDiagnosticLevels": {
 					"type": "array",
-					"default": ["error", "warning", "info"],
+					"default": [
+						"error",
+						"warning",
+						"info"
+					],
 					"items": {
 						"type": "string",
-						"enum": ["error", "warning", "info", "hint"]
+						"enum": [
+							"error",
+							"warning",
+							"info",
+							"hint"
+						]
 					},
 					"description": "Diagnostic severities to decorate."
 				},

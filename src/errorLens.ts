@@ -53,7 +53,11 @@ export function readConfig(): ErrorLensConfig {
 	}
 }
 
-export function formatMessage(diagnostic: vscode.Diagnostic, template: string, maxChars: number): string {
+export function formatMessage(
+	diagnostic: vscode.Diagnostic,
+	template: string,
+	maxChars: number,
+): string {
 	const severity = severityName(diagnostic.severity)
 	const code = diagnostic.code === undefined ? "" : String(diagnostic.code)
 	const source = diagnostic.source ?? ""
@@ -212,7 +216,9 @@ export class ErrorLensController implements vscode.Disposable {
 				if (severityRank(severity) < severityRank(entry.severity)) {
 					entry.severity = severity
 				}
-				entry.messages.push(formatMessage(diagnostic, config.messageTemplate, config.messageMaxChars))
+				entry.messages.push(
+					formatMessage(diagnostic, config.messageTemplate, config.messageMaxChars),
+				)
 				messagesByLine.set(line, entry)
 			}
 		}
@@ -221,7 +227,8 @@ export class ErrorLensController implements vscode.Disposable {
 			const lineDecoration = this.decorations.get(`line:${severity}`)
 			const rangeDecoration = this.decorations.get(`range:${severity}`)
 			if (lineDecoration) editor.setDecorations(lineDecoration, lineRanges[severity] ?? [])
-			if (rangeDecoration) editor.setDecorations(rangeDecoration, rangeDecorations[severity] ?? [])
+			if (rangeDecoration)
+				editor.setDecorations(rangeDecoration, rangeDecorations[severity] ?? [])
 		}
 
 		if (config.messageEnabled) {

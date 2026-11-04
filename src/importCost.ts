@@ -75,7 +75,10 @@ export function resolveModuleDirectory(
 	return null
 }
 
-export function measureModule(dir: string, includeTests: boolean): { bytes: number; lines: number; files: number } {
+export function measureModule(
+	dir: string,
+	includeTests: boolean,
+): { bytes: number; lines: number; files: number } {
 	let bytes = 0
 	let lines = 0
 	let files = 0
@@ -158,9 +161,16 @@ export class ImportCostController implements vscode.Disposable {
 			const cacheKey = `${imp.module}:${config.includeTests}`
 			let entry = this.cache.get(cacheKey)
 			if (!entry || now - entry.at > config.cacheTtlMs) {
-				const dir = resolveModuleDirectory(imp.module, documentDir, workspaceRoot, vExecutable)
+				const dir = resolveModuleDirectory(
+					imp.module,
+					documentDir,
+					workspaceRoot,
+					vExecutable,
+				)
 				const measured = dir ? measureModule(dir, config.includeTests) : null
-				const text = measured ? `// ${formatSize(measured.bytes)} (${measured.lines} lines, ${measured.files} files)` : "// (unresolved)"
+				const text = measured
+					? `// ${formatSize(measured.bytes)} (${measured.lines} lines, ${measured.files} files)`
+					: "// (unresolved)"
 				entry = { text, at: now }
 				this.cache.set(cacheKey, entry)
 			}

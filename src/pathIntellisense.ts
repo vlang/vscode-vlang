@@ -27,7 +27,11 @@ export function readConfig(): PathIntellisenseConfig {
 
 export function extractStringPrefix(line: string, character: number): string | null {
 	const before = line.slice(0, character)
-	const quoteIndex = Math.max(before.lastIndexOf('"'), before.lastIndexOf("'"), before.lastIndexOf("`"))
+	const quoteIndex = Math.max(
+		before.lastIndexOf('"'),
+		before.lastIndexOf("'"),
+		before.lastIndexOf("`"),
+	)
 	if (quoteIndex < 0) return null
 	const afterQuote = before.slice(quoteIndex + 1)
 	if (afterQuote.includes("\n")) return null
@@ -37,12 +41,18 @@ export function extractStringPrefix(line: string, character: number): string | n
 	return afterQuote
 }
 
-export function applyMappings(prefix: string, mappings: Record<string, string>, workspaceRoot: string): string {
+export function applyMappings(
+	prefix: string,
+	mappings: Record<string, string>,
+	workspaceRoot: string,
+): string {
 	let result = prefix
 	for (const [key, value] of Object.entries(mappings)) {
 		const normalizedKey = key.endsWith("/") || key.endsWith("\\") ? key : key + "/"
 		if (result === key || result.startsWith(normalizedKey)) {
-			const mapped = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot).replace(/\$\{workspaceRoot\}/g, workspaceRoot)
+			const mapped = value
+				.replace(/\$\{workspaceFolder\}/g, workspaceRoot)
+				.replace(/\$\{workspaceRoot\}/g, workspaceRoot)
 			result = mapped + result.slice(key.length)
 			break
 		}
@@ -64,7 +74,8 @@ export function resolveDirectory(
 		}
 		return path.resolve(mapped)
 	}
-	const directoryPart = mapped.endsWith("/") || mapped.endsWith("\\") ? mapped : path.dirname(mapped)
+	const directoryPart =
+		mapped.endsWith("/") || mapped.endsWith("\\") ? mapped : path.dirname(mapped)
 	if (directoryPart === "." || directoryPart === "") {
 		return documentDir
 	}
@@ -104,7 +115,13 @@ export class PathIntellisenseProvider implements vscode.CompletionItemProvider {
 		const documentDir = path.dirname(document.uri.fsPath)
 		const workspaceRoot = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath ?? ""
 		const resolvedPrefix = applyMappings(prefix, config.mappings, workspaceRoot)
-		const dir = resolveDirectory(prefix, documentDir, workspaceRoot, config.mappings, config.absolutePathToWorkspace)
+		const dir = resolveDirectory(
+			prefix,
+			documentDir,
+			workspaceRoot,
+			config.mappings,
+			config.absolutePathToWorkspace,
+		)
 		const partial = partialName(resolvedPrefix).toLowerCase()
 
 		const entries = listEntries(dir, config.showHiddenFiles).filter((entry) =>

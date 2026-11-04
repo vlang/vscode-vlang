@@ -176,6 +176,7 @@ panics_break_into_debugger` traps under a debugger (SIGTRAP
 | `feat/debug-codelens-panic`                                | D2-2 CodeLens, D2-4 panic traps                                         |
 
 ## VLS master tuning (showcase)
+
 - [x] Layered config: send `defines`, `coverageDirectory`, inlay-hint
       sub-toggles to VLS via `didChangeConfiguration`.
 - [x] Declare the new settings and deprecated aliases in `package.json`.

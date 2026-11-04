@@ -35,7 +35,10 @@ describe("vebTemplate", () => {
 	})
 
 	it("auto-detects jsx from babel script markers", () => {
-		assert.equal(detectTemplateScriptKind("index.html", '<script type="text/babel">x</script>'), "jsx")
+		assert.equal(
+			detectTemplateScriptKind("index.html", '<script type="text/babel">x</script>'),
+			"jsx",
+		)
 		assert.equal(detectTemplateScriptKind("a.tsx", "<div/>"), "tsx")
 		assert.equal(detectTemplateScriptKind("index.html", "<p>hi</p>"), "html")
 	})
