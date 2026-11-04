@@ -19,7 +19,7 @@ import {
 	type VSetupCommandInput,
 } from "./debugCompile"
 import { resolvedCommand } from "./vCommand"
-import { vCommandFor } from "./vExecutable"
+import { vCommandForProgram } from "./vExecutable"
 
 const execFile = promisify(_execFile)
 
@@ -123,7 +123,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			}
 			return undefined
 		}
-		const vCommand = workspaceFolder ? vCommandFor(workspaceFolder) : "v"
+		const vCommand = vCommandForProgram(vConfiguration.program, workspaceFolder)
 		const cwd =
 			vConfiguration.cwd ||
 			workspaceFolder?.uri.fsPath ||

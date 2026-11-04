@@ -67,18 +67,16 @@ async function workspaceTouchesV(): Promise<boolean> {
 /** Start the language server, reporting the failures its own recovery cannot. */
 async function startVls(taskManager: VTaskManager): Promise<boolean> {
 	const manager = new VlsManager(taskManager)
-	try {
-		await manager.restart()
+	if (await manager.restart()) {
 		vlsManager = manager
 		return true
-	} catch (error) {
-		// Starting the client failing is not fatal: non-LSP features still work,
-		// and the manager has already reported it through the status bar.
-		log(`Failed to start VLS: ${error instanceof Error ? error.message : String(error)}`)
-		vlsOutputChannel.show()
-		manager.dispose()
-		return false
 	}
+	// A failed start is not fatal: non-LSP features still work. The manager has
+	// already reported the failure, and returning false keeps the first-open
+	// retry: the next V document tries again instead of leaving VLS stopped.
+	log("Failed to start VLS.")
+	manager.dispose()
+	return false
 }
 
 export async function activate(context: ExtensionContext): Promise<void> {

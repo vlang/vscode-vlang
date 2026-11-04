@@ -65,17 +65,53 @@ export interface TestOutcome {
 
 /** Read the outcomes a `v test` run printed.
  *
- * V prints one line per test in the Go test format:
+ * V 0.5.2 prints one line per test only with `-stats`, in this form (measured
+ * with a real `v -nocolor -stats test` run, which is what `testRunArgs` passes):
  *
- *     --- PASS: test_foo (0.00s)
- *     --- FAIL: test_bar (0.00s)
+ *         OK    [1/3]     0.000 ms     1 assert | main.test_one()
+ *         FAIL  [2/3]     0.000 ms     1 assert | main.test_two()
  *
- * A test that is neither passed nor failed did not run, which is reported rather
- * than silently dropped.
+ * The name carries its module prefix, which is stripped. A failing test is
+ * followed by a detail block the failure headers name:
+ *
+ *     C:/proj/foo_test.v:2: fn test_two
+ *         assert false, 'boom'
+ *             Message: boom
+ *
+ * Without `-stats` there is only a file-level line (`v : OK ... path`) plus
+ * the same `path:line: fn test_name` failure headers, so those headers are
+ * also read as failed outcomes. A test that is neither passed nor failed did
+ * not run, which is reported rather than silently dropped.
+ *
+ * The Go test format (`--- PASS: name`) is kept as a fallback for output that
+ * predates this parser; V itself does not print it.
  */
 export function parseTestOutput(output: string): TestOutcome[] {
-	const outcomes: TestOutcome[] = []
+	const byName = new Map<string, TestOutcome>()
 	for (const line of output.split("\n")) {
+		const stats =
+			/^\s*(OK|FAIL)\s+\[\d+\s*\/\s*\d+\][^|]*\|\s*([A-Za-z0-9_.]+?)\s*\(\)\s*$/.exec(line)
+		if (stats) {
+			const qualified = stats[2]!
+			const name = qualified.includes(".")
+				? qualified.slice(qualified.lastIndexOf(".") + 1)
+				: qualified
+			if (!name.startsWith("test_")) {
+				continue
+			}
+			const outcome: TestOutcome = {
+				name,
+				passed: stats[1] === "OK",
+			}
+			// Only a failure carries a message, so a pass does not get an empty one.
+			// A `path:line: fn test_name` detail block below replaces this with the
+			// assert that actually failed.
+			if (!outcome.passed) {
+				outcome.message = line.trim()
+			}
+			byName.set(name, outcome)
+			continue
+		}
 		const match = /^\s*---\s+(PASS|FAIL|SKIP):\s+(\S+)/.exec(line)
 		if (!match) {
 			continue
@@ -88,19 +124,102 @@ export function parseTestOutput(output: string): TestOutcome[] {
 		if (match[1] === "FAIL") {
 			outcome.message = line.trim()
 		}
-		outcomes.push(outcome)
+		byName.set(match[2]!, outcome)
 	}
-	return outcomes
+	for (const [name, message] of failureDetails(output)) {
+		const existing = byName.get(name)
+		if (existing) {
+			if (!existing.passed) {
+				existing.message = message
+			}
+			continue
+		}
+		byName.set(name, { name, passed: false, message })
+	}
+	return [...byName.values()]
+}
+
+/** The `path:line: fn test_name` failure blocks a run printed, keyed by test.
+ *
+ * Each block is the header plus the indented assert lines under it, which is
+ * the failure message a failing test is reported with. Compiler errors
+ * (`path:line:col: error:`) never match: they carry two numbers, not `fn`.
+ */
+function failureDetails(output: string): Map<string, string> {
+	const details = new Map<string, string>()
+	const lines = output.split("\n")
+	for (let index = 0; index < lines.length; index++) {
+		const header = /^.+:\d+:\s*fn\s+(test_[A-Za-z0-9_]+)\s*$/.exec(lines[index]!)
+		if (!header) {
+			continue
+		}
+		const block = [lines[index]!.trim()]
+		for (let next = index + 1; next < lines.length; next++) {
+			const body = lines[next]!
+			if (body.trim() === "") {
+				break
+			}
+			if (/^.+:\d+:\s*fn\s+test_/.test(body)) {
+				break
+			}
+			const trimmed = body.trim()
+			if (
+				trimmed.startsWith("To reproduce") ||
+				trimmed.startsWith("Summary for") ||
+				/^-{3,}$/.test(trimmed) ||
+				/^\s*(OK|FAIL)\s+(\[|[\d.]+\s*ms)/.test(body) ||
+				/^\s*v\s*:\s*(OK|FAIL|-|running|Compiler)/.test(body) ||
+				/^\s*---\s+(PASS|FAIL|SKIP):/.test(body)
+			) {
+				break
+			}
+			if (!/^\s/.test(body)) {
+				break
+			}
+			block.push(trimmed)
+		}
+		details.set(header[1]!, block.join("\n"))
+	}
+	return details
+}
+
+/** Whether a `v test` run passed or failed at the file level. */
+export type TestFileStatus = "passed" | "failed"
+
+/** Read the file-level status a `v test` run printed.
+ *
+ * With `-stats` a run prints `v : OK <ms> <path>` for the first file and
+ * `OK [n/m] <ms> <path>` for the rest; without it every file prints the
+ * `v :` form. Either form is file-level, never per-test: the per-test
+ * `-stats` lines carry a `|` before the test name, which file lines never do
+ * (a `|` cannot appear in a Windows path). Any failure wins, so a mixed
+ * multi-file run still reports `failed`.
+ */
+export function parseTestFileStatus(output: string): TestFileStatus | undefined {
+	let status: TestFileStatus | undefined
+	for (const line of output.split("\n")) {
+		const match = /^\s*(?:v\s*:)?\s*(OK|FAIL)\s+(?:\[\d+\s*\/\s*\d+\]|[\d.]+\s*ms)/.exec(line)
+		if (!match || line.includes("|")) {
+			continue
+		}
+		if (match[1] === "FAIL") {
+			return "failed"
+		}
+		status = "passed"
+	}
+	return status
 }
 
 /** The argument list for `v test` on one file, with an optional name filter.
  *
- * `-nocolor` keeps the output parseable. `-run-only` is the filter the Test
- * Explorer's selection maps onto, so it is set from the request rather than
- * hard-coded.
+ * `-nocolor` keeps the output parseable. `-stats` prints one line per test
+ * (`OK [i/n] ... | module.test_name()`); without it V prints only a file-level
+ * `v : OK/FAIL` line, which cannot be mapped back to the selected tests.
+ * `-run-only` is the filter the Test Explorer's selection maps onto, so it is
+ * set from the request rather than hard-coded.
  */
 export function testRunArgs(filePath: string, nameFilter?: string): string[] {
-	const args = ["-nocolor", "test", filePath]
+	const args = ["-nocolor", "-stats", "test", filePath]
 	if (nameFilter) {
 		args.push("-run-only", nameFilter)
 	}

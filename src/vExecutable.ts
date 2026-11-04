@@ -1,3 +1,4 @@
+import * as path from "path"
 import { WorkspaceFolder } from "vscode"
 import { migratedSetting } from "./settings"
 import { configuredCommand, resolvedCommand } from "./vCommand"
@@ -22,4 +23,20 @@ export function vCommandFor(folder: WorkspaceFolder): string {
 		resolvedCommand(configured, folder.uri.fsPath) ??
 		configuredCommand(configured, folder.uri.fsPath)
 	)
+}
+
+/** The `v` compiler for a program that may live outside any workspace folder.
+ *
+ * A file opened on its own has no folder, so there is no folder-scoped setting
+ * to read; the global `v.executablePath` still applies, resolved against the
+ * program's own directory. Falling back to a literal `v` here bypasses that
+ * setting and breaks single-file users who rely on it.
+ */
+export function vCommandForProgram(programPath: string, folder?: WorkspaceFolder): string {
+	if (folder) {
+		return vCommandFor(folder)
+	}
+	const configured = migratedSetting("v", "executablePath", "vls", "vCommand", "v", undefined)
+	const cwd = path.dirname(programPath)
+	return resolvedCommand(configured, cwd) ?? configuredCommand(configured, cwd)
 }

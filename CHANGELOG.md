@@ -175,6 +175,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Cover unsaved buffers, diff views and `v.mod` files with V language
   features. The selector was file-scheme `v` only, so none of them got any.
+- Test Explorer reads what `v test` actually prints. The parser expected Go
+  `--- PASS/FAIL` lines, which V 0.5.2 never prints, so passing runs reported
+  "This test did not run" and failing runs (which exit non-zero) were all
+  marked errored. Runs now pass `-stats` for per-test `OK/FAIL` lines with
+  `path:line: fn test_name` failure details, and the failure output carried
+  by the non-zero exit is parsed instead of discarded.
+- A failed VLS start no longer consumes the first-open retry. The restart
+  queue swallowed startup errors and resolved, so a failed start looked like
+  success and installing VLS afterwards left it stopped; the restart now
+  reports whether the server is running, and a missing executable counts as
+  a failed start.
+- Changing the VLS command or arguments no longer restarts before the user
+  answers. The manager restarted on its own while the extension still asked,
+  so "No" could not prevent the queued restart and "Yes" queued a second
+  one. Restarts are explicit now; the prompt is the only one.
+- Settings pushes no longer race restarts. The send waited for the queue and
+  then used the mutable client, which a concurrent restart could have
+  replaced, logging an unhandled rejection during recovery. The notification
+  runs on the same queue, targets the client it finds there only while it is
+  running, and never rejects.
+- Standalone debugging and test runs honor the configured `v.executablePath`.
+  A file outside any workspace folder fell back to a literal `v`, breaking
+  single-file users who pointed the setting elsewhere.
+- Cancelling a Test Explorer run stops the running `v test` process. The
+  cancellation was only checked between files, so a long run kept going and
+  the run stayed open until it exited or timed out.
 
 ## 0.2.1
 
