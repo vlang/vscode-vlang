@@ -215,7 +215,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
 				inlayHintsEmitter.fire()
 			}
 			if (vlsManager) {
-				await vlsManager.sendSettingsNow()
+				if (
+					e.affectsConfiguration("v.vls") ||
+					e.affectsConfiguration("vls") ||
+					e.affectsConfiguration("v.executablePath")
+				) {
+					await vlsManager.sendSettingsNow()
+				}
 			}
 
 			if (e.affectsConfiguration("v.vls.enable")) {
