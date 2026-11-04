@@ -244,6 +244,36 @@
 					"default": 0,
 					"description": "Delay in milliseconds before showing decorations."
 				},
+				"v.pathIntellisense.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable filename completion in string literals."
+				},
+				"v.pathIntellisense.showHiddenFiles": {
+					"type": "boolean",
+					"default": false,
+					"description": "Show hidden files in path completion."
+				},
+				"v.pathIntellisense.autoSlashAfterDirectory": {
+					"type": "boolean",
+					"default": true,
+					"description": "Append a slash after completing a directory."
+				},
+				"v.pathIntellisense.autoTriggerNextSuggestion": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically trigger the next suggestion after completing a directory."
+				},
+				"v.pathIntellisense.absolutePathToWorkspace": {
+					"type": "boolean",
+					"default": true,
+					"description": "Resolve absolute paths against the workspace root."
+				},
+				"v.pathIntellisense.mappings": {
+					"type": "object",
+					"default": {},
+					"description": "Custom path mappings, e.g. {\"/\": \"${workspaceFolder}\"}."
+				},
 				"vls.command": {
 					"type": "string",
 					"default": "",

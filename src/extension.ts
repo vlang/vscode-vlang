@@ -10,6 +10,7 @@ import { registerStatusBar } from "./statusBar"
 import { registerSelectExecutable } from "./selectExecutable"
 import { log, outputChannel, vlsOutputChannel } from "logger"
 import { registerMcpServers } from "mcp"
+import { PathIntellisenseProvider } from "./pathIntellisense"
 import { ErrorLensController } from "./errorLens"
 import { registerVlsMcpServers } from "./vlsMcp"
 import { registerSkillCommands } from "skills"
@@ -69,6 +70,18 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// the two are available at the same time regardless of how startup goes.
 	registerMcpServers(context)
 	registerVlsMcpServers(context)
+
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider(
+			{ language: "v" },
+			new PathIntellisenseProvider(),
+			"/",
+			"\\",
+			'"',
+			"'",
+			"`",
+		),
+	)
 
 	const errorLens = new ErrorLensController()
 	context.subscriptions.push(errorLens)
