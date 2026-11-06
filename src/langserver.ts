@@ -8,6 +8,7 @@ import {
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
 import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
+import { processLaunchCommand } from "./processExecution"
 import { requiresServerRestart } from "./serverRestart"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
@@ -330,13 +331,23 @@ export class VlsManager implements vscode.Disposable {
 			},
 		}
 		// VLS dynamically registers its file watcher; a second static watcher duplicates events.
+		// The configured server may be a `.bat`/`.cmd` launcher, which Node
+		// cannot spawn directly on Windows. The client forwards its options
+		// bag to `spawn`, so the verbatim flag for the pre-quoted command line
+		// travels with it.
+		const launch = processLaunchCommand(command, args)
 		const nextClient = new LanguageClient(
 			"vls",
 			"V Language Server",
 			{
-				command,
-				args,
-				options: { env },
+				command: launch.command,
+				args: launch.args,
+				options: {
+					env,
+					...(launch.windowsVerbatimArguments === true
+						? { windowsVerbatimArguments: true as const }
+						: {}),
+				},
 			},
 			options,
 		)

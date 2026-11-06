@@ -211,7 +211,10 @@ function scalarType(value: string | number | boolean): string {
 	if (typeof value === "boolean") {
 		return "bool"
 	}
-	if (Number.isInteger(value)) {
+	// Only safe integers map to int/i64: an integer-valued double outside the
+	// safe range (say 1e100) is exactly representable in f64 but in no integer
+	// type, so it must not become i64.
+	if (Number.isSafeInteger(value)) {
 		return Math.abs(value) <= 2147483647 ? "int" : "i64"
 	}
 	return "f64"
@@ -235,10 +238,15 @@ export function structsFromValue(rootName: string, value: unknown, anyType: stri
 	const structs: StructDef[] = []
 	const usedNames = new Set<string>()
 	const uniqueName = (base: string): string => {
-		let name = capitalize(base === "" ? "value" : base)
+		// Hints are raw document keys (`a-b`) or file stems, not identifiers:
+		// sanitize to a valid type name the same way file stems are, or the
+		// struct itself does not compile.
+		const stem = base.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z]+/, "")
+		const root = capitalize(stem === "" ? "value" : stem)
+		let name = root
 		let counter = 2
 		while (usedNames.has(name)) {
-			name = `${capitalize(base)}${counter}`
+			name = `${root}${counter}`
 			counter++
 		}
 		usedNames.add(name)
@@ -286,10 +294,22 @@ export function structsFromValue(rootName: string, value: unknown, anyType: stri
 			const name = uniqueName(hint)
 			const struct: StructDef = { name, fields: [] }
 			structs.push(struct)
+			// Sanitized keys can collide (`a-b` and `a_b`): the rename
+			// attribute keeps each field decoding from its own key, while a
+			// counter keeps each field name unique, or the struct declares the
+			// same field twice and does not compile.
+			const usedFields = new Set<string>()
 			struct.fields = entries.map(([key, fieldValue]) => {
 				const field = fieldName(key)
+				let fieldNameUnique = field.name
+				let counter = 2
+				while (usedFields.has(fieldNameUnique)) {
+					fieldNameUnique = `${field.name}${counter}`
+					counter++
+				}
+				usedFields.add(fieldNameUnique)
 				return {
-					name: field.name,
+					name: fieldNameUnique,
 					type: valueType(key, fieldValue),
 					...(field.sourceKey ? { sourceKey: field.sourceKey } : {}),
 				}

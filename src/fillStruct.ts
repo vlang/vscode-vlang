@@ -15,7 +15,6 @@ export interface StructField {
 
 const structDeclaration = /^struct\s+(\w+)\s*\{/
 const sectionHeader = /^(pub|mut|__global)(\s+(pub|mut|__global))?:\s*$/
-const emptyLiteral = /(\w+)\{\s*\}/
 
 /** Fields of `struct Name` in `source`, in declaration order.
  *
@@ -87,25 +86,92 @@ export function zeroValueFor(typeName: string): string {
 	return `${typeName}{}`
 }
 
-/** An empty `Name{}` literal on one line, with its brace span.
+/** A line with string literals and the line comment blanked to spaces.
  *
- * Comment lines never match.
+ * Matching runs against this rather than the raw line, so a literal inside a
+ * string (`"Point{}"`) or a comment (`// Point{}`) is never offered as code.
+ * Positions are preserved: every masked character becomes one space, so a
+ * span found here addresses the original line.
+ */
+function maskNonCode(lineText: string): string {
+	let masked = ""
+	let quote: string | undefined
+	let index = 0
+	while (index < lineText.length) {
+		const character = lineText[index]!
+		if (quote !== undefined) {
+			masked += " "
+			if (character === "\\" && index + 1 < lineText.length) {
+				masked += " "
+				index += 2
+				continue
+			}
+			if (character === quote) {
+				quote = undefined
+			}
+			index++
+			continue
+		}
+		if (character === "'" || character === '"' || character === "`") {
+			quote = character
+			masked += " "
+			index++
+			continue
+		}
+		if (character === "/" && lineText[index + 1] === "/") {
+			masked += " ".repeat(lineText.length - index)
+			break
+		}
+		masked += character
+		index++
+	}
+	return masked
+}
+
+/** An empty `Name{}` literal on one line, with its span.
+ *
+ * Comment lines never match, and neither do literals inside strings or
+ * comments further down the line. With several literals on one line the one
+ * under `column` wins; without a column the first one does, which is what
+ * the no-cursor callers had. A column beside every literal matches nothing
+ * rather than the wrong one.
  */
 export function emptyLiteralAt(
 	lineText: string,
+	column?: number,
 ): { name: string; start: number; end: number } | undefined {
 	if (lineText.trim().startsWith("//")) {
 		return undefined
 	}
-	const match = emptyLiteral.exec(lineText)
-	if (!match || match[1] === undefined || match.index === undefined) {
-		return undefined
+	const masked = maskNonCode(lineText)
+	const pattern = /(\w+)\{\s*\}/g
+	const matches = [...masked.matchAll(pattern)]
+	if (column === undefined) {
+		const match = matches[0]
+		if (!match || match[1] === undefined || match.index === undefined) {
+			return undefined
+		}
+		return {
+			name: match[1],
+			start: match.index + match[1].length,
+			end: match.index + match[0].length,
+		}
 	}
-	return {
-		name: match[1],
-		start: match.index + match[1].length,
-		end: match.index + match[0].length,
+	for (const match of matches) {
+		if (!match || match[1] === undefined || match.index === undefined) {
+			continue
+		}
+		const start = match.index
+		const end = match.index + match[0].length
+		if (start <= column && column <= end) {
+			return {
+				name: match[1],
+				start: match.index + match[1].length,
+				end,
+			}
+		}
 	}
+	return undefined
 }
 
 /** The replacement body for an empty literal of the given fields. */

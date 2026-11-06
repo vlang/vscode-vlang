@@ -1,5 +1,3 @@
-import { execFile as _execFile } from "child_process"
-import { promisify } from "util"
 import * as path from "path"
 import * as vscode from "vscode"
 import {
@@ -10,9 +8,8 @@ import {
 	testRunArgs,
 	VTest,
 } from "./testDiscovery"
+import { runTestProcess } from "./testProcess"
 import { vCommandForProgram } from "./vExecutable"
-
-const execFile = promisify(_execFile)
 
 /** How long to wait for a `v test` run before giving it up. */
 const runTimeoutMs = 120_000
@@ -141,6 +138,9 @@ export class VTestExplorer implements vscode.Disposable {
 		const id = testItemId(filePath, test)
 		const existing = this.items.get(id)
 		if (existing) {
+			// The test moved since the item was created: the range is what the
+			// editor jumps to, so it follows the declaration, not the old line.
+			existing.range = new vscode.Range(test.line - 1, 0, test.line - 1, 0)
 			return existing
 		}
 		const item = this.controller.createTestItem(id, test.name, parent.uri)
@@ -257,40 +257,45 @@ export class VTestExplorer implements vscode.Disposable {
 			for (const item of items) {
 				run.started(item)
 			}
-			// Cancelling aborts the running process rather than waiting for it:
-			// without a signal the run stays open until the process exits or the
-			// 120-second timeout kills it.
-			const controller = new AbortController()
-			const cancellation = token.onCancellationRequested(() => controller.abort())
-			try {
-				const { stdout, stderr } = await execFile(vCommand, args, {
-					cwd: folder?.uri.fsPath,
-					timeout: runTimeoutMs,
-					signal: controller.signal,
-				})
-				this.reportFileResults(run, items, `${stdout}\n${stderr}`)
-			} catch (error) {
-				if (token.isCancellationRequested) {
-					for (const item of items) {
-						run.skipped(item)
-					}
-					break
+			const result = await runTestProcess(
+				vCommand,
+				args,
+				folder?.uri.fsPath,
+				runTimeoutMs,
+				token,
+			)
+			if (result.cancelled || token.isCancellationRequested) {
+				for (const item of items) {
+					run.skipped(item)
 				}
-				const output = execOutputOf(error)
-				if (
-					output !== undefined &&
-					(parseTestOutput(output).length > 0 ||
-						parseTestFileStatus(output) !== undefined)
-				) {
-					this.reportFileResults(run, items, output)
-				} else {
-					const message = error instanceof Error ? error.message : "The test run failed."
-					for (const item of items) {
-						run.errored(item, new vscode.TestMessage(message))
-					}
+				break
+			}
+			const output = `${result.stdout}\n${result.stderr}`
+			if (
+				result.code === 0 ||
+				parseTestOutput(output).length > 0 ||
+				parseTestFileStatus(output) !== undefined
+			) {
+				// A failing run still names its tests; only the items with no
+				// outcome take the failure message, which names the timeout
+				// when the run never finished.
+				this.reportFileResults(
+					run,
+					items,
+					output,
+					result.timedOut
+						? `The test run timed out after ${runTimeoutMs / 1000} seconds.`
+						: undefined,
+				)
+			} else {
+				const message = result.timedOut
+					? `The test run timed out after ${runTimeoutMs / 1000} seconds.`
+					: result.code === null
+						? "Could not start the test process."
+						: `The test run failed (exit code ${result.code}).`
+				for (const item of items) {
+					run.errored(item, new vscode.TestMessage(message))
 				}
-			} finally {
-				cancellation.dispose()
 			}
 		}
 		run.end()
@@ -302,26 +307,6 @@ export class VTestExplorer implements vscode.Disposable {
 		}
 		this.items.clear()
 	}
-}
-
-/** The combined output a rejected `execFile` still carries.
- *
- * A `v test` run exits non-zero when a test fails, so the rejection is the
- * normal failure path, not a transport error: its `stdout`/`stderr` hold the
- * per-test lines the outcomes are read from. Returns `undefined` when the
- * rejection carries no output at all (a spawn failure, an abort), which is
- * when the items are errored instead.
- */
-function execOutputOf(error: unknown): string | undefined {
-	if (typeof error !== "object" || error === null) {
-		return undefined
-	}
-	const stdout = (error as { stdout?: unknown }).stdout
-	const stderr = (error as { stderr?: unknown }).stderr
-	if (typeof stdout !== "string" && typeof stderr !== "string") {
-		return undefined
-	}
-	return `${stdout ?? ""}\n${stderr ?? ""}`
 }
 
 /** Register the V test explorer.

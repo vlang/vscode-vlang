@@ -3,6 +3,7 @@ import { promisify } from "util"
 import * as vscode from "vscode"
 import { ExtensionContext, WorkspaceFolder } from "vscode"
 import { log } from "./logger"
+import { processLaunchCommand } from "./processExecution"
 import {
 	parseSkillList,
 	SkillCatalog,
@@ -33,9 +34,13 @@ interface Run {
  */
 async function runV(vCommand: string, folder: WorkspaceFolder, args: string[]): Promise<Run> {
 	try {
-		const { stdout, stderr } = await execFile(vCommand, args, {
+		// The configured compiler may be a `.bat`/`.cmd` launcher, which Node
+		// cannot spawn directly on Windows; the launch goes through `cmd.exe`.
+		const launch = processLaunchCommand(vCommand, args)
+		const { stdout, stderr } = await execFile(launch.command, launch.args, {
 			cwd: folder.uri.fsPath,
 			timeout: timeoutMs,
+			windowsVerbatimArguments: launch.windowsVerbatimArguments,
 		})
 		return { stdout, stderr, code: 0 }
 	} catch (error) {

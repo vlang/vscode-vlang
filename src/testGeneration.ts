@@ -81,9 +81,17 @@ export function coverageFilterFor(sourceFilePath: string): string {
 	return canonicalFilePath(sourceFilePath)
 }
 
-/** How a code action for one function is worded. */
-export function testActionTitle(fn: UntestedFunction): string {
-	return `Generate test for '${fn.name}'`
+/** Whether a selection touches a 0-based line.
+ *
+ * A caret on the line counts, as does any range over it: the lightbulb must
+ * answer from a caret, not only from a selection containing the whole line.
+ */
+export function selectionTouchesLine(
+	selectionStartLine: number,
+	selectionEndLine: number,
+	line: number,
+): boolean {
+	return selectionStartLine <= line && line <= selectionEndLine
 }
 
 /** How the action for the whole file is worded. */

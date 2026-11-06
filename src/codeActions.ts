@@ -10,11 +10,11 @@ import {
 	coverageFilterFor,
 	ExistingTest,
 	planTestGeneration,
-	testActionTitle,
+	selectionTouchesLine,
 } from "./testGeneration"
 import { generateTestSkeleton, testFileName } from "./testSkeleton"
 import { processLaunchCommand } from "./processExecution"
-import { vCommandFor as vCommandForFolder } from "./vExecutable"
+import { vCommandForProgram } from "./vExecutable"
 
 /** A code action that generates a test skeleton for a V source file.
  *
@@ -111,38 +111,28 @@ export class GenerateUntestedTestsAction implements vscode.CodeActionProvider {
 		if (plan.kind === "unavailable" || plan.kind === "up-to-date") {
 			return []
 		}
-		const actions: vscode.CodeAction[] = []
-		// A selection inside one function offers just that function, so the
-		// lightbulb answers the question the cursor asked.
-		const selected = plan.functions.filter((fn) =>
-			document.lineCount > fn.line ? range.contains(document.lineAt(fn.line).range) : false,
+		// The tool generates for the whole file: `v cover --filter` scopes
+		// source paths, not function names, so there is no per-function action
+		// to offer. The file-wide action is offered when the caret or selection
+		// touches an uncovered function's declaration line.
+		const touched = plan.functions.some(
+			(fn) =>
+				document.lineCount > fn.line &&
+				selectionTouchesLine(range.start.line, range.end.line, fn.line),
 		)
-		const offered = selected.length > 0 ? selected : []
-		for (const fn of offered) {
-			const action = new vscode.CodeAction(
-				testActionTitle(fn),
-				vscode.CodeActionKind.QuickFix,
-			)
-			action.command = {
-				command: "v.generateTests",
-				title: "Generate Test",
-				arguments: [document.uri, [fn.name]],
-			}
-			actions.push(action)
+		if (!touched) {
+			return []
 		}
-		if (offered.length > 0) {
-			const all = new vscode.CodeAction(
-				allTestsTitle(plan.functions.length),
-				vscode.CodeActionKind.QuickFix,
-			)
-			all.command = {
-				command: "v.generateTests",
-				title: "Generate Tests",
-				arguments: [document.uri, plan.functions.map((fn) => fn.name)],
-			}
-			actions.push(all)
+		const action = new vscode.CodeAction(
+			allTestsTitle(plan.functions.length),
+			vscode.CodeActionKind.QuickFix,
+		)
+		action.command = {
+			command: "v.generateTests",
+			title: "Generate Tests",
+			arguments: [document.uri],
 		}
-		return actions
+		return [action]
 	}
 }
 
@@ -233,7 +223,12 @@ export class FillStructFieldsAction implements vscode.CodeActionProvider {
 		if (range.start.line < 0 || range.start.line >= document.lineCount) {
 			return []
 		}
-		const literal = emptyLiteralAt(document.lineAt(range.start.line).text)
+		// The cursor must sit on the literal: a line holding two of them or
+		// one inside a string must not offer to fill the wrong one.
+		const literal = emptyLiteralAt(
+			document.lineAt(range.start.line).text,
+			range.start.character,
+		)
 		if (!literal) {
 			return []
 		}
@@ -248,14 +243,18 @@ export class FillStructFieldsAction implements vscode.CodeActionProvider {
 		action.command = {
 			command: "v.fillStruct",
 			title: "Fill Struct Fields",
-			arguments: [document.uri, range.start.line],
+			arguments: [document.uri, range.start.line, range.start.character],
 		}
 		return [action]
 	}
 }
 
 /** Fill the empty struct literal at a line with its declared fields. */
-export async function fillStruct(uri?: vscode.Uri, line?: number): Promise<boolean> {
+export async function fillStruct(
+	uri?: vscode.Uri,
+	line?: number,
+	character?: number,
+): Promise<boolean> {
 	const document = uri
 		? await vscode.workspace.openTextDocument(uri)
 		: vscode.window.activeTextEditor?.document
@@ -267,7 +266,14 @@ export async function fillStruct(uri?: vscode.Uri, line?: number): Promise<boole
 	if (at === undefined || at < 0 || at >= document.lineCount) {
 		return false
 	}
-	const literal = emptyLiteralAt(document.lineAt(at).text)
+	// Re-resolve the literal at invoke time: the document may have changed
+	// since the action was offered, and the cursor still decides which one.
+	const editor = vscode.window.activeTextEditor
+	const samePlace =
+		editor?.document.uri.toString() === document.uri.toString() &&
+		editor.selection.active.line === at
+	const column = character ?? (samePlace ? editor.selection.active.character : undefined)
+	const literal = emptyLiteralAt(document.lineAt(at).text, column)
 	if (!literal) {
 		return false
 	}
@@ -374,11 +380,12 @@ async function revealTestFile(testPath: string): Promise<boolean> {
 
 /** The V executable a folder's settings name, resolved like every other caller.
  *
- * Falls back to PATH when the file is outside any workspace folder.
+ * A file outside any workspace folder still honors the global
+ * `v.executablePath`, resolved against its own directory, so a standalone
+ * coverage run uses the same compiler test generation would invoke.
  */
 function vCommandFor(uri: vscode.Uri): string {
-	const folder = vscode.workspace.getWorkspaceFolder(uri)
-	return folder ? vCommandForFolder(folder) : "v"
+	return vCommandForProgram(uri.fsPath, vscode.workspace.getWorkspaceFolder(uri))
 }
 
 /** Register the test actions.
@@ -409,10 +416,12 @@ export function registerCodeActions(
 		vscode.commands.registerCommand("v.generateTestFile", (uri: vscode.Uri) =>
 			generateTestFile(uri),
 		),
-		vscode.commands.registerCommand("v.fillStruct", (uri?: vscode.Uri, line?: number) =>
-			fillStruct(uri, line),
+		vscode.commands.registerCommand(
+			"v.fillStruct",
+			(uri?: vscode.Uri, line?: number, character?: number) =>
+				fillStruct(uri, line, character),
 		),
-		vscode.commands.registerCommand("v.generateTests", (uri: vscode.Uri, _names?: string[]) =>
+		vscode.commands.registerCommand("v.generateTests", (uri: vscode.Uri) =>
 			generateTestsFor(uri, coverage),
 		),
 	)

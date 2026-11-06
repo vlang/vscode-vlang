@@ -68,6 +68,25 @@ describe("fill struct fields", () => {
 		assert.strictEqual(emptyLiteralAt("// Point{}"), undefined)
 	})
 
+	it("ignores literals inside strings and line comments", () => {
+		assert.strictEqual(emptyLiteralAt('log("Point{}")'), undefined)
+		assert.strictEqual(emptyLiteralAt("log('Point{}')"), undefined)
+		// The code literal still matches when the comment's copy is masked out.
+		assert.deepStrictEqual(emptyLiteralAt("mut p := Point{} // Point{}"), {
+			name: "Point",
+			start: 14,
+			end: 16,
+		})
+	})
+
+	it("picks the literal under the cursor", () => {
+		const line = "a := Point{}  b := Size{}"
+		assert.deepStrictEqual(emptyLiteralAt(line, 11)?.name, "Point")
+		assert.deepStrictEqual(emptyLiteralAt(line, 22)?.name, "Size")
+		assert.strictEqual(emptyLiteralAt(line, 14), undefined)
+		assert.strictEqual(emptyLiteralAt(line, 0), undefined)
+	})
+
 	it("renders the filled body", () => {
 		assert.strictEqual(
 			fillStructBody([

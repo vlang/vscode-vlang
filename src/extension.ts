@@ -17,6 +17,7 @@ import { ErrorLensController } from "./errorLens"
 import { registerVlsMcpServers } from "./vlsMcp"
 import { registerSkillCommands } from "skills"
 import { registerTestExplorer } from "testExplorer"
+import { requiresServerRestart } from "./serverRestart"
 import vscode, { ConfigurationChangeEvent, ExtensionContext, workspace } from "vscode"
 import { installV, isVInstalled } from "./utils"
 import { registerVTasks, VTaskManager } from "./vTasks"
@@ -204,31 +205,42 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// `startVls`, for the errors recovery cannot handle on its own. In a window
 	// with no V relevance the start waits for the first V document instead of
 	// paying for a server nothing will talk to.
-	if (isVlsEnabled()) {
-		// Retry trigger when no server is running: the next V document retries
-		// the start, so installing VLS or correcting its command needs no manual
-		// restart. Installed once and dropped once a start succeeds.
-		let vlsRetry: vscode.Disposable | undefined
-		const ensureVlsRetry = () => {
-			if (vlsRetry || vlsManager) {
+	// Retry trigger when no server is running: the next V document retries
+	// the start, so installing VLS or correcting its command needs no manual
+	// restart. Installed once and dropped once a start succeeds.
+	let vlsRetry: vscode.Disposable | undefined
+	// Compiler detection ran only for a window holding V sources at
+	// activation; a V file opened later gets one check of its own.
+	let toolsChecked = vRelevant
+	const ensureVlsRetry = () => {
+		if (vlsRetry || vlsManager) {
+			return
+		}
+		vlsRetry = vscode.workspace.onDidOpenTextDocument(async (document) => {
+			if (document.languageId !== "v" && document.languageId !== "v.mod") {
 				return
 			}
-			vlsRetry = vscode.workspace.onDidOpenTextDocument(async (document) => {
-				if (document.languageId !== "v" && document.languageId !== "v.mod") {
-					return
-				}
-				if (vlsManager || !isVlsEnabled()) {
-					return
-				}
-				// A failed start keeps the trigger: the next V document retries,
-				// and V: Restart VLS is always available in between.
-				if (await startVls(taskManager)) {
-					vlsRetry?.dispose()
-					vlsRetry = undefined
-				}
-			})
-			context.subscriptions.push(vlsRetry)
-		}
+			if (!toolsChecked) {
+				toolsChecked = true
+				void toolManager.check()
+			}
+			if (vlsManager || !isVlsEnabled()) {
+				return
+			}
+			// A failed start keeps the trigger: the next V document retries,
+			// and V: Restart VLS is always available in between.
+			if (await startVls(taskManager)) {
+				vlsRetry?.dispose()
+				vlsRetry = undefined
+			}
+		})
+		context.subscriptions.push(vlsRetry)
+	}
+	const dropVlsRetry = () => {
+		vlsRetry?.dispose()
+		vlsRetry = undefined
+	}
+	if (isVlsEnabled()) {
 		// In a window with no V relevance the start waits for the first V
 		// document instead of paying for a server nothing will talk to. When the
 		// workspace already holds V sources the start runs eagerly, and a failed
@@ -300,12 +312,26 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			if (e.affectsConfiguration("v.vls.enable")) {
 				if (vlsEnabled && !vlsManager) {
 					// Start the client now that the user enabled it.
-					await startVls(taskManager)
+					if (await startVls(taskManager)) {
+						dropVlsRetry()
+					} else {
+						ensureVlsRetry()
+					}
 				} else if (!vlsEnabled && vlsManager) {
 					// Stop the client if it was running and the user disabled it.
 					vlsManager.dispose()
 					vlsManager = undefined
 					log("VLS has been stopped.")
+				}
+			} else if (vlsEnabled && !vlsManager && requiresServerRestart(e)) {
+				// No manager is left to observe this change — a failed start
+				// disposes it — so a corrected command, arguments or compiler
+				// path retries the start now instead of waiting for the next V
+				// document. A failed retry keeps the document-open trigger.
+				if (await startVls(taskManager)) {
+					dropVlsRetry()
+				} else {
+					ensureVlsRetry()
 				}
 			}
 			// Command and argument changes need no prompt here: the manager

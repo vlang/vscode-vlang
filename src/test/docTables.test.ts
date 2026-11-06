@@ -64,6 +64,20 @@ describe("xml documents", () => {
 		})
 	})
 
+	it("rejects an attribute colliding with a child element", () => {
+		// Children merge over attributes, so `<item id="attribute">` beside
+		// `<id>child</id>` would silently drop one of the two values.
+		assert.throws(
+			() => parseXmlDocument('<item id="attribute"><id>child</id></item>'),
+			/collides/,
+		)
+		// Distinct names still merge.
+		assert.deepStrictEqual(parseXmlDocument('<item id="1"><name>x</name></item>'), {
+			id: "1",
+			name: "x",
+		})
+	})
+
 	it("rejects doctype declarations", () => {
 		assert.throws(() => parseXmlDocument("<!DOCTYPE foo><a/>"), /octype/)
 	})

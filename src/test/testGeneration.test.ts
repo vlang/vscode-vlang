@@ -3,6 +3,7 @@ import { describe, it } from "node:test"
 import {
 	planTestGeneration,
 	ExistingTest,
+	selectionTouchesLine,
 	testFunctionNames,
 	UntestedFunction,
 } from "../testGeneration"
@@ -107,5 +108,23 @@ describe("existing test function names", () => {
 		// The generator must see the names anyway, or it would duplicate them.
 		const names = testFunctionNames("module p\n\nfn test_broken(\n")
 		assert.deepStrictEqual([...names], ["broken"])
+	})
+})
+
+describe("selection touches declaration line", () => {
+	it("counts a caret on the line", () => {
+		assert.strictEqual(selectionTouchesLine(13, 13, 13), true)
+	})
+
+	it("counts a range over the line", () => {
+		assert.strictEqual(selectionTouchesLine(10, 15, 13), true)
+		assert.strictEqual(selectionTouchesLine(13, 20, 13), true)
+		assert.strictEqual(selectionTouchesLine(5, 13, 13), true)
+	})
+
+	it("misses lines outside the selection", () => {
+		assert.strictEqual(selectionTouchesLine(13, 13, 12), false)
+		assert.strictEqual(selectionTouchesLine(13, 13, 14), false)
+		assert.strictEqual(selectionTouchesLine(5, 10, 13), false)
 	})
 })

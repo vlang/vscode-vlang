@@ -214,6 +214,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were cached by path until the executable-path setting changed, so agents
   kept receiving the old tool list after a same-path compiler upgrade. The
   cache now checks the binary's timestamp and size first.
+- VLS retries when its executable settings change after a failed start. The
+  retry listened only for future V documents, so correcting `v.vls.command`,
+  `v.vls.args` or `v.executablePath` with a V document already open left
+  IntelliSense stopped. A change to those settings with no manager running
+  now retries the start at once.
+- Compiler detection reruns when V arrives later. The missing-V prompt and
+  update check ran only for windows holding V sources at activation; a V file
+  opened afterwards retried VLS but never compiler detection. The first V
+  document now triggers one update check too.
+- Debug compilation, skill commands, environment reporting and the VLS client
+  handle Windows `.bat`/`.cmd` launchers through the shared `cmd.exe`
+  quoting instead of spawning them directly, which Node cannot do.
+- Cancelling a Test Explorer run kills the whole test process tree. The abort
+  reached only the `v` process while each compiled test binary kept running
+  as its child; Windows gets `taskkill /t /f` and other platforms a process
+  group kill, through a runner that also captures failing output without
+  exceptions.
+- Coverage test generation works from a caret and tells the truth about
+  scope. The offer needed a selection containing the whole declaration line,
+  so a caret never saw it; and the per-function action ignored its names
+  because `v cover --filter` scopes source paths, not functions, generating
+  the whole file anyway. The file-wide action is now offered when the caret
+  or selection touches an uncovered declaration line, and the unscoped
+  per-function actions are gone.
+- Untested-function data covers every file in the coverage report, not just
+  the first eligible entry. Actions in other files saw nothing, and a first
+  entry without uncovered functions hid the rest.
+- Standalone coverage generation uses the configured `v.executablePath`
+  instead of a literal `v`, so it runs the same compiler test generation
+  would invoke.
+- c2v translation stops when the C file is not saved instead of translating
+  stale on-disk contents.
+- Fill-struct matches code under the cursor. The first `Name{}` on the line
+  won regardless of position, including inside strings and comments. Literals
+  in strings and comments are masked out, and with several on a line the one
+  under the cursor wins.
+- Decoder generation emits valid, unique identifiers. Colliding sanitized
+  keys (`a-b`, `a_b`) declared the same field twice, and a nested `a-b`
+  became the type name `A-b`; fields are numbered and type hints sanitized,
+  with rename attributes preserving the decoding.
+- Out-of-range JSON integers infer as `f64`, not `i64`. `1e100` is
+  integer-valued but fits no integer type; only `f64` represents it.
+- A colliding XML attribute and child element is rejected instead of merged.
+  `<item id="attribute"><id>child</id></item>` silently kept only the child.
+- Test Explorer items follow moved tests: the range updates on every refresh
+  instead of only at creation.
 
 ## 0.2.1
 

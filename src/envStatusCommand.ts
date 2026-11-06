@@ -3,6 +3,7 @@ import { promisify } from "util"
 import * as vscode from "vscode"
 import { getVls, isVlsEnabled } from "./langserver"
 import { EnvironmentInfo, renderEnvironment } from "./envStatus"
+import { processLaunchCommand } from "./processExecution"
 import { vCommandFor } from "./vExecutable"
 
 const execFile = promisify(_execFile)
@@ -18,7 +19,15 @@ const versionTimeoutMs = 10_000
  */
 async function versionOf(command: string): Promise<string | undefined> {
 	try {
-		const { stdout } = await execFile(command, ["--version"], { timeout: versionTimeoutMs })
+		// The configured binary may be a `.bat`/`.cmd` launcher, which Node
+		// cannot spawn directly on Windows; the launch goes through `cmd.exe`.
+		// A launcher that fails still reports nothing, which is what the
+		// environment view shows for it.
+		const launch = processLaunchCommand(command, ["--version"])
+		const { stdout } = await execFile(launch.command, launch.args, {
+			timeout: versionTimeoutMs,
+			windowsVerbatimArguments: launch.windowsVerbatimArguments,
+		})
 		return stdout.trim() || undefined
 	} catch {
 		return undefined

@@ -209,7 +209,13 @@ export async function translateWithC2v(): Promise<void> {
 		return
 	}
 	try {
-		await document.save()
+		const saved = await document.save()
+		if (!saved) {
+			void window.showWarningMessage(
+				"c2v translation cancelled: the C file was not saved, so there is nothing faithful to translate.",
+			)
+			return
+		}
 		const targetUri = Uri.file(vOutputFileName(document.fileName))
 		const launch = processLaunchCommand(binary, [document.fileName])
 		await new Promise<void>((resolve, reject) => {

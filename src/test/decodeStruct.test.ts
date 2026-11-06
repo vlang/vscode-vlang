@@ -53,6 +53,38 @@ describe("decoder struct inference", () => {
 		])
 	})
 
+	it("numbers fields that sanitize to the same identifier", () => {
+		// Both keys decode through their own rename attributes; only the
+		// generated field names must differ, or the struct is invalid.
+		const schema = structsFromValue("Config", { "a-b": 1, a_b: 2 }, anyType)
+		assert.deepStrictEqual(schema.structs[0]?.fields, [
+			{ name: "a_b", type: "int", sourceKey: "a-b" },
+			{ name: "a_b2", type: "int" },
+		])
+	})
+
+	it("sanitizes nested keys into valid type names", () => {
+		const schema = structsFromValue("Config", { "a-b": { "9lives": true } }, anyType)
+		assert.deepStrictEqual(
+			schema.structs.map((struct) => struct.name),
+			["Config", "A_b"],
+		)
+		assert.deepStrictEqual(schema.structs[1]?.fields, [
+			{ name: "_9lives", type: "bool", sourceKey: "9lives" },
+		])
+	})
+
+	it("reads out-of-range integers as f64", () => {
+		// 1e100 is integer-valued but exactly representable only in f64: no
+		// integer type holds it, so inferring i64 generates a decoder that
+		// cannot faithfully handle the input.
+		const schema = structsFromValue("Config", { huge: 1e100, big: 5000000000 }, anyType)
+		assert.deepStrictEqual(schema.structs[0]?.fields, [
+			{ name: "huge", type: "f64" },
+			{ name: "big", type: "i64" },
+		])
+	})
+
 	it("falls back to Any for null, empty and mixed shapes", () => {
 		const schema = structsFromValue(
 			"Config",

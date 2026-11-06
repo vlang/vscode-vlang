@@ -135,7 +135,7 @@ export class CoverageDecorationController implements vscode.Disposable {
 	private readonly disposables: vscode.Disposable[]
 	private profileWatcher: vscode.Disposable | undefined
 	private profile: CoverageProfile = new Map()
-	private uncovered: CoverageJsonFile | undefined
+	private uncovered = new Map<string, CoverageJsonFile>()
 	private coverageDirectory: string | undefined
 	private coverageRoot: string | undefined
 	private nextGeneration = 0
@@ -164,8 +164,7 @@ export class CoverageDecorationController implements vscode.Disposable {
 				// untested functions unreliable, and one action is offered from the
 				// other, so both go together.
 				let touched = this.profile.delete(filePath)
-				if (this.uncovered?.file === filePath) {
-					this.uncovered = undefined
+				if (this.uncovered.delete(filePath)) {
 					touched = true
 				}
 				if (touched) {
@@ -313,10 +312,11 @@ export class CoverageDecorationController implements vscode.Disposable {
 	 * with an editor URI must canonicalize it first.
 	 */
 	uncoveredFunctions(filePath: string): UncoveredFunction[] {
-		if (!this.uncovered || this.uncovered.file !== filePath) {
+		const entry = this.uncovered.get(filePath)
+		if (!entry) {
 			return []
 		}
-		return this.uncovered.functions
+		return entry.functions
 			.filter((fn) => !fn.covered)
 			.map((fn) => ({ name: fn.name, line: fn.line - 1 }))
 			.sort((left, right) => left.line - right.line)
@@ -326,7 +326,7 @@ export class CoverageDecorationController implements vscode.Disposable {
 		this.currentGeneration = ++this.nextGeneration
 		this.changedFiles.clear()
 		this.clearDecorations()
-		this.uncovered = undefined
+		this.uncovered.clear()
 		this.coverageDirectory = undefined
 		this.coverageRoot = undefined
 	}
@@ -378,12 +378,20 @@ export class CoverageDecorationController implements vscode.Disposable {
 				content,
 				(filePath) => filePath.endsWith(".v") && isPathInside(filePath, run.root),
 			)
-			const entry = report.files.find((file) => !changedDuringRun.has(file.file))
-			this.uncovered = entry
+			// Every unchanged file keeps its own entry: the report covers the
+			// whole run, and code actions ask per file. Keeping only the first
+			// entry hid the rest — and hid everything when the first entry had
+			// no uncovered functions.
+			this.uncovered.clear()
+			for (const entry of report.files) {
+				if (!changedDuringRun.has(entry.file)) {
+					this.uncovered.set(entry.file, entry)
+				}
+			}
 		} catch {
 			// An untested-functions report is an extra, not the reason a coverage
 			// run was performed. The line decorations stand on their own.
-			this.uncovered = undefined
+			this.uncovered.clear()
 		}
 	}
 
@@ -433,9 +441,7 @@ export class CoverageDecorationController implements vscode.Disposable {
 			if (this.profile.delete(filePath)) {
 				this.profileFileStates.delete(filePath)
 			}
-			if (this.uncovered?.file === filePath) {
-				this.uncovered = undefined
-			}
+			this.uncovered.delete(filePath)
 			if (!this.profile.has(filePath)) {
 				this.refreshVisibleEditors()
 				this.updateStatus()

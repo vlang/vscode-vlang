@@ -20,6 +20,8 @@
  * - the five predefined entities (`amp`, `lt`, `gt`, `quot`, `apos`) and
  *   numeric references (`&#65;`, `&#x41;`) are decoded in text and in
  *   attribute values; anything else after `&` is an error.
+ * - an attribute sharing its name with a child element is an error: children
+ *   merge over attributes, so keeping both would silently drop one value.
  *
  * The XML reader is deliberately strict, not complete: comments are
  * skipped, but everything it cannot represent faithfully is rejected with
@@ -129,6 +131,16 @@ function frameValue(frame: XmlFrame): unknown {
 	}
 	if (frame.order.length === 0 && Object.keys(frame.attrs).length === 0) {
 		return decodeEntities(frame.text)
+	}
+	for (const key of Object.keys(frame.children)) {
+		// Children spread after attributes below, so a shared name would
+		// silently replace the attribute value. Reject it like every other
+		// shape this reader cannot represent faithfully.
+		if (Object.hasOwn(frame.attrs, key)) {
+			throw new Error(
+				`Attribute ${JSON.stringify(key)} collides with a child element in <${frame.tag}>.`,
+			)
+		}
 	}
 	const merged: Record<string, unknown> = { ...frame.attrs, ...frame.children }
 	if (!blank) {
