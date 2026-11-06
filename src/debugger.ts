@@ -20,6 +20,7 @@ import {
 } from "./debugCompile"
 import { resolvedCommand } from "./vCommand"
 import { vCommandForProgram } from "./vExecutable"
+import { processLaunchCommand } from "./processExecution"
 
 const execFile = promisify(_execFile)
 
@@ -58,10 +59,14 @@ async function compileForDebug(
 	signal?: AbortSignal,
 ): Promise<string> {
 	const binary = debugBinaryPath(program)
-	await execFile(vCommand, debugCompileArgs(program, binary), {
+	// The configured compiler may be a `.bat`/`.cmd` launcher, which Node
+	// cannot spawn directly on Windows; the launch goes through `cmd.exe`.
+	const launch = processLaunchCommand(vCommand, debugCompileArgs(program, binary))
+	await execFile(launch.command, launch.args, {
 		cwd,
 		timeout: compileTimeoutMs,
 		signal,
+		windowsVerbatimArguments: launch.windowsVerbatimArguments,
 	})
 	return binary
 }

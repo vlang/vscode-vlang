@@ -2,7 +2,8 @@ import * as vscode from "vscode"
 import { ExtensionContext, workspace } from "vscode"
 import { getVls } from "./langserver"
 import { log } from "./logger"
-import { probeVlsMcp } from "./vlsMcpProbe"
+import { migratedSetting } from "./settings"
+import { probeVlsMcp, vlsMcpArgs } from "./vlsMcpProbe"
 
 const PROVIDER_ID = "vLanguageServer"
 
@@ -15,15 +16,18 @@ const probeCache = new Map<string, { ok: boolean; at: number }>()
  *
  * A positive answer is kept: the binary at this path demonstrated the mode.
  * A negative one expires, so installing a newer VLS while the session runs is
- * picked up on the next check rather than after a restart.
+ * picked up on the next check rather than after a restart. The cache key
+ * carries the arguments as well as the path: a server that needs its
+ * configured arguments answers differently with and without them.
  */
-async function supportsVlsMcp(command: string): Promise<boolean> {
-	const cached = probeCache.get(command)
+async function supportsVlsMcp(command: string, args: string[]): Promise<boolean> {
+	const key = JSON.stringify([command, args])
+	const cached = probeCache.get(key)
 	if (cached && (cached.ok || Date.now() - cached.at < negativeProbeTtlMs)) {
 		return cached.ok
 	}
-	const ok = await probeVlsMcp(command)
-	probeCache.set(command, { ok, at: Date.now() })
+	const ok = await probeVlsMcp(command, args)
+	probeCache.set(key, { ok, at: Date.now() })
 	return ok
 }
 
@@ -72,7 +76,14 @@ export function registerVlsMcpServers(context: ExtensionContext): void {
 						log(`No VLS MCP server for ${folder.name}: ${error}`)
 						continue
 					}
-					if (!(await supportsVlsMcp(command))) {
+					// The configured `v.vls.args` are additional command-line
+					// arguments, so they travel with both the probe and the served
+					// process: a server that depends on them would otherwise be
+					// rejected by the probe or started wrongly configured.
+					const mcpArgs = vlsMcpArgs(
+						migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder.uri),
+					)
+					if (!(await supportsVlsMcp(command, mcpArgs))) {
 						log(
 							`No VLS MCP server for ${folder.name}: ${command} does not answer an MCP handshake.`,
 						)
@@ -81,7 +92,7 @@ export function registerVlsMcpServers(context: ExtensionContext): void {
 					const definition = new vscode.McpStdioServerDefinition(
 						`VLS (${folder.name})`,
 						command,
-						["--mcp"],
+						mcpArgs,
 					)
 					definition.cwd = folder.uri
 					definitions.push(definition)

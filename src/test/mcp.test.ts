@@ -1,6 +1,9 @@
 import * as assert from "assert"
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
 import { describe, it } from "node:test"
-import { describeServer, mcpServerArgs, parseToolCatalog } from "../mcpProbe"
+import { describeServer, executableIdentity, mcpServerArgs, parseToolCatalog } from "../mcpProbe"
 
 /** Two lines from `v mcp tools`, one read-only and one that writes. */
 const catalogSample = [
@@ -89,5 +92,34 @@ describe("V MCP server", () => {
 			describeServer("app", catalog, true).split(",")[0],
 			describeServer("app", catalog, false).split(",")[0],
 		)
+	})
+
+	it("tells a replaced compiler apart from the one that was probed", () => {
+		// The catalog cache is keyed by path, so the identity is what notices
+		// an in-place update: the same answer must come back while the file is
+		// untouched, and must not once it changes.
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vls-mcp-identity-"))
+		try {
+			const binary = path.join(directory, "v")
+			fs.writeFileSync(binary, "compiler v1")
+			const probed = executableIdentity(binary)
+			assert.ok(probed)
+			assert.deepStrictEqual(executableIdentity(binary), probed)
+			// New bytes are a new binary even at the same path.
+			fs.writeFileSync(binary, "compiler v2, somewhat longer")
+			assert.notDeepStrictEqual(executableIdentity(binary), probed)
+			// So is a new timestamp at the same size.
+			const touched = executableIdentity(binary)
+			assert.ok(touched)
+			const later = new Date(touched.mtimeMs + 5_000)
+			fs.utimesSync(binary, later, later)
+			assert.notDeepStrictEqual(executableIdentity(binary), touched)
+			// A directory is not an executable: nothing to pin an answer to.
+			assert.strictEqual(executableIdentity(directory), undefined)
+		} finally {
+			fs.rmSync(directory, { recursive: true, force: true })
+		}
+		// A missing path likewise pins nothing.
+		assert.strictEqual(executableIdentity(path.join(directory, "missing")), undefined)
 	})
 })

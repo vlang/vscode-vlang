@@ -1,4 +1,5 @@
 import { spawn } from "child_process"
+import { processLaunchCommand } from "./processExecution"
 
 /** Whether one stdout line is an MCP `initialize` result.
  *
@@ -29,6 +30,17 @@ export function isMcpInitializeResult(line: string): boolean {
 	)
 }
 
+/** The arguments a VLS MCP server is probed and started with.
+ *
+ * The user's configured `v.vls.args` come first, so a custom VLS that depends
+ * on them sees the same configuration in the probe as in the served process;
+ * `--mcp` selects the mode. Probing with anything else would reject a server
+ * that only answers with its arguments, or start one without them.
+ */
+export function vlsMcpArgs(userArgs: readonly string[]): string[] {
+	return [...userArgs, "--mcp"]
+}
+
 /** Ask a VLS binary whether it serves MCP over stdio.
  *
  * VLS gained no `--mcp` mode up to and including the version this extension
@@ -45,7 +57,14 @@ export async function probeVlsMcp(
 	return new Promise((resolve) => {
 		let child: ReturnType<typeof spawn>
 		try {
-			child = spawn(command, args, { stdio: ["pipe", "pipe", "ignore"] })
+			// The configured server may be a `.bat`/`.cmd` launcher, which
+			// Node cannot spawn directly on Windows; the launch goes through
+			// `cmd.exe`.
+			const launch = processLaunchCommand(command, args)
+			child = spawn(launch.command, launch.args, {
+				stdio: ["pipe", "pipe", "ignore"],
+				windowsVerbatimArguments: launch.windowsVerbatimArguments,
+			})
 		} catch {
 			resolve(false)
 			return

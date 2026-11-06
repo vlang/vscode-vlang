@@ -201,6 +201,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cancelling a Test Explorer run stops the running `v test` process. The
   cancellation was only checked between files, so a long run kept going and
   the run stayed open until it exited or timed out.
+- Debug compilation and the MCP probes handle Windows `.bat`/`.cmd` compiler
+  launchers. The configured executable was spawned directly, which Node
+  cannot do for batch files, so debugging a project whose `v.executablePath`
+  names a launcher failed and the compiler MCP probe silently offered no
+  server. All three paths go through the `cmd.exe` quoting the tasks already
+  used.
+- The VLS MCP server inherits the configured `v.vls.args`. The probe and the
+  server definition passed only `--mcp`, so a custom VLS that depends on its
+  arguments was rejected by the probe or started wrongly configured.
+- The compiler MCP catalog notices an in-place update. Successful catalogs
+  were cached by path until the executable-path setting changed, so agents
+  kept receiving the old tool list after a same-path compiler upgrade. The
+  cache now checks the binary's timestamp and size first.
 
 ## 0.2.1
 

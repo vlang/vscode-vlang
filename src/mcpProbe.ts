@@ -5,6 +5,8 @@
  * `mcp.ts`.
  */
 
+import * as fs from "fs"
+
 /** What `v mcp tools` reported about one V compiler. */
 export interface McpToolCatalog {
 	/** Every tool the server registers, in the order the compiler listed them. */
@@ -38,6 +40,32 @@ export function parseToolCatalog(stdout: string): McpToolCatalog | undefined {
 		return undefined
 	}
 	return { tools, writers }
+}
+
+/** What identifies the binary a probe answer came from.
+ *
+ * The catalog cache is keyed by executable path, so a compiler replaced in
+ * place — same path, new binary — must not keep serving the old answer. The
+ * modification time and size are the cheap check; a rewrite changes at least
+ * one of them.
+ */
+export interface ExecutableIdentity {
+	mtimeMs: number
+	size: number
+}
+
+/** The current identity of an executable.
+ *
+ * Returns `undefined` when the path cannot be statted as a file, which is
+ * when there is nothing trustworthy to pin an answer to.
+ */
+export function executableIdentity(executable: string): ExecutableIdentity | undefined {
+	try {
+		const stat = fs.statSync(executable)
+		return stat.isFile() ? { mtimeMs: stat.mtimeMs, size: stat.size } : undefined
+	} catch {
+		return undefined
+	}
 }
 
 export interface McpServerOptions {

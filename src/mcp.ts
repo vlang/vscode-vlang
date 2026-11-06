@@ -3,7 +3,15 @@ import { promisify } from "util"
 import * as vscode from "vscode"
 import { ConfigurationChangeEvent, ExtensionContext, WorkspaceFolder, workspace } from "vscode"
 import { log } from "./logger"
-import { describeServer, McpToolCatalog, mcpServerArgs, parseToolCatalog } from "./mcpProbe"
+import {
+	describeServer,
+	ExecutableIdentity,
+	executableIdentity,
+	McpToolCatalog,
+	mcpServerArgs,
+	parseToolCatalog,
+} from "./mcpProbe"
+import { processLaunchCommand } from "./processExecution"
 import { vCommandFor } from "./vExecutable"
 
 const execFile = promisify(_execFile)
@@ -16,9 +24,15 @@ const probeTimeoutMs = 10_000
 /** One probe result per compiler path.
  *
  * Probing spawns the compiler, which compiles nothing but is not free, and
- * `v.executablePath` rarely changes while a window is open.
+ * `v.executablePath` rarely changes while a window is open. A cached answer is
+ * only served while the binary it came from is still the same file: a compiler
+ * updated in place fails the identity check and is probed again instead of
+ * serving agents its old tool list.
  */
-const catalogCache = new Map<string, Promise<McpToolCatalog | undefined>>()
+const catalogCache = new Map<
+	string,
+	{ catalog: Promise<McpToolCatalog | undefined>; identity: ExecutableIdentity | undefined }
+>()
 
 /** Ask a compiler for its MCP tool list.
  *
@@ -27,7 +41,13 @@ const catalogCache = new Map<string, Promise<McpToolCatalog | undefined>>()
  */
 async function probeCatalog(vCommand: string): Promise<McpToolCatalog | undefined> {
 	try {
-		const { stdout } = await execFile(vCommand, ["mcp", "tools"], { timeout: probeTimeoutMs })
+		// The configured compiler may be a `.bat`/`.cmd` launcher, which Node
+		// cannot spawn directly on Windows; the launch goes through `cmd.exe`.
+		const launch = processLaunchCommand(vCommand, ["mcp", "tools"])
+		const { stdout } = await execFile(launch.command, launch.args, {
+			timeout: probeTimeoutMs,
+			windowsVerbatimArguments: launch.windowsVerbatimArguments,
+		})
 		return parseToolCatalog(stdout)
 	} catch (error) {
 		log(`No V MCP server in ${vCommand}: ${error}`)
@@ -35,23 +55,34 @@ async function probeCatalog(vCommand: string): Promise<McpToolCatalog | undefine
 	}
 }
 
+function sameIdentity(
+	current: ExecutableIdentity | undefined,
+	cached: ExecutableIdentity | undefined,
+): boolean {
+	return current?.mtimeMs === cached?.mtimeMs && current?.size === cached?.size
+}
+
 function catalogFor(vCommand: string): Promise<McpToolCatalog | undefined> {
+	const identity = executableIdentity(vCommand)
 	const cached = catalogCache.get(vCommand)
-	if (cached !== undefined) {
-		return cached
+	if (cached && sameIdentity(identity, cached.identity)) {
+		return cached.catalog
 	}
 	// Only a compiler that actually answered is trusted: a failure is the case
 	// where the answer changes — the user installs a newer V while the session
 	// is running — and caching it would mute MCP until a restart.
 	const pending = probeCatalog(vCommand).then((catalog) => {
-		if (catalog === undefined) {
-			if (catalogCache.get(vCommand) === pending) {
+		const settled = executableIdentity(vCommand)
+		if (catalog === undefined || settled === undefined) {
+			if (catalogCache.get(vCommand)?.catalog === pending) {
 				catalogCache.delete(vCommand)
 			}
+			return catalog
 		}
+		catalogCache.set(vCommand, { catalog: pending, identity: settled })
 		return catalog
 	})
-	catalogCache.set(vCommand, pending)
+	catalogCache.set(vCommand, { catalog: pending, identity })
 	return pending
 }
 
