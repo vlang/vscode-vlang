@@ -205,10 +205,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// with no V relevance the start waits for the first V document instead of
 	// paying for a server nothing will talk to.
 	if (isVlsEnabled()) {
-		if (vRelevant) {
-			await startVls(taskManager)
-		} else {
-			const opener = vscode.workspace.onDidOpenTextDocument(async (document) => {
+		// Retry trigger when no server is running: the next V document retries
+		// the start, so installing VLS or correcting its command needs no manual
+		// restart. Installed once and dropped once a start succeeds.
+		let vlsRetry: vscode.Disposable | undefined
+		const ensureVlsRetry = () => {
+			if (vlsRetry || vlsManager) {
+				return
+			}
+			vlsRetry = vscode.workspace.onDidOpenTextDocument(async (document) => {
 				if (document.languageId !== "v" && document.languageId !== "v.mod") {
 					return
 				}
@@ -218,10 +223,20 @@ export async function activate(context: ExtensionContext): Promise<void> {
 				// A failed start keeps the trigger: the next V document retries,
 				// and V: Restart VLS is always available in between.
 				if (await startVls(taskManager)) {
-					opener.dispose()
+					vlsRetry?.dispose()
+					vlsRetry = undefined
 				}
 			})
-			context.subscriptions.push(opener)
+			context.subscriptions.push(vlsRetry)
+		}
+		// In a window with no V relevance the start waits for the first V
+		// document instead of paying for a server nothing will talk to. When the
+		// workspace already holds V sources the start runs eagerly, and a failed
+		// eager start keeps the same retry rather than staying stopped.
+		if (vRelevant && !(await startVls(taskManager))) {
+			ensureVlsRetry()
+		} else if (!vRelevant) {
+			ensureVlsRetry()
 		}
 	} else {
 		log("VLS is disabled in settings.")
