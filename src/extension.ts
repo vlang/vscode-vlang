@@ -292,28 +292,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 					vlsManager = undefined
 					log("VLS has been stopped.")
 				}
-			} else if (
-				(e.affectsConfiguration("v.vls.command") ||
-					e.affectsConfiguration("v.vls.args") ||
-					e.affectsConfiguration("vls.command") ||
-					e.affectsConfiguration("vls.args") ||
-					e.affectsConfiguration("v.executablePath") ||
-					e.affectsConfiguration("vls.vCommand")) &&
-				vlsEnabled &&
-				vlsManager
-			) {
-				void vscode.window
-					.showInformationMessage(
-						"VLS: Restart is required for changes to take effect. Proceed?",
-						"Yes",
-						"No",
-					)
-					.then(async (selected) => {
-						if (selected === "Yes") {
-							await vlsManager?.restart()
-						}
-					})
 			}
+			// Command and argument changes need no prompt here: the manager
+			// restarts for them on its own, exactly once. Asking after that
+			// restart was already queued made "No" unable to prevent it and
+			// "Yes" queue a second one.
 		}),
 	)
 }

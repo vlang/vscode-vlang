@@ -8,6 +8,7 @@ import {
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
 import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
+import { requiresServerRestart } from "./serverRestart"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
@@ -107,6 +108,7 @@ export class VlsManager implements vscode.Disposable {
 	private pending: Promise<void> = Promise.resolve()
 	private disposed = false
 	private readonly abort = new AbortController()
+	private updatingConfiguration = false
 	private unsupported = false
 	/** Managed builds the running server uses; another window may replace them. */
 	private runningManaged: { tool: ToolName; executable: string }[] = []
@@ -123,6 +125,15 @@ export class VlsManager implements vscode.Disposable {
 			this.status,
 			vscode.window.onDidChangeWindowState((state) => {
 				if (state.focused) this.checkReplacedTools()
+			}),
+			// The restart lives here rather than behind a confirmation prompt:
+			// the prompt asked after this restart had already been queued, so
+			// "No" could not prevent it and "Yes" queued a second one. A change
+			// to the process the server runs always restarts it, exactly once.
+			vscode.workspace.onDidChangeConfiguration((event) => {
+				if (!this.updatingConfiguration && requiresServerRestart(event)) {
+					void this.restart()
+				}
 			}),
 		]
 	}
@@ -144,12 +155,10 @@ export class VlsManager implements vscode.Disposable {
 
 	/** Restart the server, reporting whether it is running afterwards.
 	 *
-	 * A restart is never queued implicitly: the extension asks the user before
-	 * restarting for command/argument changes, and an automatic restart here
-	 * would run before that answer — "No" could not prevent the already queued
-	 * restart, and "Yes" would queue a second one. Every restart is an explicit
-	 * `restart()` call, and the boolean it returns is what tells a failed start
-	 * apart from a running server.
+	 * Restarts are explicit `restart()` calls plus the automatic restart on
+	 * process-defining settings changes (see the constructor). The boolean
+	 * return is what tells a failed start apart from a running server, so a
+	 * failed start keeps the first-open retry instead of disposing it.
 	 */
 	restart(): Promise<boolean> {
 		this.cancelRecovery()
@@ -162,7 +171,12 @@ export class VlsManager implements vscode.Disposable {
 		const operation = this.pending.then(async () => {
 			await this.stopClient()
 			if (this.disposed) return
-			await update()
+			this.updatingConfiguration = true
+			try {
+				await update()
+			} finally {
+				this.updatingConfiguration = false
+			}
 		})
 		this.pending = operation.catch(() => undefined)
 		try {
