@@ -8,25 +8,14 @@ import {
 } from "vscode-languageclient/node"
 import { vlsOutputChannel } from "./logger"
 import { effectiveToolSetting, managedToolExecutable } from "./managedTools"
+import { processLaunchCommand } from "./processExecution"
+import { requiresServerRestart } from "./serverRestart"
 import { migratedSetting } from "./settings"
 import { resolvedCommand } from "./vCommand"
 import { runCodeLensCommand, VTaskManager, vCommandForServer } from "./vTasks"
 import type { ToolName } from "./toolInstallation"
 import { requireSupportedVls, UnsupportedVlsError } from "./vlsSupport"
-
-const serverSettings = [
-	"v.vls.enable",
-	"v.vls.command",
-	"v.vls.args",
-	"v.executablePath",
-	"v.vls.inlayHints.enabled",
-	"v.vls.diagnostics",
-	"vls.command",
-	"vls.args",
-	"vls.vCommand",
-	"vls.inlayHints.enabled",
-	"vls.diagnostics.enabled",
-]
+import { vDocumentSelector } from "./documentSelector"
 
 function featureEnabled(feature: "inlayHints.enabled" | "diagnostics"): boolean {
 	return migratedSetting(
@@ -54,13 +43,61 @@ export function getVls(folder?: vscode.WorkspaceFolder): string {
 	return resolved
 }
 
+function migratedArraySetting(
+	section: string,
+	key: string,
+	aliasSection: string,
+	aliasKey: string,
+	folder?: vscode.Uri,
+): string[] {
+	return migratedSetting(section, key, aliasSection, aliasKey, [] as string[], folder)
+}
+
 async function sendSettings(client: LanguageClient): Promise<void> {
+	const folder = vscode.workspace.workspaceFolders?.[0]?.uri
+	const inlayHints = {
+		enabled: featureEnabled("inlayHints.enabled"),
+		variableTypes: migratedSetting(
+			"v.vls",
+			"inlayHints.variableTypes",
+			"vls",
+			"inlayHints.variableTypes",
+			true,
+			folder,
+		),
+		parameterNames: migratedSetting(
+			"v.vls",
+			"inlayHints.parameterNames",
+			"vls",
+			"inlayHints.parameterNames",
+			true,
+			folder,
+		),
+	}
 	await client.sendNotification("workspace/didChangeConfiguration", {
 		settings: {
 			vls: {
-				inlayHints: { enabled: featureEnabled("inlayHints.enabled") },
+				inlayHints,
 				diagnostics: { enabled: featureEnabled("diagnostics") },
+				defines: migratedArraySetting("v.vls", "defines", "vls", "defines", folder),
+				coverageDirectory: migratedSetting(
+					"v.vls",
+					"coverageDirectory",
+					"vls",
+					"coverageDirectory",
+					"",
+					folder,
+				),
 			},
+			defines: migratedArraySetting("v.vls", "defines", "vls", "defines", folder),
+			coverageDirectory: migratedSetting(
+				"v.vls",
+				"coverageDirectory",
+				"vls",
+				"coverageDirectory",
+				"",
+				folder,
+			),
 		},
 	})
 }
@@ -87,16 +124,15 @@ export class VlsManager implements vscode.Disposable {
 		this.status.command = "v.vls.openOutput"
 		this.subscriptions = [
 			this.status,
-			vscode.commands.registerCommand("v.vls.restart", () => this.restart()),
-			vscode.commands.registerCommand("v.vls.openOutput", () => vlsOutputChannel.show()),
 			vscode.window.onDidChangeWindowState((state) => {
 				if (state.focused) this.checkReplacedTools()
 			}),
+			// The restart lives here rather than behind a confirmation prompt:
+			// the prompt asked after this restart had already been queued, so
+			// "No" could not prevent it and "Yes" queued a second one. A change
+			// to the process the server runs always restarts it, exactly once.
 			vscode.workspace.onDidChangeConfiguration((event) => {
-				if (
-					!this.updatingConfiguration &&
-					serverSettings.some((setting) => event.affectsConfiguration(setting))
-				) {
+				if (!this.updatingConfiguration && requiresServerRestart(event)) {
 					void this.restart()
 				}
 			}),
@@ -118,7 +154,14 @@ export class VlsManager implements vscode.Disposable {
 		return this.unsupported
 	}
 
-	restart(): Promise<void> {
+	/** Restart the server, reporting whether it is running afterwards.
+	 *
+	 * Restarts are explicit `restart()` calls plus the automatic restart on
+	 * process-defining settings changes (see the constructor). The boolean
+	 * return is what tells a failed start apart from a running server, so a
+	 * failed start keeps the first-open retry instead of disposing it.
+	 */
+	restart(): Promise<boolean> {
 		this.cancelRecovery()
 		this.crashTimes = []
 		return this.queueRestart()
@@ -144,15 +187,15 @@ export class VlsManager implements vscode.Disposable {
 		}
 	}
 
-	private queueRestart(recovering = false): Promise<void> {
-		this.pending = this.pending.then(async () => {
+	private queueRestart(recovering = false): Promise<boolean> {
+		const operation = this.pending.then(async (): Promise<boolean> => {
 			try {
 				await this.stopClient()
-				if (this.disposed) return
+				if (this.disposed) return false
 				this.unsupported = false
 				if (!vscode.workspace.getConfiguration("v.vls").get<boolean>("enable", true)) {
 					this.setStatus("Disabled")
-					return
+					return false
 				}
 				if (recovering) {
 					const now = Date.now()
@@ -165,23 +208,37 @@ export class VlsManager implements vscode.Disposable {
 					this.crashTimes.push(now)
 				}
 				await this.startClient()
+				// A start that reports no client — a missing executable, a disabled
+				// server — is a failed start, not a success: the caller keeps its
+				// retry instead of disposing it.
+				return this.client !== undefined
 			} catch (error) {
 				await this.stopClient()
-				if (this.disposed) return
+				if (this.disposed) return false
 				const message = error instanceof Error ? error.message : String(error)
 				this.setStatus("Error", message)
 				vlsOutputChannel.error(message)
 				if (error instanceof UnsupportedVlsError) {
 					this.unsupported = true
-					this.status.command = "v.vls.update"
-					void vscode.window
-						.showErrorMessage(`VLS: ${message}`, "Install or Update VLS", "Show Output")
-						.then((action) => {
-							if (action === "Install or Update VLS")
-								void vscode.commands.executeCommand("v.vls.update")
-							else if (action === "Show Output") vlsOutputChannel.show()
-						})
-					return
+					// Only a server that named itself VLS can be replaced by the install
+					// command. For any other rejection that command would build VLS in
+					// place of whatever `v.vls.command` points at, so those fall through
+					// to the generic error, which offers the settings instead.
+					if (error.updatable) {
+						this.status.command = "v.vls.update"
+						void vscode.window
+							.showErrorMessage(
+								`VLS: ${message}`,
+								"Install or Update VLS",
+								"Show Output",
+							)
+							.then((action) => {
+								if (action === "Install or Update VLS")
+									void vscode.commands.executeCommand("v.vls.update")
+								else if (action === "Show Output") vlsOutputChannel.show()
+							})
+						return false
+					}
 				}
 				void vscode.window
 					.showErrorMessage(`VLS: ${message}`, "Open Settings", "Show Output")
@@ -195,9 +252,14 @@ export class VlsManager implements vscode.Disposable {
 							vlsOutputChannel.show()
 						}
 					})
+				return false
 			}
 		})
-		return this.pending
+		this.pending = operation.then(
+			() => undefined,
+			() => undefined,
+		)
+		return operation
 	}
 
 	private async startClient(): Promise<void> {
@@ -215,6 +277,8 @@ export class VlsManager implements vscode.Disposable {
 				`Executable not found: ${setting}. Click to install or configure VLS.`,
 			)
 			this.status.command = "v.vls.update"
+			// No client is assigned, so the restart reports a failed start and the
+			// caller keeps its retry.
 			return
 		}
 		const args = migratedSetting("v.vls", "args", "vls", "args", [] as string[], folder?.uri)
@@ -232,7 +296,7 @@ export class VlsManager implements vscode.Disposable {
 		)
 		this.notifiedReplacement = false
 		const options: LanguageClientOptions = {
-			documentSelector: [{ scheme: "file", language: "v" }],
+			documentSelector: [...vDocumentSelector],
 			outputChannel: vlsOutputChannel,
 			// Configuration changes restart the client through our queue. Send settings
 			// after startup only; an independent synchronizer can race the old shutdown.
@@ -267,13 +331,23 @@ export class VlsManager implements vscode.Disposable {
 			},
 		}
 		// VLS dynamically registers its file watcher; a second static watcher duplicates events.
+		// The configured server may be a `.bat`/`.cmd` launcher, which Node
+		// cannot spawn directly on Windows. The client forwards its options
+		// bag to `spawn`, so the verbatim flag for the pre-quoted command line
+		// travels with it.
+		const launch = processLaunchCommand(command, args)
 		const nextClient = new LanguageClient(
 			"vls",
 			"V Language Server",
 			{
-				command,
-				args,
-				options: { env },
+				command: launch.command,
+				args: launch.args,
+				options: {
+					env,
+					...(launch.windowsVerbatimArguments === true
+						? { windowsVerbatimArguments: true as const }
+						: {}),
+				},
 			},
 			options,
 		)
@@ -293,6 +367,74 @@ export class VlsManager implements vscode.Disposable {
 		vlsOutputChannel.info(`Starting ${command}`)
 		await nextClient.start()
 		await sendSettings(nextClient)
+	}
+
+	/** Send the current feature settings to the running server.
+	 *
+	 * The manager owns the client, so it owns the channel: a caller that holds a
+	 * client of its own can send settings to one that has already been replaced.
+	 * Nothing is sent while no server is running, because `initialize` is what
+	 * carries the settings on start.
+	 *
+	 * The send runs on the same queue as the restarts rather than beside it: it
+	 * waits for the in-flight restart, then reads the client, so it can neither
+	 * target a client that is still starting nor one a concurrent restart
+	 * already replaced. A send that still fails — the client stopped in between
+	 * — is logged, never rejected, because a settings push must not break the
+	 * recovery it raced.
+	 */
+	async sendSettingsNow(): Promise<void> {
+		const operation = this.pending.then(async () => {
+			const client = this.client
+			if (!client || client.state !== State.Running) {
+				return
+			}
+			try {
+				await sendSettings(client)
+			} catch (error) {
+				vlsOutputChannel.warn(
+					`VLS settings update: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			}
+		})
+		this.pending = operation.then(
+			() => undefined,
+			() => undefined,
+		)
+		await this.pending
+	}
+
+	/** Whether a server is actually running.
+	 *
+	 * A client that exists is not necessarily running: it can be starting, or
+	 * stopping. Consumers ask this to defer to the server rather than duplicate
+	 * it, so the answer has to mean "it can answer a request now".
+	 */
+	isRunning(): boolean {
+		return this.client?.state === State.Running
+	}
+
+	/** Ask VLS to generate tests for the active file from a coverage run. */
+	async generateTests(): Promise<void> {
+		if (!this.isRunning() || !this.client) {
+			void vscode.window.showInformationMessage("VLS is not running.")
+			return
+		}
+		const editor = vscode.window.activeTextEditor
+		if (!editor || editor.document.languageId !== "v") {
+			void vscode.window.showInformationMessage("Open a V file to generate tests for.")
+			return
+		}
+		try {
+			await this.client.sendRequest("workspace/executeCommand", {
+				command: "vls.generateTest",
+				arguments: [editor.document.uri.toString()],
+			})
+		} catch (error) {
+			void vscode.window.showErrorMessage(
+				`VLS: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
 	}
 
 	private scheduleRecovery(failedClient: LanguageClient, reason: string): void {

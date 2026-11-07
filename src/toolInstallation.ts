@@ -290,9 +290,12 @@ export async function installTool(
 	try {
 		const run = options.run ?? runToolProcess
 		const env = installationEnvironment(directory, platform)
-		await fs.mkdir(path.join(directory, ".tmp"))
-		await fs.mkdir(path.join(directory, ".vmodules"))
-		await fs.mkdir(path.join(directory, ".git-hooks"))
+		// Three sibling directories, so the creates can be issued together.
+		await Promise.all([
+			fs.mkdir(path.join(directory, ".tmp")),
+			fs.mkdir(path.join(directory, ".vmodules")),
+			fs.mkdir(path.join(directory, ".git-hooks")),
+		])
 		const processOptions: ToolProcessOptions = {
 			cwd: directory,
 			env,
@@ -511,15 +514,16 @@ export async function readManagedToolInstallation(
 		) {
 			return undefined
 		}
-		for (const file of [
-			toolsDirectory,
-			directory,
-			executable,
-			path.join(directory, manifestName),
-		]) {
-			if ((await fs.lstat(file)).isSymbolicLink()) {
-				return undefined
-			}
+		// Four independent probes: if any of them is a symlink the installation is
+		// not trusted, so asking for all four at once and checking afterwards is
+		// equivalent to stopping at the first hit.
+		const links = await Promise.all(
+			[toolsDirectory, directory, executable, path.join(directory, manifestName)].map(
+				(file) => fs.lstat(file),
+			),
+		)
+		if (links.some((link) => link.isSymbolicLink())) {
+			return undefined
 		}
 		const manifest: unknown = JSON.parse(
 			await fs.readFile(path.join(directory, manifestName), "utf8"),

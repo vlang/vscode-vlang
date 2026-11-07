@@ -32,7 +32,7 @@ jobs:
         # glob is not expanded there, so `actionlint .github/workflows/*.yml` would
         # ask it to read a filename containing an asterisk. A new workflow file has
         # to be added here.
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml .github/workflows/docs_ci.yml
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml .github/workflows/docs_ci.yml .github/workflows/release.yml
       - name: Install dependencies
         run: npm ci
       - name: Run tests
@@ -69,6 +69,22 @@ jobs:
         run: npm ci
       - name: Run grammar tests
         run: npm run test:grammar
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      # Not a gate: the report goes in the log so a change that lowers coverage
+      # is visible in review, and the threshold comes after the number is known.
+      - name: Coverage report
+        run: npm run coverage
 
   extension-host:
     name: Extension host (${{ matrix.os }}, ${{ matrix.server }})

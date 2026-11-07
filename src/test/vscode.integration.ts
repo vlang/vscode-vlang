@@ -181,9 +181,12 @@ export async function run(): Promise<void> {
 	const tasks = await vscode.tasks.fetchTasks({ type: "v" })
 	assert.deepEqual(tasks.map((task) => task.definition.action).sort(), [
 		"build",
+		"check",
+		"fmt",
 		"prod",
 		"run",
 		"test",
+		"vet",
 	])
 	assert.equal(await taskExit("vls.build"), 0)
 	assert.equal(await taskExit("vls.run"), 0)

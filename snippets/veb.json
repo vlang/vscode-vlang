@@ -1,0 +1,122 @@
+{
+	"snippet.veb.app": {
+		"body": [
+			"import veb",
+			"",
+			"pub struct Context {",
+			"\tveb.Context",
+			"}",
+			"",
+			"pub struct App {",
+			"}",
+			"",
+			"pub fn (app &App) index(mut ctx Context) veb.Result {",
+			"\treturn ctx.text('${1:Hello}')",
+			"}",
+			"",
+			"fn main() {",
+			"\tmut app := &App{}",
+			"\tveb.run[App, Context](mut app, ${2:8080})",
+			"}"
+		],
+		"description": "Code snippet for veb app skeleton with Context, App and veb.run",
+		"prefix": "vapp",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.get": {
+		"body": [
+			"@[get]",
+			"pub fn (app &App) ${1:name}(mut ctx Context) veb.Result {",
+			"\treturn ctx.text('${2:Hello}')",
+			"}"
+		],
+		"description": "Code snippet for veb GET route handler",
+		"prefix": "vget",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.post": {
+		"body": [
+			"@['${1:/path}'; post]",
+			"pub fn (app &App) ${2:name}(mut ctx Context) veb.Result {",
+			"\treturn ctx.text('${3:Hello}')",
+			"}"
+		],
+		"description": "Code snippet for veb POST route handler with path",
+		"prefix": "vpst",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.param": {
+		"body": [
+			"@['${1:/hello}/:${2:user}']",
+			"pub fn (app &App) ${3:hello_user}(mut ctx Context, $2 string) veb.Result {",
+			"\treturn ctx.text('Hello ' + $2)",
+			"}"
+		],
+		"description": "Code snippet for veb route with a path parameter",
+		"prefix": "vpar",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.query.form": {
+		"body": [
+			"${1:value} := ctx.query['${2:name}'] or {",
+			"\treturn ctx.text('${3:not found}')",
+			"}",
+			"${4:form_val} := ctx.form['${5:field}']",
+			"$0"
+		],
+		"description": "Code snippet for veb Context query and form access",
+		"prefix": "vctx",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.tmpl": {
+		"body": ["return \\$veb.html('${1:templates/index.html}')"],
+		"description": "Code snippet for veb $veb.html() template embed",
+		"prefix": "vtml",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.tmpl.if": {
+		"body": ["@if ${1:condition}", "\t$0", "@end"],
+		"description": "Code snippet for veb template @if directive",
+		"prefix": "vif",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.tmpl.for": {
+		"body": ["@for ${1:item} in ${2:items}", "\t$0", "@end"],
+		"description": "Code snippet for veb template @for directive",
+		"prefix": "vfor",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.tmpl.include": {
+		"body": ["@include '${1:header.html}'"],
+		"description": "Code snippet for veb template @include directive",
+		"prefix": "vinc",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.json": {
+		"body": ["return ctx.json(${1:value})"],
+		"description": "Code snippet for veb JSON result return with ctx.json",
+		"prefix": "vjsn",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.middleware": {
+		"body": [
+			"pub fn ${1:middleware}(mut ctx Context) bool {",
+			"\t$0",
+			"\treturn true",
+			"}",
+			"// in main, before veb.run: app.use(handler: $1)"
+		],
+		"description": "Code snippet for veb middleware handler registered with app.use",
+		"prefix": "vmid",
+		"scope": "v,vlang"
+	},
+	"snippet.veb.controller": {
+		"body": [
+			"mut ${3:admin_app} := &${1:Admin}{}",
+			"app.register_controller[$1, Context]('${2:/admin}', mut $3)!"
+		],
+		"description": "Code snippet for veb controller registration",
+		"prefix": "vctl",
+		"scope": "v,vlang"
+	}
+}

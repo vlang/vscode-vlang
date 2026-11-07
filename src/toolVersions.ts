@@ -11,6 +11,8 @@ export type UpdateStatus = "current" | "outdated" | "unknown"
 export const MIN_VLS_VERSION = "0.0.3"
 
 export interface VlsIdentity {
+	/** The name the server gave itself, when its version output names it. */
+	name?: string
 	version?: string
 	revision?: string
 }
@@ -281,13 +283,26 @@ export async function getUpstreamVlsVersion(
 	return version !== undefined && compareVersions(version, version) === 0 ? version : undefined
 }
 
-/** Only explicitly labelled VLS output can identify the server executable. */
+/**
+ * A server labels its version line so that the extension can tell which
+ * executable it just ran: this extension's own server prints its name and
+ * version (`VLS 0.0.3`), and another one says so in words
+ * (`velvet version 0.8.5+abc1234`). The bare name has to be `VLS` because
+ * `v version` prints `V 0.5.2 <hash>`, and the compiler is not a language
+ * server. A build commit may follow either form, as `v version` does.
+ */
+const identifiedServerVersion =
+	/^(?:(VLS)|([a-z\d][\w.+-]*)[ \t]+version)[ \t]+(\S+?)(?:[ \t]+([a-f\d]{7,40}))?$/i
+
+/** Only version output that names its server can identify the server executable. */
 export function parseVlsIdentity(output: string): VlsIdentity | undefined {
-	// `VLS <version>`, optionally followed by its build commit as `v version` does.
-	const match = /^VLS[ \t]+(\S+?)(?:[ \t]+([a-f\d]{7,40}))?$/i.exec(output.trim())
-	if (!match || compareVersions(match[1]!, match[1]!) !== 0) return undefined
-	const revision = match[2]?.toLowerCase()
-	return { version: match[1]!, ...(revision ? { revision } : {}) }
+	const match = identifiedServerVersion.exec(output.trim())
+	if (!match) return undefined
+	const version = match[3]
+	if (!version || compareVersions(version, version) !== 0) return undefined
+	const name = (match[1] ?? match[2])!
+	const revision = match[4]?.toLowerCase()
+	return { name, version, ...(revision ? { revision } : {}) }
 }
 
 export interface VlsVersionOptions {

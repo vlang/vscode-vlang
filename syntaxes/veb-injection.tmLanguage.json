@@ -1,0 +1,98 @@
+{
+	"name": "VEB template directives",
+	"scopeName": "inline.veb",
+	"injectionSelector": "L:text.html.basic",
+	"patterns": [
+		{
+			"include": "#veb-directive"
+		},
+		{
+			"include": "#veb-variable"
+		},
+		{
+			"include": "#veb-interpolation"
+		}
+	],
+	"repository": {
+		"veb-directive": {
+			"patterns": [
+				{
+					"name": "keyword.control.veb",
+					"match": "(?<=^|\\s)@(if|for|else|end|include)\\b"
+				},
+				{
+					"name": "meta.include.veb",
+					"begin": "(?<=^|\\s)(@include)\\s*(['\"])",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control.veb"
+						},
+						"2": {
+							"name": "punctuation.definition.string.begin.veb"
+						}
+					},
+					"end": "(['\"])",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.string.end.veb"
+						}
+					},
+					"patterns": [
+						{
+							"name": "string.unquoted.include.veb",
+							"match": "[^'\"]+"
+						}
+					]
+				}
+			]
+		},
+		"veb-variable": {
+			"name": "variable.other.veb",
+			"match": "@[a-zA-Z_][\\w\\.]*"
+		},
+		"veb-interpolation": {
+			"patterns": [
+				{
+					"name": "meta.embedded.expression.veb",
+					"begin": "\\$\\{",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.template-expression.begin.veb"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.template-expression.end.veb"
+						}
+					},
+					"patterns": [
+						{
+							"include": "source.v"
+						}
+					]
+				},
+				{
+					"name": "meta.embedded.expression.veb",
+					"begin": "@\\{",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.template-expression.begin.veb"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.template-expression.end.veb"
+						}
+					},
+					"patterns": [
+						{
+							"include": "source.v"
+						}
+					]
+				}
+			]
+		}
+	}
+}

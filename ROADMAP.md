@@ -12,9 +12,6 @@ compare area by area, and what was deliberately not copied.
 
 ## Open (cheapest first)
 
-- **Toggle test file, both directions.** Generating covers new files;
-  navigating back has no command. `testFileName` already exists, so this
-  is the reverse mapping plus a command. `golang.go` parity.
 - **Snippet repair and curation.** The 50-snippet set is ahead of every
   comparator (all three ship zero TextMate snippets), but it needs
   repair, not volume: duplicate `for`/`fore` prefixes, typos
@@ -34,6 +31,8 @@ compare area by area, and what was deliberately not copied.
 
 ## Done
 
+- Toggle test file, both directions. The reverse mapping of `testFileName`
+  plus `v.toggleTestFile`; `golang.go` parity.
 - Windows suite and Windows CI (#571). Separator-agnostic assertions;
   `build-and-package` runs on Windows too.
 - Unreachable `v.vls.openOutput` command (#566). Registered in the
