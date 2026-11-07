@@ -85,14 +85,16 @@ describe("test process", () => {
 	it("kills the whole tree on cancellation, not just the compiler", async () => {
 		// `v test` runs each compiled test as its own child: killing only the
 		// parent orphans the test binary. The grandchild writes a marker late;
-		// a tree kill means the marker never appears.
+		// a tree kill means the marker never appears. It deliberately does not
+		// detach: a detached grandchild would leave the process group the kill
+		// targets, unlike a real test binary, which inherits it.
 		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vls-test-tree-"))
 		try {
 			const marker = path.join(directory, "grandchild-ran")
 			const grandchild = `setTimeout(() => require('fs').writeFileSync(${JSON.stringify(marker)}, 'x'), 800)`
 			const script = [
 				'const { spawn } = require("child_process");',
-				`const grandchild = spawn(process.execPath, ["-e", ${JSON.stringify(grandchild)}], { detached: true, stdio: "ignore" });`,
+				`const grandchild = spawn(process.execPath, ["-e", ${JSON.stringify(grandchild)}], { stdio: "ignore" });`,
 				"grandchild.unref();",
 				"setTimeout(() => {}, 30_000);",
 			].join("\n")
