@@ -21,6 +21,9 @@ jobs:
     # gets published is what CI already verified on that SHA.
     permissions:
       contents: write
+      # Needed only for Marketplace trusted publishing (`vsce publish --oidc`).
+      # Harmless when publishing with a PAT instead.
+      id-token: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -29,6 +32,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Check tag matches package.json version
+        # The tag may be `0.2.1` or `v0.2.1`; both must equal package.json.
+        # Failing here beats publishing a VSIX whose embedded version
+        # disagrees with the release tag.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+        if: startsWith(github.ref, 'refs/tags/')
       # A release is published only from a tree that passed, so the gates run
       # again here rather than being assumed from the earlier CI run.
       - name: Run tests
@@ -50,3 +65,21 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" ./*.vsix --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+      # workflow_dispatch stays a packaging dry run: publishing happens only
+      # on a tag push. Both steps are idempotent on re-runs (--skip-duplicate).
+      - name: Publish to Visual Studio Marketplace
+        if: startsWith(github.ref, 'refs/tags/')
+        run: npx vsce publish --packagePath ./*.vsix --skip-duplicate
+        env:
+          # PAT with publish rights for the `vlanguage` publisher. If trusted
+          # publishing is configured for this repo instead, replace this env
+          # with the `--oidc` flag on the run line above (id-token: write is
+          # already granted).
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to Open VSX
+        if: startsWith(github.ref, 'refs/tags/')
+        run: npx -y ovsx publish --packagePath ./*.vsix --skip-duplicate
+        env:
+          # Personal access token from https://open-vsx.org/user-settings/tokens
+          # with publish rights for the `vlanguage` namespace.
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
