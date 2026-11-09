@@ -9,9 +9,7 @@
 	"engines": {
 		"vscode": "^1.140.0"
 	},
-	"extensionPack": [
-		"ms-vscode.cpptools"
-	],
+	"extensionPack": [],
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"
