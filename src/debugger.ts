@@ -1,6 +1,7 @@
 import { execFile as _execFile } from "child_process"
 import { promisify } from "util"
 import * as path from "path"
+import * as fs from "fs"
 import * as vscode from "vscode"
 import { parseByVersion } from "./documentMemo"
 import {
@@ -152,6 +153,9 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				cwd,
 				miDebuggerPath: debuggerPath,
 				MIMode: miMode,
+				...(vConfiguration.miDebuggerServerAddress
+					? { target: vConfiguration.miDebuggerServerAddress }
+					: {}),
 			}
 		}
 		return vscode.window.withProgress(
@@ -195,11 +199,27 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 							pipeTransport: vConfiguration.pipeTransport,
 						})
 					}
-					const env = vConfiguration.environment
-						? Object.fromEntries(
-								vConfiguration.environment.map((entry) => [entry.name, entry.value]),
-						  )
-						: undefined
+					const env: Record<string, string> = {}
+					for (const entry of vConfiguration.environment ?? []) {
+						env[entry.name] = entry.value
+					}
+					if (vConfiguration.envFile) {
+						try {
+							for (const raw of fs.readFileSync(vConfiguration.envFile, "utf8").split(/\r?\n/)) {
+								const line = raw.trim()
+								if (!line || line.startsWith("#")) {
+									continue
+								}
+								const eq = line.indexOf("=")
+								if (eq > 0) {
+									env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
+								}
+							}
+						} catch {
+							// envFile is optional; ignore read errors
+						}
+					}
+					const finalEnv = Object.keys(env).length ? env : undefined
 					return {
 						...configuration,
 						type: "v",
@@ -211,7 +231,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						stopAtBeginningOfMainSubprogram: vConfiguration.stopAtEntry ?? false,
 						miDebuggerPath: debuggerPath,
 						MIMode: miMode,
-						env,
+						env: finalEnv,
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
 						sourceFileMap: vConfiguration.sourceFileMap,
@@ -322,11 +342,15 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			return new vscode.DebugAdapterExecutable(lldbDap, [])
 		}
 		const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
-		return new vscode.DebugAdapterExecutable(debuggerPath, [
-			"-i=dap",
-			"-iex",
-			`source ${printers}`,
-		])
+		const args = ["-i=dap", "-iex", `source ${printers}`]
+		const sessionConfig = session.configuration as VDebugConfiguration
+		for (const [from, to] of Object.entries(sessionConfig.sourceFileMap ?? {})) {
+			args.push("-iex", `set substitute-path ${from} ${to}`)
+		}
+		for (const command of sessionConfig.setupCommands ?? []) {
+			args.push("-iex", command.text)
+		}
+		return new vscode.DebugAdapterExecutable(debuggerPath, args)
 	}
 }
 
