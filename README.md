@@ -359,41 +359,63 @@ VSIX in an isolated VS Code profile.
 
 ## Debugging
 
-V programs can be debugged from the Run and Debug view. The extension contributes
-a `type: "v"` debugger: it compiles the program with `-g`, then hands the
-session to the C/C++ extension's `cppdbg` adapter, which requires both
-`ms-vscode.cpptools` and `gdb` on PATH. A missing piece shows an install
-hint instead of failing silently.
+V has no native debugger. The pipeline is `v -g` -> C -> DWARF -> gdb DAP:
+the extension compiles the program with `-g`, then drives the session through
+gdb's own Debug Adapter Protocol server (`gdb -i=dap`). Requires gdb >= 13
+(for DAP). lldb is not supported in this version. The C/C++ extension
+(`ms-vscode.cpptools`) is optional: when installed, the session may delegate
+to its `cppdbg` adapter for features gdb DAP does not provide.
 
 A default launch configuration is provided, so starting a debug session does not
 require writing a `launch.json` by hand. The `program` field is the V source file
 to debug; `args`, `stopAtEntry` and `cwd` are optional. `miDebuggerPath` names
 the MI debugger (a path or a command on PATH, with `~` expanded) and `MIMode`
-selects `gdb` or `lldb`; both default to gdb on PATH, which is what unblocks
-macOS debugging where gdb is effectively unavailable. `setupCommands` passes
-extra MI commands through after the printer setup, `environment` and `envFile`
-set the program environment, and `externalConsole` runs it outside the
-integrated terminal. See `docs/TROUBLESHOOTING-DEBUGGING.md` when a session
-misbehaves.
+selects `gdb` or `lldb`; both default to gdb on PATH. `setupCommands` passes
+extra commands through, `environment` and `envFile` set the program environment,
+`externalConsole` runs it outside the integrated terminal, and `sourceFileMap`
+maps build paths to local source paths.
 
-Attach works the same way with `"request": "attach"`: `program` names the
-running binary for symbols (nothing is compiled), `processId` takes a PID
-or `${command:pickProcess}` for the adapter's picker, and `sourceFileMap`,
-`miDebuggerServerAddress` and `pipeTransport` reach remote targets.
+Attach works with `"request": "attach"`: `program` names the running binary for
+symbols (nothing is compiled), `processId` takes a PID or
+`${command:pickProcess}`, and `coreFile` opens a core dump. `sourceFileMap`,
+`miDebuggerServerAddress` and `pipeTransport` reach remote targets (cppdbg
+fallback only).
 
-A `Debug Main` lens over `fn main` starts the same pipeline without a
-launch configuration. Panics stop in the debugger instead of exiting:
-debug builds trap on panic while a debugger is attached.
+A `Debug Main` lens over `fn main` starts the same pipeline without a launch
+configuration. Panics stop in the debugger instead of exiting: debug builds trap
+on panic while a debugger is attached.
 
-Hexadecimal display is per variable, not a launch option: in the Debug
-Console, `-exec -var-set-format <name> hex` reformats a value (the
-adapter has no showHex-style setting). Core dumps stay out of scope;
-open one with a hand-written `cppdbg` config using `coreDumpPath`.
+Hexadecimal display is per variable, not a launch option: in the Debug Console,
+`-exec -var-set-format <name> hex` reformats a value.
 
-Each session loads GDB pretty printers for V values: strings show as text,
-`Option` and `Result` show their payload, and arrays and maps summarize
-their lengths. This needs a GDB with Python support; without it the session
-still runs, only without the pretty display.
+Each session loads GDB pretty printers for V values when
+`v.debug.usePrettyPrinters` is true: strings show as text, `Option` and
+`Result` show their payload, and arrays and maps summarize their lengths. This
+needs a GDB with Python support; without it the session still runs, only
+without the pretty display. If the printers fail to load, a warning is printed
+in the debug console and the session continues.
+
+Feature matrix:
+
+| Feature | gdb DAP | cppdbg fallback |
+|---|---|---|
+| launch | yes | yes |
+| attach | yes | yes |
+| core-file attach | yes | no |
+| externalConsole | no (use integrated terminal) | yes |
+| pipeTransport | no | yes |
+| remote ssh | no | yes |
+
+## Licensee matrix:
+
+| Feature | gdb DAP | cppdbg fallback |
+|---|---|---|
+| launch | yes | yes |
+| attach | yes | yes |
+| core-file attach | yes | no |
+| externalConsole | no (use integrated terminal) | yes |
+| pipeTransport | no | yes |
+| remote ssh | no | yes |
 
 ## License
 

@@ -922,6 +922,10 @@
 								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
 								"default": "${command:pickProcess}"
 							},
+							"coreFile": {
+								"type": "string",
+								"description": "Path to a core dump; gdb DAP forwards this to the inferior."
+							},
 							"cwd": {
 								"type": "string",
 								"description": "Working directory for expression evaluation. Defaults to the workspace folder.",
