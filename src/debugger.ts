@@ -195,6 +195,11 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 							pipeTransport: vConfiguration.pipeTransport,
 						})
 					}
+					const env = vConfiguration.environment
+						? Object.fromEntries(
+								vConfiguration.environment.map((entry) => [entry.name, entry.value]),
+						  )
+						: undefined
 					return {
 						...configuration,
 						type: "v",
@@ -203,9 +208,10 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						args: vConfiguration.args ?? [],
 						cwd,
 						stopAtEntry: vConfiguration.stopAtEntry ?? false,
+						stopAtBeginningOfMainSubprogram: vConfiguration.stopAtEntry ?? false,
 						miDebuggerPath: debuggerPath,
 						MIMode: miMode,
-						environment: vConfiguration.environment,
+						env,
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
 						sourceFileMap: vConfiguration.sourceFileMap,
@@ -309,6 +315,11 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			}
 			return new vscode.DebugAdapterExecutable(lldbDap, [])
 		}
-		return new vscode.DebugAdapterExecutable(debuggerPath, ["-i=dap"])
+		const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
+		return new vscode.DebugAdapterExecutable(debuggerPath, [
+			"-i=dap",
+			"-iex",
+			`source ${printers}`,
+		])
 	}
 }
