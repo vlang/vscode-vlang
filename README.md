@@ -377,7 +377,7 @@ maps build paths to local source paths.
 
 Attach works with `"request": "attach"`: `program` names the running binary for
 symbols (nothing is compiled), `processId` takes a PID or
-`${command:pickProcess}`, and `coreFile` opens a core dump. `sourceFileMap`,
+`${command:v.pickProcess}`, and `coreFile` opens a core dump. `sourceFileMap`,
 `miDebuggerServerAddress` and `pipeTransport` reach remote targets (cppdbg
 fallback only).
 
