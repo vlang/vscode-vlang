@@ -46,6 +46,7 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 	envFile?: string
 	externalConsole?: boolean
 	processId?: string
+	coreFile?: string
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
@@ -156,6 +157,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				...(vConfiguration.miDebuggerServerAddress
 					? { target: vConfiguration.miDebuggerServerAddress }
 					: {}),
+				...(vConfiguration.coreFile ? { coreFile: vConfiguration.coreFile } : {}),
 			}
 		}
 		return vscode.window.withProgress(
@@ -341,8 +343,13 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			}
 			return new vscode.DebugAdapterExecutable(lldbDap, [])
 		}
-		const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
-		const args = ["-i=dap", "-iex", `source ${printers}`]
+		const usePrinters = vscode.workspace.getConfiguration("v").get("debug.usePrettyPrinters", true)
+		const args = ["-i=dap"]
+		if (usePrinters) {
+			const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
+			args.push("-iex", `source ${printers}`)
+			// gdb >= 13 required; older gdb may parse -iex differently under DAP.
+		}
 		const sessionConfig = session.configuration as VDebugConfiguration
 		for (const [from, to] of Object.entries(sessionConfig.sourceFileMap ?? {})) {
 			args.push("-iex", `set substitute-path ${from} ${to}`)

@@ -406,6 +406,11 @@
 					"default": "",
 					"scope": "resource",
 					"description": "Directory the V MCP server resolves relative paths against. Empty means each workspace folder. Set it when the V project root differs from the folder you opened."
+				},
+				"v.debug.usePrettyPrinters": {
+					"type": "boolean",
+					"default": true,
+					"description": "Load the V GDB pretty printers at session start."
 				}
 			}
 		},
