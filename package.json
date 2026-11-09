@@ -411,6 +411,16 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Load the V GDB pretty printers at session start."
+				},
+				"v.debug.adapter": {
+					"type": "string",
+					"enum": [
+						"gdb-dap",
+						"cppdbg",
+						"auto"
+					],
+					"default": "auto",
+					"description": "Which debug adapter to use. auto prefers gdb-dap when gdb is DAP-capable."
 				}
 			}
 		},

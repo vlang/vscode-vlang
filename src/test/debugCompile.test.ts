@@ -11,6 +11,7 @@ import {
 	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
 } from "../debugCompile"
@@ -334,4 +335,25 @@ describe("V debug compile", () => {
 		assert.deepStrictEqual(mainFunctionLines("  fn main() {}\n"), [])
 		assert.deepStrictEqual(mainFunctionLines("fn main() {}\nfn main() {}\n"), [0, 1])
 	})
+
+describe("gdb preflight", () => {
+	it("detects a DAP-capable gdb", () => {
+		const result = preflightGdb("GNU gdb (GDB) 17.1\nok\n")
+		assert.deepStrictEqual(result, { adapter: "gdb-dap" })
+	})
+	it("rejects this host's gdb 17.1 (no Python/DAP)", () => {
+		const recorded = "GNU gdb (GDB) 17.1\nPython scripting is not supported in this copy of GDB.\nInterpreter `dap' unrecognized"
+		const result = preflightGdb(recorded)
+		assert.strictEqual(result.adapter, null)
+		assert.strictEqual(
+			result.error,
+			"gdb 17.1 has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg').",
+		)
+	})
+	it("handles gdb not found", () => {
+		const result = preflightGdb("gdb not found on PATH")
+		assert.strictEqual(result.adapter, null)
+		assert.strictEqual(result.error, "gdb not found on PATH")
+	})
+})
 })

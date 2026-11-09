@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/vlanguage.vscode-vlang.svg)](https://marketplace.visualstudio.com/items?itemName=vlanguage.vscode-vlang)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vlang/vscode-vlang/ci.yml?branch=master)](https://github.com/vlang/vscode-vlang/actions/)
+[![DAP verification](https://img.shields.io/github/actions/workflow/status/vlang/vscode-vlang/dap-verify.yml?branch=master&label=DAP%20verify)](https://github.com/vlang/vscode-vlang/actions/workflows/dap-verify.yml)
 
 Provides [V language](https://vlang.io) support for Visual Studio Code.
 
@@ -356,6 +357,8 @@ a local VS Code test build if `CODE_EXECUTABLE` is unset. Set `VLS_BINARY` and
 `V_BINARY` to use other binaries. After `npm run package`, set
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
+
+DAP live verification runs in CI; locally it requires gdb >= 13 with Python.
 
 ## Debugging
 

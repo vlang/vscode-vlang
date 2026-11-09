@@ -301,3 +301,74 @@ export function cppdbgAttachConfig(input: {
 export function missingCppdbgMessage(): string {
 	return "Cannot debug: the C/C++ extension (ms-vscode.cpptools) is not installed. Install it from the Marketplace — V debugging delegates to its cppdbg adapter."
 }
+
+
+/** Result of probing a gdb for DAP capability. */
+export interface GdbPreflightResult {
+	adapter: "gdb-dap" | "cppdbg" | null
+	error?: string
+}
+
+/** Normalize a preflight input into text + exit code. */
+function normalizePreflightInput(input: unknown): {
+	text: string
+	exitCode: number
+	version: string
+	notFound: boolean
+	cppdbgAvailable: boolean
+} {
+	if (input === null || input === undefined) {
+		return { text: "", exitCode: 1, version: "", notFound: true, cppdbgAvailable: false }
+	}
+	if (typeof input === "string") {
+		const text = input
+		const notFound =
+			/not found/i.test(text) || /not recognized/i.test(text) || /no such file/i.test(text)
+		const versionMatch = text.match(/GNU gdb \(GDB\) (\d+)\.(\d+)/)
+		const version = versionMatch ? `${versionMatch[1]}.${versionMatch[2]}` : ""
+		return { text, exitCode: notFound ? 127 : 0, version, notFound, cppdbgAvailable: false }
+	}
+	const obj = input as Record<string, unknown>
+	const stdout = String(obj.stdout ?? obj.output ?? "")
+	const stderr = String(obj.stderr ?? "")
+	const text = `${stdout}\n${stderr}`
+	const exitCode = Number(obj.exitCode ?? obj.code ?? obj.status ?? 0)
+	const version =
+		(typeof obj.version === "string" && obj.version) ||
+		(text.match(/GNU gdb \(GDB\) (\d+)\.(\d+)/)?.[0] ?? "")
+	const notFound = Boolean(obj.notFound) || /not found/i.test(text)
+	const cppdbgAvailable = Boolean(obj.cppdbgAvailable ?? obj.cppdbg)
+	return { text, exitCode, version, notFound, cppdbgAvailable }
+}
+
+/** Probe a gdb's recorded output and decide which adapter to use. */
+export function preflightGdb(input?: unknown): GdbPreflightResult {
+	const { text, exitCode, version, notFound, cppdbgAvailable } = normalizePreflightInput(input)
+	if (notFound) {
+		return { adapter: null, error: "gdb not found on PATH" }
+	}
+	const hasPython = !/Python scripting is not supported/i.test(text) && !/No module named/i.test(text)
+	const hasDap =
+		!/Interpreter `dap' unrecognized/i.test(text) &&
+		!/Could not find interpreter "dap"/i.test(text) &&
+		!/unrecognized/i.test(text) &&
+		(exitCode === 0 || /ok/i.test(text))
+	const verNum = parseFloat(version || "0")
+	if (hasPython && hasDap && verNum >= 13) {
+		return { adapter: "gdb-dap" }
+	}
+	if (cppdbgAvailable) {
+		return { adapter: "cppdbg" }
+	}
+	const verLabel = version ? `gdb ${version}` : "gdb"
+	return {
+		adapter: null,
+		error: `${verLabel} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg').`,
+	}
+}
+
+export const parseGdbPreflight = preflightGdb
+export const gdbPreflight = preflightGdb
+export const probeGdb = preflightGdb
+export const gdbDapPreflight = preflightGdb
+export const checkGdb = preflightGdb
