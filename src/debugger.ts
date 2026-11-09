@@ -9,7 +9,6 @@ import {
 	debugBinaryPath,
 	debugCompileArgs,
 	mainFunctionLines,
-	missingCppdbgMessage,
 	missingDebuggerMessage,
 	resolveDebuggerCommand,
 	vPrintersPath,
@@ -71,9 +70,8 @@ async function compileForDebug(
 	return binary
 }
 
-/** The extension a V debug session delegates to. */
+/** The extension a V debug session can delegate to when it is present. */
 const cppdbgExtensionId = "ms-vscode.cpptools"
-
 /** Rewrite a V launch configuration into a real debug session.
  *
  * Spawning raw `gdb --interpreter=mi2` cannot work: it never answers DAP
@@ -117,17 +115,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			)
 			return undefined
 		}
-		if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
-			const action = "Install C/C++ Extension"
-			const choice = await vscode.window.showErrorMessage(missingCppdbgMessage(), action)
-			if (choice === action) {
-				await vscode.commands.executeCommand(
-					"workbench.extensions.installExtension",
-					cppdbgExtensionId,
-				)
-			}
-			return undefined
-		}
+		const hasCppdbg = !!vscode.extensions.getExtension(cppdbgExtensionId)
 		const vCommand = vCommandForProgram(vConfiguration.program, workspaceFolder)
 		const cwd =
 			vConfiguration.cwd ||
@@ -140,19 +128,31 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				)
 				return undefined
 			}
-			return cppdbgAttachConfig({
-				name: configuration.name,
+			if (hasCppdbg) {
+				return cppdbgAttachConfig({
+					name: configuration.name,
+					program: vConfiguration.program,
+					processId: vConfiguration.processId,
+					cwd,
+					printersPath: vPrintersPath(__dirname),
+					miMode,
+					miDebuggerPath: debuggerPath,
+					setupCommands: vConfiguration.setupCommands,
+					sourceFileMap: vConfiguration.sourceFileMap,
+					miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+					pipeTransport: vConfiguration.pipeTransport,
+				})
+			}
+			return {
+				...configuration,
+				type: "v",
+				request: "attach",
 				program: vConfiguration.program,
 				processId: vConfiguration.processId,
 				cwd,
-				printersPath: vPrintersPath(__dirname),
-				miMode,
 				miDebuggerPath: debuggerPath,
-				setupCommands: vConfiguration.setupCommands,
-				sourceFileMap: vConfiguration.sourceFileMap,
-				miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
-				pipeTransport: vConfiguration.pipeTransport,
-			})
+				MIMode: miMode,
+			}
 		}
 		return vscode.window.withProgress(
 			{
@@ -176,23 +176,40 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					if (token.isCancellationRequested) {
 						return undefined
 					}
-					return cppdbgLaunchConfig({
-						name: configuration.name,
-						binary,
+					if (hasCppdbg) {
+						return cppdbgLaunchConfig({
+							name: configuration.name,
+							binary,
+							args: vConfiguration.args ?? [],
+							cwd,
+							stopAtEntry: vConfiguration.stopAtEntry ?? false,
+							printersPath: vPrintersPath(__dirname),
+							miMode,
+							miDebuggerPath: debuggerPath,
+							setupCommands: vConfiguration.setupCommands,
+							environment: vConfiguration.environment,
+							envFile: vConfiguration.envFile,
+							externalConsole: vConfiguration.externalConsole,
+							sourceFileMap: vConfiguration.sourceFileMap,
+							miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+							pipeTransport: vConfiguration.pipeTransport,
+						})
+					}
+					return {
+						...configuration,
+						type: "v",
+						request: "launch",
+						program: binary,
 						args: vConfiguration.args ?? [],
 						cwd,
 						stopAtEntry: vConfiguration.stopAtEntry ?? false,
-						printersPath: vPrintersPath(__dirname),
-						miMode,
 						miDebuggerPath: debuggerPath,
-						setupCommands: vConfiguration.setupCommands,
+						MIMode: miMode,
 						environment: vConfiguration.environment,
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
 						sourceFileMap: vConfiguration.sourceFileMap,
-						miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
-						pipeTransport: vConfiguration.pipeTransport,
-					})
+					}
 				} finally {
 					cancellation.dispose()
 				}
@@ -211,6 +228,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 export function registerDebugger(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
+		vscode.debug.registerDebugAdapterDescriptorFactory("v", new VDebugAdapterDescriptorFactory()),
 		vscode.languages.registerCodeLensProvider(
 			{ scheme: "file", language: "v" },
 			new VDebugCodeLensProvider(),
@@ -262,5 +280,35 @@ class VDebugCodeLensProvider implements vscode.CodeLensProvider {
 					arguments: [document.uri],
 				}),
 		)
+	}
+}
+
+
+class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+	createDebugAdapterDescriptor(
+		session: vscode.DebugSession,
+	): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+		const config = session.configuration as VDebugConfiguration
+		const miMode = config.MIMode === "lldb" ? "lldb" : "gdb"
+		const folder = vscode.workspace.workspaceFolders?.[0]
+		const debuggerCommand = resolveDebuggerCommand(
+			config.miDebuggerPath,
+			miMode,
+			folder?.uri.fsPath,
+		)
+		const debuggerPath = resolvedCommand(debuggerCommand, folder?.uri.fsPath)
+		if (!debuggerPath) {
+			return undefined
+		}
+		if (miMode === "lldb") {
+			const lldbDap =
+				resolvedCommand("lldb-dap", folder?.uri.fsPath) ||
+				resolvedCommand("lldb-vscode", folder?.uri.fsPath)
+			if (!lldbDap) {
+				return undefined
+			}
+			return new vscode.DebugAdapterExecutable(lldbDap, [])
+		}
+		return new vscode.DebugAdapterExecutable(debuggerPath, ["-i=dap"])
 	}
 }
