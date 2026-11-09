@@ -682,6 +682,11 @@
 				"command": "v.env.status",
 				"title": "Show Environment Status",
 				"category": "V"
+			},
+			{
+				"command": "v.pickProcess",
+				"title": "Pick Process",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -1074,6 +1079,7 @@
 		]
 	},
 	"activationEvents": [
+		"onCommand:v.pickProcess",
 		"workspaceContains:**/*.v",
 		"workspaceContains:**/*.vv",
 		"workspaceContains:**/*.xml",
