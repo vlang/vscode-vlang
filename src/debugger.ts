@@ -232,6 +232,12 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
  * starts the same pipeline without a launch configuration.
  */
 export function registerDebugger(context: vscode.ExtensionContext): void {
+	if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
+		context.subscriptions.push(
+			vscode.commands.registerCommand("pickProcess", () => pickProcess()),
+			vscode.commands.registerCommand("v.pickProcess", () => pickProcess()),
+		)
+	}
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
 		vscode.debug.registerDebugAdapterDescriptorFactory("v", new VDebugAdapterDescriptorFactory()),
@@ -322,4 +328,35 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			`source ${printers}`,
 		])
 	}
+}
+
+
+async function pickProcess(): Promise<string | undefined> {
+	const items: { label: string; description: string; pid: string }[] = []
+	try {
+		if (process.platform === "win32") {
+			const { stdout } = await execFile("tasklist", ["/FO", "CSV", "/NH"], { encoding: "utf8" })
+			for (const line of stdout.split(/\r?\n/)) {
+				const match = line.match(/^"([^"]+)","(\d+)"/)
+				if (match) {
+					items.push({ label: match[1]!, description: `PID ${match[2]!}`, pid: match[2]! })
+				}
+			}
+		} else {
+			const { stdout } = await execFile("ps", ["-eo", "pid=,comm="], { encoding: "utf8" })
+			for (const line of stdout.split(/\r?\n/)) {
+				const parts = line.trim().split(/\s+/)
+				if (parts.length >= 2) {
+					items.push({ label: parts.slice(1).join(" "), description: `PID ${parts[0]!}`, pid: parts[0]! })
+				}
+			}
+		}
+	} catch {
+		return undefined
+	}
+	const choice = await vscode.window.showQuickPick(
+		items.map((item) => ({ label: item.label, description: item.description, pid: item.pid })),
+		{ placeHolder: "Select a process" },
+	)
+	return choice ? (choice as { pid: string }).pid : undefined
 }
