@@ -357,6 +357,8 @@ a local VS Code test build if `CODE_EXECUTABLE` is unset. Set `VLS_BINARY` and
 `TEST_PACKAGED=1` when running `npm run test:vscode` to install and test the
 VSIX in an isolated VS Code profile.
 
+VSS (ui2 stylesheets) files (.vss) are supported with syntax highlighting and snippets.
+
 ## Debugging
 
 V programs can be debugged from the Run and Debug view. The extension contributes

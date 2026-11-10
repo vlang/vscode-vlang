@@ -1,0 +1,46 @@
+{
+	"VSS Variable": {
+		"prefix": "@var",
+		"body": [
+			"@${1:name}: ${2:#2563eb};"
+		],
+		"description": "Declare a stylesheet variable"
+	},
+	"VSS Light/Dark": {
+		"prefix": "lightdark",
+		"body": [
+			"light { @${1:bg}: ${2:#f1f5f9}; @${3:ink}: ${4:#172033}; }",
+			"dark  { @${1:bg}: ${5:#172033}; @${3:ink}: ${6:#f8fafc}; }"
+		],
+		"description": "Light/dark variable blocks"
+	},
+	"VSS Media Query": {
+		"prefix": "@media",
+		"body": [
+			"@media (max-width: ${1:560px}) {",
+			"\t${2:Label.title} { font-size: ${3:18px}; }",
+			"}"
+		],
+		"description": "Responsive media query"
+	},
+	"VSS Container Query": {
+		"prefix": "@container",
+		"body": [
+			"@container (min-width: ${1:320px}) {",
+			"\t${2:.card} { ${3:padding}: ${4:12px}; }",
+			"}"
+		],
+		"description": "Container query"
+	},
+	"VSS Rule": {
+		"prefix": "rule",
+		"body": [
+			"${1:Button} {",
+			"\t${2:background}: ${3:#2563eb};",
+			"\t${4:color}: ${5:white};",
+			"\t${6:border-radius}: ${7:6px};",
+			"}"
+		],
+		"description": "Stylesheet rule"
+	}
+}
