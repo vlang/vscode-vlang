@@ -400,25 +400,14 @@ in the debug console and the session continues.
 
 Feature matrix:
 
-| Feature | gdb DAP | cppdbg fallback |
-|---|---|---|
-| launch | yes | yes |
-| attach | yes | yes |
-| core-file attach | yes | no |
-| externalConsole | no (use integrated terminal) | yes |
-| pipeTransport | no | yes |
-| remote ssh | no | yes |
-
-## Licensee matrix:
-
-| Feature | gdb DAP | cppdbg fallback |
-|---|---|---|
-| launch | yes | yes |
-| attach | yes | yes |
-| core-file attach | yes | no |
-| externalConsole | no (use integrated terminal) | yes |
-| pipeTransport | no | yes |
-| remote ssh | no | yes |
+| Feature          | gdb DAP                      | cppdbg fallback |
+| ---------------- | ---------------------------- | --------------- |
+| launch           | yes                          | yes             |
+| attach           | yes                          | yes             |
+| core-file attach | yes                          | no              |
+| externalConsole  | no (use integrated terminal) | yes             |
+| pipeTransport    | no                           | yes             |
+| remote ssh       | no                           | yes             |
 
 ## License
 

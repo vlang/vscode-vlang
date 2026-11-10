@@ -207,7 +207,9 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					}
 					if (vConfiguration.envFile) {
 						try {
-							for (const raw of fs.readFileSync(vConfiguration.envFile, "utf8").split(/\r?\n/)) {
+							for (const raw of fs
+								.readFileSync(vConfiguration.envFile, "utf8")
+								.split(/\r?\n/)) {
 								const line = raw.trim()
 								if (!line || line.startsWith("#")) {
 									continue
@@ -239,11 +241,17 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						sourceFileMap: vConfiguration.sourceFileMap,
 						...(miMode === "lldb"
 							? {
-									preRunCommands: (vConfiguration.setupCommands ?? []).map((c) => c.text),
-									initCommands: vscode.workspace.getConfiguration("v").get("debug.usePrettyPrinters", true)
-										? [`command script import ${path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")}`]
+									preRunCommands: (vConfiguration.setupCommands ?? []).map(
+										(c) => c.text,
+									),
+									initCommands: vscode.workspace
+										.getConfiguration("v")
+										.get("debug.usePrettyPrinters", true)
+										? [
+												`command script import ${path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")}`,
+											]
 										: [],
-							  }
+								}
 							: {}),
 					}
 				} finally {
@@ -270,7 +278,10 @@ export function registerDebugger(context: vscode.ExtensionContext): void {
 	}
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
-		vscode.debug.registerDebugAdapterDescriptorFactory("v", new VDebugAdapterDescriptorFactory()),
+		vscode.debug.registerDebugAdapterDescriptorFactory(
+			"v",
+			new VDebugAdapterDescriptorFactory(),
+		),
 		vscode.languages.registerCodeLensProvider(
 			{ scheme: "file", language: "v" },
 			new VDebugCodeLensProvider(),
@@ -325,7 +336,6 @@ class VDebugCodeLensProvider implements vscode.CodeLensProvider {
 	}
 }
 
-
 class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
 	createDebugAdapterDescriptor(
 		session: vscode.DebugSession,
@@ -349,7 +359,11 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 				return undefined
 			}
 			const args = [...(pt.pipeArgs ?? []), debuggerPath]
-			return new vscode.DebugAdapterExecutable(pipePath, args, pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined)
+			return new vscode.DebugAdapterExecutable(
+				pipePath,
+				args,
+				pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
+			)
 		}
 		if (miMode === "lldb") {
 			const lldbDap =
@@ -360,7 +374,9 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			}
 			return new vscode.DebugAdapterExecutable(lldbDap, [])
 		}
-		const usePrinters = vscode.workspace.getConfiguration("v").get("debug.usePrettyPrinters", true)
+		const usePrinters = vscode.workspace
+			.getConfiguration("v")
+			.get("debug.usePrettyPrinters", true)
 		const args = ["-i=dap"]
 		if (usePrinters) {
 			const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
@@ -378,16 +394,21 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 	}
 }
 
-
 async function pickProcess(): Promise<string | undefined> {
 	const items: { label: string; description: string; pid: string }[] = []
 	try {
 		if (process.platform === "win32") {
-			const { stdout } = await execFile("tasklist", ["/FO", "CSV", "/NH"], { encoding: "utf8" })
+			const { stdout } = await execFile("tasklist", ["/FO", "CSV", "/NH"], {
+				encoding: "utf8",
+			})
 			for (const line of stdout.split(/\r?\n/)) {
 				const match = line.match(/^"([^"]+)","(\d+)"/)
 				if (match) {
-					items.push({ label: match[1]!, description: `PID ${match[2]!}`, pid: match[2]! })
+					items.push({
+						label: match[1]!,
+						description: `PID ${match[2]!}`,
+						pid: match[2]!,
+					})
 				}
 			}
 		} else {
@@ -395,7 +416,11 @@ async function pickProcess(): Promise<string | undefined> {
 			for (const line of stdout.split(/\r?\n/)) {
 				const parts = line.trim().split(/\s+/)
 				if (parts.length >= 2) {
-					items.push({ label: parts.slice(1).join(" "), description: `PID ${parts[0]!}`, pid: parts[0]! })
+					items.push({
+						label: parts.slice(1).join(" "),
+						description: `PID ${parts[0]!}`,
+						pid: parts[0]!,
+					})
 				}
 			}
 		}

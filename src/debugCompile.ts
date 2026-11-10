@@ -302,7 +302,6 @@ export function missingCppdbgMessage(): string {
 	return "Cannot debug: the C/C++ extension (ms-vscode.cpptools) is not installed. Install it from the Marketplace — V debugging delegates to its cppdbg adapter."
 }
 
-
 /** Result of probing a gdb for DAP capability. */
 export interface GdbPreflightResult {
 	adapter: "gdb-dap" | "cppdbg" | null
@@ -347,7 +346,8 @@ export function preflightGdb(input?: unknown): GdbPreflightResult {
 	if (notFound) {
 		return { adapter: null, error: "gdb not found on PATH" }
 	}
-	const hasPython = !/Python scripting is not supported/i.test(text) && !/No module named/i.test(text)
+	const hasPython =
+		!/Python scripting is not supported/i.test(text) && !/No module named/i.test(text)
 	const hasDap =
 		!/Interpreter `dap' unrecognized/i.test(text) &&
 		!/Could not find interpreter "dap"/i.test(text) &&

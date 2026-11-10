@@ -8,12 +8,12 @@ on:
 jobs:
   dap-verify:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        gdb: ['13', '14', 'latest']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install gdb
+        run: sudo apt-get update && sudo apt-get install -y gdb
 
       - name: Show gdb version
         run: gdb --version | head -1
@@ -45,5 +45,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: dap-verify-log-${{ matrix.gdb }}
+          name: dap-verify-log
           path: verify-dap.log
