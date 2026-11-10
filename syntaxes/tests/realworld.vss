@@ -1,0 +1,30 @@
+// SYNTAX TEST "source.vss"
+@accent: #2563eb;
+@accent-hover: #1d4ed8;
+light { @bg: #f1f5f9; @surface: #ffffff; @line: #cbd5e1; @ink: #172033; @muted: #64748b; }
+dark { @bg: #0f172a; @surface: #1e293b; @line: #334155; @ink: #f8fafc; @muted: #b4c0d0; }
+
+Button {
+	background: @accent;
+	color: white;
+	border-radius: 6px;
+	font-size: 14px;
+}
+Button:hover { background: @accent-hover; }
+Button:pressed { opacity: 0.85; }
+Button:disabled { opacity: 0.4; }
+Button.ghost { background: @bg; color: @ink; border-color: @accent; border-width: 1px; }
+Label { color: @ink; font-size: 14px; }
+Label.title { font-size: 22px; font-weight: bold; }
+Label.muted { color: @muted; font-size: 13px; }
+@media (max-width: 480px) { Label.title { font-size: 16px; } }
+Label.counter { font-size: 20px; font-weight: bold; }
+Checkbox { color: @ink; }
+Checkbox:checked { color: @accent; }
+View.card {
+	background: @surface;
+	border-radius: 10px;
+	border-color: @line;
+	border-width: 1px;
+}
+"
