@@ -92,6 +92,17 @@
 				}
 			},
 			{
+				"id": "vss",
+				"aliases": [
+					"VSS",
+					"vss"
+				],
+				"extensions": [
+					".vss"
+				],
+				"configuration": "language-configuration.vss.json"
+			},
+			{
 				"id": "v.mod",
 				"aliases": [
 					"v.mod"
@@ -107,6 +118,11 @@
 			}
 		],
 		"grammars": [
+			{
+				"language": "vss",
+				"scopeName": "source.vss",
+				"path": "syntaxes/vss.tmLanguage.json"
+			},
 			{
 				"language": "v",
 				"scopeName": "source.v",
@@ -475,7 +491,8 @@
 			},
 			"files.associations": {
 				"*.vhtml": "html",
-				"*.vtml": "html"
+				"*.vtml": "html",
+				"*.vss": "vss"
 			}
 		},
 		"keybindings": [
