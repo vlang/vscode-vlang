@@ -1,0 +1,164 @@
+{
+	"name": "VML",
+	"scopeName": "text.vml",
+	"fileTypes": [".vml"],
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#module" },
+		{ "include": "#block" }
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{ "name": "comment.line.double-slash.vml", "match": "//.*$" },
+				{ "name": "comment.block.vml", "begin": "<!--", "end": "-->" }
+			]
+		},
+		"module": {
+			"patterns": [
+				{
+					"name": "meta.module.vml",
+					"match": "^\\s*(import)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "keyword.control.import.vml" },
+						"2": { "name": "entity.name.type.module.vml" }
+					}
+				},
+				{
+					"name": "meta.module.vml",
+					"match": "^\\s*(module)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "keyword.control.module.vml" },
+						"2": { "name": "entity.name.type.module.vml" }
+					}
+				}
+			]
+		},
+		"block": {
+			"patterns": [
+				{
+					"name": "meta.block.style.vml",
+					"begin": "\\b(Style)\\s*(\\{)",
+					"beginCaptures": {
+						"1": { "name": "keyword.control.style.vml" },
+						"2": { "name": "punctuation.definition.block.begin.vml" }
+					},
+					"end": "\\}",
+					"endCaptures": { "0": { "name": "punctuation.definition.block.end.vml" } },
+					"patterns": [{ "include": "#style-rule" }, { "include": "#comments" }]
+				},
+				{
+					"name": "meta.block.vml",
+					"begin": "\\b(Screen|Rectangle|View|Button|Label|Checkbox|Scroll|Dropdown|TextField|TextArea|MessageBox|Repeater)(\\.[A-Za-z_][A-Za-z0-9_-]*|:[a-zA-Z_-]+)*\\s*(\\{)",
+					"beginCaptures": {
+						"1": { "name": "entity.name.tag.vml" },
+						"2": { "name": "entity.other.attribute-name.class.vml" },
+						"3": { "name": "punctuation.definition.block.begin.vml" }
+					},
+					"end": "\\}",
+					"endCaptures": { "0": { "name": "punctuation.definition.block.end.vml" } },
+					"patterns": [
+						{ "include": "#comments" },
+						{ "include": "#property-decl" },
+						{ "include": "#prop" },
+						{ "include": "#block" }
+					]
+				}
+			]
+		},
+		"style-rule": {
+			"patterns": [
+				{
+					"name": "meta.selector.vml",
+					"begin": "([A-Za-z_][A-Za-z0-9_]*)(\\.[A-Za-z_][A-Za-z0-9_-]*|:[a-zA-Z_-]+)*\\s*(\\{)",
+					"beginCaptures": {
+						"1": { "name": "entity.name.tag.vml" },
+						"2": { "name": "entity.other.attribute-name.class.vml" },
+						"3": { "name": "punctuation.definition.block.begin.vml" }
+					},
+					"end": "\\}",
+					"endCaptures": { "0": { "name": "punctuation.definition.block.end.vml" } },
+					"patterns": [
+						{ "include": "#comments" },
+						{ "include": "#declaration" }
+					]
+				}
+			]
+		},
+		"declaration": {
+			"patterns": [
+				{
+					"name": "meta.declaration.vml",
+					"match": "([a-zA-Z_][a-zA-Z0-9_-]*)\\s*(:)\\s*([^;\\}]+)(;?)",
+					"captures": {
+						"1": { "name": "support.type.property-name.vml" },
+						"2": { "name": "punctuation.separator.key-value.vml" },
+						"3": { "patterns": [{ "include": "#value" }] },
+						"4": { "name": "punctuation.terminator.vml" }
+					}
+				}
+			]
+		},
+		"property-decl": {
+			"patterns": [
+				{
+					"name": "meta.property-decl.vml",
+					"match": "\\b(property)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s+([A-Za-z_][A-Za-z0-9_.]*)",
+					"captures": {
+						"1": { "name": "keyword.control.property.vml" },
+						"2": { "name": "variable.other.property.vml" },
+						"3": { "name": "storage.type.vml" }
+					}
+				}
+			]
+		},
+		"prop": {
+			"patterns": [
+				{
+					"name": "meta.prop.vml",
+					"begin": "(?=[a-zA-Z_][a-zA-Z0-9_.]*\\s*:)",
+					"end": "(?=[};]|\\b[A-Z][A-Za-z]*[\\s\\{]|$)",
+					"patterns": [
+						{
+							"match": "([a-zA-Z_][a-zA-Z0-9_.]*)\\s*(:)",
+							"captures": {
+								"1": { "name": "support.type.property-name.vml" },
+								"2": { "name": "punctuation.separator.key-value.vml" }
+							}
+						},
+						{ "include": "#value" },
+						{ "include": "#comments" }
+					]
+				}
+			]
+		},
+		"value": {
+			"patterns": [
+				{ "name": "constant.numeric.color.hex.vml", "match": "#[0-9a-fA-F]{3,8}\\b" },
+				{
+					"name": "string.quoted.double.vml",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [{ "include": "#interpolation" }]
+				},
+				{ "name": "constant.numeric.vml", "match": "\\b\\d+(\\.\\d+)?(px)?\\b" },
+				{ "name": "constant.language.vml", "match": "\\b(true|false|none)\\b" },
+				{ "name": "variable.other.vml", "match": "@[a-zA-Z_][a-zA-Z0-9_-]*" },
+				{ "name": "variable.other.member.vml", "match": "\\bapp\\.[a-zA-Z0-9_.]+" },
+				{ "include": "#interpolation" }
+			]
+		},
+		"interpolation": {
+			"patterns": [
+				{
+					"name": "meta.interpolation.vml",
+					"begin": "\\$\\{",
+					"beginCaptures": { "0": { "name": "punctuation.definition.interpolation.begin.vml" } },
+					"end": "\\}",
+					"endCaptures": { "0": { "name": "punctuation.definition.interpolation.end.vml" } },
+					"patterns": [{ "include": "source.v" }]
+				}
+			]
+		}
+	}
+}

@@ -1,4 +1,4 @@
-import { registerCommands, registerNumberHover, registerVlsCommands } from "commands"
+import { registerCommands, registerNumberHover, registerVlsCommands, registerVmlHover } from "commands"
 import { registerCodeActions } from "./codeActions"
 import { createExtensionAPI } from "./extensionAPI"
 import { vDocumentSelector } from "./documentSelector"
@@ -89,6 +89,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// step happens inside the factory, so no task needs to be defined first.
 	registerDebugger(context)
 	registerNumberHover(context)
+	registerVmlHover(context)
 	// Fold blocks, import runs and //#region markers. This takes over the
 	// document's folding from the editor, so it has to cover all three itself.
 	registerFolding(context)

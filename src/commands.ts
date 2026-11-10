@@ -31,6 +31,7 @@ import {
 	schemaFromXml,
 } from "./decodeStruct"
 import { hoverTextFor, literalAtOffset } from "./numberHover"
+import { blockAtLine, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
 import {
 	decodeBase32,
 	decodeBase58,
@@ -553,6 +554,28 @@ export function registerNumberHover(context: vscode.ExtensionContext): void {
 				return new vscode.Hover(
 					hoverTextFor(literal),
 					new vscode.Range(position.line, literal.start, position.line, literal.end),
+				)
+			},
+		}),
+	)
+}
+
+/** Hover applied classes and resolved styles over VML blocks. */
+export function registerVmlHover(context: vscode.ExtensionContext): void {
+	context.subscriptions.push(
+		vscode.languages.registerHoverProvider({ language: "vml" }, {
+			provideHover(document, position) {
+				const nodes = parseVml(document.getText())
+				if (nodes.length === 0) {
+					return undefined
+				}
+				const block = blockAtLine(nodes, position.line)
+				if (!block) {
+					return undefined
+				}
+				return new vscode.Hover(
+					vmlHoverTextFor(block, collectRules(nodes)),
+					new vscode.Range(position.line, 0, position.line, 0),
 				)
 			},
 		}),
