@@ -367,7 +367,8 @@ the extension compiles the program with `-g`, then drives the session through
 gdb's own Debug Adapter Protocol server (`gdb -i=dap`). Requires gdb >= 13
 (for DAP) or lldb via lldb-dap. The C/C++ extension
 (`ms-vscode.cpptools`) is optional: when installed, the session may delegate
-to its `cppdbg` adapter for features gdb DAP does not provide.
+to its `cppdbg` adapter for features the built-in gdb/lldb adapters do not
+provide (external console, remote targets).
 
 A default launch configuration is provided, so starting a debug session does not
 require writing a `launch.json` by hand. The `program` field is the V source file
