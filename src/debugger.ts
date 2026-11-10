@@ -237,6 +237,11 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
 						sourceFileMap: vConfiguration.sourceFileMap,
+						...(miMode === "lldb"
+							? {
+									 preRunCommands: (vConfiguration.setupCommands ?? []).map((c) => c.text),
+							  }
+							: {}),
 					}
 				} finally {
 					cancellation.dispose()

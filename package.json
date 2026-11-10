@@ -416,6 +416,7 @@
 					"type": "string",
 					"enum": [
 						"gdb-dap",
+						"lldb-dap",
 						"cppdbg",
 						"auto"
 					],

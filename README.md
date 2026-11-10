@@ -365,7 +365,7 @@ DAP live verification runs in CI; locally it requires gdb >= 13 with Python.
 V has no native debugger. The pipeline is `v -g` -> C -> DWARF -> gdb DAP:
 the extension compiles the program with `-g`, then drives the session through
 gdb's own Debug Adapter Protocol server (`gdb -i=dap`). Requires gdb >= 13
-(for DAP). lldb is not supported in this version. The C/C++ extension
+(for DAP) or lldb via lldb-dap. The C/C++ extension
 (`ms-vscode.cpptools`) is optional: when installed, the session may delegate
 to its `cppdbg` adapter for features gdb DAP does not provide.
 
