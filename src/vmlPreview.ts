@@ -148,7 +148,9 @@ function parseBlock(header: string, body: string): VmlNode | undefined {
 	const styleChildren = parsed.children.filter((child) => child.kind === "Style")
 	if (styleChildren.length > 0) {
 		node.props.__rules = JSON.stringify(
-			styleChildren.flatMap((child) => JSON.parse(child.props.__rules ?? "[]") as VmlStyleRule[]),
+			styleChildren.flatMap(
+				(child) => JSON.parse(child.props.__rules ?? "[]") as VmlStyleRule[],
+			),
 		)
 		node.children = parsed.children.filter((child) => child.kind !== "Style")
 	} else if (parsed.rules.length > 0) {
@@ -369,7 +371,9 @@ function resolveStyle(
 	return {
 		background: toCssColor(merged["background"], defaults.background),
 		color: toCssColor(merged["color"] ?? merged["text-color"], defaults.color),
-		borderRadius: toCssLength(merged["border-radius"] ?? merged["corner_radius"]) ?? defaults.borderRadius,
+		borderRadius:
+			toCssLength(merged["border-radius"] ?? merged["corner_radius"]) ??
+			defaults.borderRadius,
 		border:
 			borderWidth && borderColor ? `${borderWidth} solid ${borderColor}` : defaults.border,
 		fontSize: toCssLength(merged["font-size"]) ?? defaults.fontSize,
@@ -427,7 +431,9 @@ function renderNode(
 		scope[`${id}.y`] = y
 	}
 	const style = resolveStyle(node, rules, rootDefaults)
-	const children = node.children.map((child) => renderNode(child, rules, scope, width, height)).join("")
+	const children = node.children
+		.map((child) => renderNode(child, rules, scope, width, height))
+		.join("")
 	const box = `position:absolute;left:${x}px;top:${y}px;width:${width}px;${node.children.length > 0 ? `height:${height}px;` : `min-height:${height}px;`}${cssFor(style)}`
 	switch (node.kind) {
 		case "Label": {

@@ -19,7 +19,7 @@ describe("VML preview", () => {
 
 	it("renders style rules and inline props", () => {
 		const { html, blocks } = renderVmlDocument(
-			"Screen {\n\tbackground: #F1F5F9\n\tStyle {\n\t\tButton.action {\n\t\t\tbackground: #3478D4;\n\t\t}\n\t}\n\tButton {\n\t\tclass: action\n\t\ttext: \"Count\"\n\t\tx: 10\n\t\ty: 10\n\t\twidth: 96\n\t\theight: 40\n\t}\n}",
+			'Screen {\n\tbackground: #F1F5F9\n\tStyle {\n\t\tButton.action {\n\t\t\tbackground: #3478D4;\n\t\t}\n\t}\n\tButton {\n\t\tclass: action\n\t\ttext: "Count"\n\t\tx: 10\n\t\ty: 10\n\t\twidth: 96\n\t\theight: 40\n\t}\n}',
 		)
 		assert.ok(blocks >= 1)
 		assert.ok(html.includes("#3478d4") || html.includes("#3478D4"))
