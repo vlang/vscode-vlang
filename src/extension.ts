@@ -1,4 +1,9 @@
-import { registerCommands, registerNumberHover, registerVlsCommands, registerVmlHover } from "commands"
+import {
+	registerCommands,
+	registerNumberHover,
+	registerVlsCommands,
+	registerVmlHover,
+} from "commands"
 import { registerCodeActions } from "./codeActions"
 import { createExtensionAPI } from "./extensionAPI"
 import { vDocumentSelector } from "./documentSelector"

@@ -2,11 +2,7 @@
 	"name": "VML",
 	"scopeName": "text.vml",
 	"fileTypes": [".vml"],
-	"patterns": [
-		{ "include": "#comments" },
-		{ "include": "#module" },
-		{ "include": "#block" }
-	],
+	"patterns": [{ "include": "#comments" }, { "include": "#module" }, { "include": "#block" }],
 	"repository": {
 		"comments": {
 			"patterns": [
@@ -78,10 +74,7 @@
 					},
 					"end": "\\}",
 					"endCaptures": { "0": { "name": "punctuation.definition.block.end.vml" } },
-					"patterns": [
-						{ "include": "#comments" },
-						{ "include": "#declaration" }
-					]
+					"patterns": [{ "include": "#comments" }, { "include": "#declaration" }]
 				}
 			]
 		},
@@ -153,9 +146,13 @@
 				{
 					"name": "meta.interpolation.vml",
 					"begin": "\\$\\{",
-					"beginCaptures": { "0": { "name": "punctuation.definition.interpolation.begin.vml" } },
+					"beginCaptures": {
+						"0": { "name": "punctuation.definition.interpolation.begin.vml" }
+					},
 					"end": "\\}",
-					"endCaptures": { "0": { "name": "punctuation.definition.interpolation.end.vml" } },
+					"endCaptures": {
+						"0": { "name": "punctuation.definition.interpolation.end.vml" }
+					},
 					"patterns": [{ "include": "source.v" }]
 				}
 			]

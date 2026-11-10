@@ -128,7 +128,12 @@ function parseBody(
 						declarations[parsed[0]] = parsed[1]
 					}
 				}
-				rules.push({ kind, className, declarations, line: lineOf(full, bodyOffset + index) })
+				rules.push({
+					kind,
+					className,
+					declarations,
+					line: lineOf(full, bodyOffset + index),
+				})
 			}
 			index = braceClose + 1
 			continue
@@ -152,7 +157,12 @@ function parseBody(
 	return { props, rules, children }
 }
 
-function parseBlock(full: string, header: string, body: string, offset: number): VmlNode | undefined {
+function parseBlock(
+	full: string,
+	header: string,
+	body: string,
+	offset: number,
+): VmlNode | undefined {
 	const kind = header.split(/[.:]/)[0]?.trim() ?? ""
 	if (!blockKinds.has(kind)) {
 		return undefined
@@ -258,10 +268,7 @@ export function matchingRules(node: VmlNode, rules: VmlStyleRule[]): VmlStyleRul
 }
 
 /** Merged declarations for a block: sheet rules first, inline props win. */
-export function resolvedDeclarations(
-	node: VmlNode,
-	rules: VmlStyleRule[],
-): Record<string, string> {
+export function resolvedDeclarations(node: VmlNode, rules: VmlStyleRule[]): Record<string, string> {
 	const merged: Record<string, string> = {}
 	for (const rule of matchingRules(node, rules)) {
 		Object.assign(merged, rule.declarations)
