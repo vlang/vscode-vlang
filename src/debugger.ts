@@ -342,6 +342,15 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 		if (!debuggerPath) {
 			return undefined
 		}
+		if (config.pipeTransport) {
+			const pt = config.pipeTransport
+			const pipePath = resolvedCommand(pt.pipeProgram, folder?.uri.fsPath)
+			if (!pipePath) {
+				return undefined
+			}
+			const args = [...(pt.pipeArgs ?? []), debuggerPath]
+			return new vscode.DebugAdapterExecutable(pipePath, args, pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined)
+		}
 		if (miMode === "lldb") {
 			const lldbDap =
 				resolvedCommand("lldb-dap", folder?.uri.fsPath) ||
