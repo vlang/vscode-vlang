@@ -32,6 +32,7 @@ import {
 } from "./decodeStruct"
 import { hoverTextFor, literalAtOffset } from "./numberHover"
 import { blockAtLine, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
+import { renderVmlDocument } from "./vmlPreview"
 import {
 	decodeBase32,
 	decodeBase58,
@@ -245,6 +246,39 @@ export async function translateWithC2v(): Promise<void> {
 	}
 }
 
+let vmlPreviewPanel: vscode.WebviewPanel | undefined
+let vmlPreviewDocument: vscode.TextDocument | undefined
+
+function updateVmlPreview(): void {
+	if (!vmlPreviewPanel || !vmlPreviewDocument) {
+		return
+	}
+	vmlPreviewPanel.webview.html = renderVmlDocument(vmlPreviewDocument.getText()).html
+}
+
+export async function previewVml(): Promise<void> {
+	const editor = window.activeTextEditor
+	if (!editor || !editor.document.fileName.endsWith(".vml")) {
+		void window.showErrorMessage("Open a .vml file to preview.")
+		return
+	}
+	vmlPreviewDocument = editor.document
+	if (!vmlPreviewPanel) {
+		vmlPreviewPanel = window.createWebviewPanel(
+			"vmlPreview",
+			"VML Preview",
+			vscode.ViewColumn.Beside,
+			{ enableScripts: true },
+		)
+		vmlPreviewPanel.onDidDispose(() => {
+			vmlPreviewPanel = undefined
+			vmlPreviewDocument = undefined
+		})
+	}
+	vmlPreviewPanel.reveal(vscode.ViewColumn.Beside)
+	updateVmlPreview()
+}
+
 export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand("v.run", run),
@@ -261,7 +295,24 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand("v.generateCOutput", generateCOutput),
 		commands.registerCommand("v.translateWithC2v", translateWithC2v),
 		commands.registerCommand("v.sharePlayground", sharePlayground),
+		commands.registerCommand("v.previewVml", previewVml),
+		workspace.onDidChangeTextDocument((e) => {
+			if (vmlPreviewDocument && e.document === vmlPreviewDocument) {
+				updateVmlPreview()
+			}
+		}),
+		window.onDidChangeActiveTextEditor((editor) => {
+			if (editor?.document.fileName.endsWith(".vml") === true && vmlPreviewPanel) {
+				vmlPreviewDocument = editor.document
+				updateVmlPreview()
+			}
+		}),
 	)
+	// When VS Code is launched with a .vml file open, show its preview beside it.
+	const active = window.activeTextEditor
+	if (active?.document.fileName.endsWith(".vml") === true) {
+		void previewVml()
+	}
 }
 
 /** Sort, dedupe and prune unused imports in the active V file.
