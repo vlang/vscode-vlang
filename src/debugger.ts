@@ -239,7 +239,10 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						sourceFileMap: vConfiguration.sourceFileMap,
 						...(miMode === "lldb"
 							? {
-									 preRunCommands: (vConfiguration.setupCommands ?? []).map((c) => c.text),
+									preRunCommands: (vConfiguration.setupCommands ?? []).map((c) => c.text),
+									initCommands: vscode.workspace.getConfiguration("v").get("debug.usePrettyPrinters", true)
+										? [`command script import ${path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")}`]
+										: [],
 							  }
 							: {}),
 					}
