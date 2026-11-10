@@ -1,9 +1,7 @@
 {
 	"VSS Variable": {
 		"prefix": "@var",
-		"body": [
-			"@${1:name}: ${2:#2563eb};"
-		],
+		"body": ["@${1:name}: ${2:#2563eb};"],
 		"description": "Declare a stylesheet variable"
 	},
 	"VSS Light/Dark": {
