@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Debugging no longer requires the C/C++ extension: a gdb DAP adapter (gdb -i=dap, gdb >= 13 + Python) is used when available, with an optional cppdbg fallback. Adds .debug.adapter preflight, .debug.usePrettyPrinters, coreFile attach, .pickProcess, scripts/verify-dap.sh, and a DAP verification CI workflow.
+
 - **V: Toggle Test File**, which walks the `foo.v` / `foo_test.v` pairing in both
   directions: from a source file it opens its test file, and from a `_test.v` file
   it opens the source beside it. Generating a test file only ever created the far

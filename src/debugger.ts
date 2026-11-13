@@ -1,6 +1,7 @@
 import { execFile as _execFile } from "child_process"
 import { promisify } from "util"
 import * as path from "path"
+import * as fs from "fs"
 import * as vscode from "vscode"
 import { parseByVersion } from "./documentMemo"
 import {
@@ -9,7 +10,6 @@ import {
 	debugBinaryPath,
 	debugCompileArgs,
 	mainFunctionLines,
-	missingCppdbgMessage,
 	missingDebuggerMessage,
 	resolveDebuggerCommand,
 	vPrintersPath,
@@ -46,6 +46,7 @@ export interface VDebugConfiguration extends vscode.DebugConfiguration {
 	envFile?: string
 	externalConsole?: boolean
 	processId?: string
+	coreFile?: string
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
@@ -71,9 +72,8 @@ async function compileForDebug(
 	return binary
 }
 
-/** The extension a V debug session delegates to. */
+/** The extension a V debug session can delegate to when it is present. */
 const cppdbgExtensionId = "ms-vscode.cpptools"
-
 /** Rewrite a V launch configuration into a real debug session.
  *
  * Spawning raw `gdb --interpreter=mi2` cannot work: it never answers DAP
@@ -117,17 +117,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			)
 			return undefined
 		}
-		if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
-			const action = "Install C/C++ Extension"
-			const choice = await vscode.window.showErrorMessage(missingCppdbgMessage(), action)
-			if (choice === action) {
-				await vscode.commands.executeCommand(
-					"workbench.extensions.installExtension",
-					cppdbgExtensionId,
-				)
-			}
-			return undefined
-		}
+		const hasCppdbg = !!vscode.extensions.getExtension(cppdbgExtensionId)
 		const vCommand = vCommandForProgram(vConfiguration.program, workspaceFolder)
 		const cwd =
 			vConfiguration.cwd ||
@@ -140,19 +130,35 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				)
 				return undefined
 			}
-			return cppdbgAttachConfig({
-				name: configuration.name,
+			if (hasCppdbg) {
+				return cppdbgAttachConfig({
+					name: configuration.name,
+					program: vConfiguration.program,
+					processId: vConfiguration.processId,
+					cwd,
+					printersPath: vPrintersPath(__dirname),
+					miMode,
+					miDebuggerPath: debuggerPath,
+					setupCommands: vConfiguration.setupCommands,
+					sourceFileMap: vConfiguration.sourceFileMap,
+					miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+					pipeTransport: vConfiguration.pipeTransport,
+				})
+			}
+			return {
+				...configuration,
+				type: "v",
+				request: "attach",
 				program: vConfiguration.program,
 				processId: vConfiguration.processId,
 				cwd,
-				printersPath: vPrintersPath(__dirname),
-				miMode,
 				miDebuggerPath: debuggerPath,
-				setupCommands: vConfiguration.setupCommands,
-				sourceFileMap: vConfiguration.sourceFileMap,
-				miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
-				pipeTransport: vConfiguration.pipeTransport,
-			})
+				MIMode: miMode,
+				...(vConfiguration.miDebuggerServerAddress
+					? { target: vConfiguration.miDebuggerServerAddress }
+					: {}),
+				...(vConfiguration.coreFile ? { coreFile: vConfiguration.coreFile } : {}),
+			}
 		}
 		return vscode.window.withProgress(
 			{
@@ -176,23 +182,78 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					if (token.isCancellationRequested) {
 						return undefined
 					}
-					return cppdbgLaunchConfig({
-						name: configuration.name,
-						binary,
+					if (hasCppdbg) {
+						return cppdbgLaunchConfig({
+							name: configuration.name,
+							binary,
+							args: vConfiguration.args ?? [],
+							cwd,
+							stopAtEntry: vConfiguration.stopAtEntry ?? false,
+							printersPath: vPrintersPath(__dirname),
+							miMode,
+							miDebuggerPath: debuggerPath,
+							setupCommands: vConfiguration.setupCommands,
+							environment: vConfiguration.environment,
+							envFile: vConfiguration.envFile,
+							externalConsole: vConfiguration.externalConsole,
+							sourceFileMap: vConfiguration.sourceFileMap,
+							miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
+							pipeTransport: vConfiguration.pipeTransport,
+						})
+					}
+					const env: Record<string, string> = {}
+					for (const entry of vConfiguration.environment ?? []) {
+						env[entry.name] = entry.value
+					}
+					if (vConfiguration.envFile) {
+						try {
+							for (const raw of fs
+								.readFileSync(vConfiguration.envFile, "utf8")
+								.split(/\r?\n/)) {
+								const line = raw.trim()
+								if (!line || line.startsWith("#")) {
+									continue
+								}
+								const eq = line.indexOf("=")
+								if (eq > 0) {
+									env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
+								}
+							}
+						} catch {
+							// envFile is optional; ignore read errors
+						}
+					}
+					const finalEnv = Object.keys(env).length ? env : undefined
+					return {
+						...configuration,
+						type: "v",
+						request: "launch",
+						program: binary,
 						args: vConfiguration.args ?? [],
 						cwd,
 						stopAtEntry: vConfiguration.stopAtEntry ?? false,
-						printersPath: vPrintersPath(__dirname),
-						miMode,
+						stopAtBeginningOfMainSubprogram: vConfiguration.stopAtEntry ?? false,
 						miDebuggerPath: debuggerPath,
-						setupCommands: vConfiguration.setupCommands,
-						environment: vConfiguration.environment,
+						MIMode: miMode,
+						env: finalEnv,
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
 						sourceFileMap: vConfiguration.sourceFileMap,
-						miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
-						pipeTransport: vConfiguration.pipeTransport,
-					})
+						...(miMode === "lldb"
+							? {
+									preRunCommands: (vConfiguration.setupCommands ?? []).map(
+										(c) => c.text,
+									),
+									initCommands: vscode.workspace
+										.getConfiguration("v")
+										.get("debug.usePrettyPrinters", true)
+										? [
+												`command script import ${path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")}`,
+											]
+										: [],
+								}
+							: {}),
+					}
 				} finally {
 					cancellation.dispose()
 				}
@@ -209,8 +270,18 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
  * starts the same pipeline without a launch configuration.
  */
 export function registerDebugger(context: vscode.ExtensionContext): void {
+	if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
+		context.subscriptions.push(
+			vscode.commands.registerCommand("pickProcess", () => pickProcess()),
+			vscode.commands.registerCommand("v.pickProcess", () => pickProcess()),
+		)
+	}
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("v", new VDebugConfigurationProvider()),
+		vscode.debug.registerDebugAdapterDescriptorFactory(
+			"v",
+			new VDebugAdapterDescriptorFactory(),
+		),
 		vscode.languages.registerCodeLensProvider(
 			{ scheme: "file", language: "v" },
 			new VDebugCodeLensProvider(),
@@ -263,4 +334,102 @@ class VDebugCodeLensProvider implements vscode.CodeLensProvider {
 				}),
 		)
 	}
+}
+
+class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+	createDebugAdapterDescriptor(
+		session: vscode.DebugSession,
+	): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+		const config = session.configuration as VDebugConfiguration
+		const miMode = config.MIMode === "lldb" ? "lldb" : "gdb"
+		const folder = vscode.workspace.workspaceFolders?.[0]
+		const debuggerCommand = resolveDebuggerCommand(
+			config.miDebuggerPath,
+			miMode,
+			folder?.uri.fsPath,
+		)
+		const debuggerPath = resolvedCommand(debuggerCommand, folder?.uri.fsPath)
+		if (!debuggerPath) {
+			return undefined
+		}
+		if (config.pipeTransport) {
+			const pt = config.pipeTransport
+			const pipePath = resolvedCommand(pt.pipeProgram, folder?.uri.fsPath)
+			if (!pipePath) {
+				return undefined
+			}
+			const args = [...(pt.pipeArgs ?? []), debuggerPath]
+			return new vscode.DebugAdapterExecutable(
+				pipePath,
+				args,
+				pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
+			)
+		}
+		if (miMode === "lldb") {
+			const lldbDap =
+				resolvedCommand("lldb-dap", folder?.uri.fsPath) ||
+				resolvedCommand("lldb-vscode", folder?.uri.fsPath)
+			if (!lldbDap) {
+				return undefined
+			}
+			return new vscode.DebugAdapterExecutable(lldbDap, [])
+		}
+		const usePrinters = vscode.workspace
+			.getConfiguration("v")
+			.get("debug.usePrettyPrinters", true)
+		const args = ["-i=dap"]
+		if (usePrinters) {
+			const printers = vPrintersPath(__dirname).replace(/\\/g, "/")
+			args.push("-iex", `source ${printers}`)
+			// gdb >= 13 required; older gdb may parse -iex differently under DAP.
+		}
+		const sessionConfig = session.configuration as VDebugConfiguration
+		for (const [from, to] of Object.entries(sessionConfig.sourceFileMap ?? {})) {
+			args.push("-iex", `set substitute-path ${from} ${to}`)
+		}
+		for (const command of sessionConfig.setupCommands ?? []) {
+			args.push("-iex", command.text)
+		}
+		return new vscode.DebugAdapterExecutable(debuggerPath, args)
+	}
+}
+
+async function pickProcess(): Promise<string | undefined> {
+	const items: { label: string; description: string; pid: string }[] = []
+	try {
+		if (process.platform === "win32") {
+			const { stdout } = await execFile("tasklist", ["/FO", "CSV", "/NH"], {
+				encoding: "utf8",
+			})
+			for (const line of stdout.split(/\r?\n/)) {
+				const match = line.match(/^"([^"]+)","(\d+)"/)
+				if (match) {
+					items.push({
+						label: match[1]!,
+						description: `PID ${match[2]!}`,
+						pid: match[2]!,
+					})
+				}
+			}
+		} else {
+			const { stdout } = await execFile("ps", ["-eo", "pid=,comm="], { encoding: "utf8" })
+			for (const line of stdout.split(/\r?\n/)) {
+				const parts = line.trim().split(/\s+/)
+				if (parts.length >= 2) {
+					items.push({
+						label: parts.slice(1).join(" "),
+						description: `PID ${parts[0]!}`,
+						pid: parts[0]!,
+					})
+				}
+			}
+		}
+	} catch {
+		return undefined
+	}
+	const choice = await vscode.window.showQuickPick(
+		items.map((item) => ({ label: item.label, description: item.description, pid: item.pid })),
+		{ placeHolder: "Select a process" },
+	)
+	return choice ? (choice as { pid: string }).pid : undefined
 }

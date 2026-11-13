@@ -7,11 +7,9 @@
 	"version": "0.2.1",
 	"license": "GPL-2.0-only",
 	"engines": {
-		"vscode": "^1.140.0"
+		"vscode": "^1.145.0"
 	},
-	"extensionPack": [
-		"ms-vscode.cpptools"
-	],
+	"extensionPack": [],
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"
@@ -408,6 +406,22 @@
 					"default": "",
 					"scope": "resource",
 					"description": "Directory the V MCP server resolves relative paths against. Empty means each workspace folder. Set it when the V project root differs from the folder you opened."
+				},
+				"v.debug.usePrettyPrinters": {
+					"type": "boolean",
+					"default": true,
+					"description": "Load the V GDB pretty printers at session start."
+				},
+				"v.debug.adapter": {
+					"type": "string",
+					"enum": [
+						"gdb-dap",
+						"lldb-dap",
+						"cppdbg",
+						"auto"
+					],
+					"default": "auto",
+					"description": "Which debug adapter to use. auto prefers gdb-dap when gdb is DAP-capable."
 				}
 			}
 		},
@@ -679,6 +693,11 @@
 				"command": "v.env.status",
 				"title": "Show Environment Status",
 				"category": "V"
+			},
+			{
+				"command": "v.pickProcess",
+				"title": "Pick Process",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -924,6 +943,10 @@
 								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
 								"default": "${command:pickProcess}"
 							},
+							"coreFile": {
+								"type": "string",
+								"description": "Path to a core dump; gdb DAP forwards this to the inferior."
+							},
 							"cwd": {
 								"type": "string",
 								"description": "Working directory for expression evaluation. Defaults to the workspace folder.",
@@ -1067,6 +1090,7 @@
 		]
 	},
 	"activationEvents": [
+		"onCommand:v.pickProcess",
 		"workspaceContains:**/*.v",
 		"workspaceContains:**/*.vv",
 		"workspaceContains:**/*.xml",
