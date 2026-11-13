@@ -14,6 +14,8 @@ Provides [V language](https://vlang.io) support for Visual Studio Code.
 ### Code Editing
 
 - Syntax highlighting for `.v`, `.vsh`, `.vh`, `.vv`, plus `v.mod` files
+- Syntax highlighting for ui2 `.vml` layout files, with hover showing
+  the applied classes and resolved stylesheet for the block under the cursor
 - Code snippets for quick coding, including a dozen `veb` snippets
   (`vapp`, `vget`, `vpst`, `vpar`, `vctx`, `vtml`, `vif`, `vfor`, `vinc`,
   `vjsn`, `vmid`, `vctl`)
