@@ -7,7 +7,7 @@
 	"version": "0.2.1",
 	"license": "GPL-2.0-only",
 	"engines": {
-		"vscode": "^1.140.0"
+		"vscode": "^1.145.0"
 	},
 	"extensionPack": [
 		"ms-vscode.cpptools"
