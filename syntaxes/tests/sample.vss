@@ -1,0 +1,18 @@
+// SYNTAX TEST "source.vss"
+@accent: #2563eb;
+light { @bg: #f1f5f9; @ink: #172033; }
+dark  { @bg: #172033; @ink: #f8fafc; }
+
+Button { background: @accent; color: white; border-radius: 6px; }
+Button:hover { opacity: 0.92; }
+Button:disabled { opacity: 0.4; }
+Label.title { font-size: 22px; font-weight: bold; }
+
+@media (max-width: 560px) {
+	Label.title { font-size: 18px; }
+}
+
+@container (min-width: 320px) {
+	.card { padding: 12px; }
+}
+"
