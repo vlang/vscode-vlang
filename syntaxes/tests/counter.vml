@@ -1,0 +1,32 @@
+// SYNTAX TEST "text.vml"
+Screen {
+	id: root
+	background: #F1F5F9
+	Style {
+		Button.action {
+			background: #3478D4;
+			color: #FFFFFF;
+		}
+		Label.count { color: #111827; font-size: 20px; }
+	}
+	Rectangle {
+		id: card
+		class: card
+		x: 76
+		y: 268
+		width: 248
+		height: 64
+		Label {
+			id: count
+			class: count
+			text: app.count
+		}
+		Button {
+			id: increment
+			class: action
+			text: "Count"
+			on_tap: app.increment()
+		}
+	}
+}
+"
