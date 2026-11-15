@@ -66,3 +66,25 @@ Dropdown:focused { border-color: @accent; border-width: 1px; }
 //       ^^^^^^^ support.type.property-name.vss
 //                ^^^^ constant.numeric.vss
 }
+/* block comments are the only comments */
+//<------------------------------------------ comment.block.vss
+// line comments are not comments
+//<-- - comment.line.double-slash.vss
+View.accent { background: #f1f5f9; }
+//<---- entity.name.tag.vss
+//  ^^^^^^^ entity.other.attribute-name.class.vss
+//            ^^^^^^^^^^ support.type.property-name.vss
+//                        ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+Label.dim { opacity: 50%; }
+//<----- entity.name.tag.vss
+//   ^^^^ entity.other.attribute-name.class.vss
+//          ^^^^^^^ support.type.property-name.vss
+//                   ^^^ constant.numeric.vss
+@supports (container-queries) {
+//<--------- keyword.control.at-rule.vss - variable.other.vss
+	View.card { border-radius: 16px; }
+//<~---- entity.name.tag.vss
+//   ^^^^^ entity.other.attribute-name.class.vss
+//           ^^^^^^^^^^^^^ support.type.property-name.vss
+//                          ^^^^ constant.numeric.vss
+}

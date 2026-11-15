@@ -6,14 +6,13 @@
 		{ "include": "#comments" },
 		{ "include": "#at-rules" },
 		{ "include": "#variables" },
+		{ "include": "#values" },
 		{ "include": "#selectors" },
-		{ "include": "#properties" },
-		{ "include": "#values" }
+		{ "include": "#properties" }
 	],
 	"repository": {
 		"comments": {
 			"patterns": [
-				{ "name": "comment.line.double-slash.vss", "match": "//.*$" },
 				{ "name": "comment.block.vss", "begin": "/\\*", "end": "\\*/" }
 			]
 		},
@@ -21,7 +20,11 @@
 			"patterns": [
 				{
 					"name": "keyword.control.at-rule.vss",
-					"match": "@(import|keyframes|media|container)\\b"
+					"match": "@(import|keyframes|media|container|supports)\\b"
+				},
+				{
+					"name": "keyword.control.at-rule.vss",
+					"match": "^\\s*@[a-zA-Z_][a-zA-Z0-9_-]*\\b(?![\\w-]*\\s*:)"
 				},
 				{ "name": "keyword.control.at-rule.vss", "match": "\\b(light|dark)\\s*\\{" }
 			]
@@ -50,14 +53,14 @@
 			"patterns": [
 				{
 					"name": "support.type.property-name.vss",
-					"match": "(?i)\\b(background-color|background-gradient|background|color|font-size|font-family|font-weight|font-style|text-align|text-decoration|border-radius|border-color|border-width|border|opacity|box-shadow|padding|margin|gap|transition-property|transition-duration|transition-timing-function|transition-delay|transition|animation-name|animation-duration|animation-timing-function|animation-delay|animation-iteration-count|animation-direction|animation-fill-mode|animation-play-state|animation)\\b(?=\\s*:)"
+					"match": "(?i)\\b(background-color|background-gradient|background|color|font-size|font-family|font-weight|font-style|text-align|text-decoration|border-radius|border-color|border-width|border|opacity|box-shadow|padding|margin|gap)\\b(?=\\s*:)"
 				}
 			]
 		},
 		"values": {
 			"patterns": [
 				{ "name": "constant.numeric.color.hex.vss", "match": "#[0-9a-fA-F]{3,8}\\b" },
-				{ "name": "constant.numeric.vss", "match": "\\b\\d+(\\.\\d+)?(px|%)?\\b" },
+				{ "name": "constant.numeric.vss", "match": "\\b\\d+(\\.\\d+)?(px|%)?(?!\\w)" },
 				{ "name": "string.quoted.double.vss", "begin": "\"", "end": "\"" }
 			]
 		}
