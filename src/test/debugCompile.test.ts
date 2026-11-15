@@ -5,15 +5,19 @@ import { describe, it } from "node:test"
 import {
 	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
+	buildDapEnv,
 	dapAttachFields,
 	debugBinaryPath,
 	debugCompileArgs,
 	gdbSetupCommandToCli,
 	gdbSetupCommands,
 	isCommandReference,
+	lldbDapFields,
 	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	parseEnvFile,
+	parseGdbVersion,
 	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
@@ -341,8 +345,16 @@ describe("V debug compile", () => {
 
 	describe("gdb preflight", () => {
 		it("detects a DAP-capable gdb", () => {
-			const result = preflightGdb("GNU gdb (GDB) 17.1\nok\n")
-			assert.deepStrictEqual(result, { adapter: "gdb-dap" })
+			const result = preflightGdb("GNU gdb (GDB) 18.1\nok\n")
+			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: true })
+		})
+		it("accepts distro-packaged version banners", () => {
+			// Ubuntu tags the vendor before the version: the version is the
+			// LAST X.Y on the first line, not the (GDB) shape.
+			assert.strictEqual(parseGdbVersion("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n"), "15.1")
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) 17.1\nok\n"), "17.1")
+			const result = preflightGdb("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n")
+			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: false })
 		})
 		it("rejects this host's gdb 17.1 (no Python/DAP)", () => {
 			const recorded =
@@ -353,6 +365,19 @@ describe("V debug compile", () => {
 				result.error,
 				"gdb 17.1 has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg').",
 			)
+		})
+		it("gates core-file attach on DAP support", () => {
+			// DAP core-file support arrived in GDB 18 (gdb-patches, April
+			// 2026): 15.1 and 17.1 only accept pid/target (the live verifier
+			// records a SKIP there).
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 15.1\nok\n").coreFileDap, false)
+			assert.strictEqual(
+				preflightGdb("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n").coreFileDap,
+				false,
+			)
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 17.1\nok\n").coreFileDap, false)
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 18.1\nok\n").coreFileDap, true)
+			assert.strictEqual(preflightGdb("gdb not found on PATH").coreFileDap, false)
 		})
 		it("handles gdb not found", () => {
 			const result = preflightGdb("gdb not found on PATH")
@@ -467,7 +492,21 @@ describe("V debug compile", () => {
 			)
 		})
 
-		it("rejects an attach with neither PID nor core file", () => {
+		it("accepts a target-only remote attach with no PID", () => {
+			assert.deepStrictEqual(dapAttachFields({ target: "localhost:2345" }), {
+				target: "localhost:2345",
+			})
+		})
+
+		it("prefers a remote target over a PID", () => {
+			// GDB DAP would otherwise attach locally and ignore the remote.
+			assert.deepStrictEqual(
+				dapAttachFields({ processId: "1234", target: "localhost:2345" }),
+				{ target: "localhost:2345" },
+			)
+		})
+
+		it("rejects an attach with neither PID, core file, nor target", () => {
 			const result = dapAttachFields({})
 			assert.ok("error" in result)
 		})
@@ -484,6 +523,64 @@ describe("V debug compile", () => {
 			assert.ok(isCommandReference("${command:pickProcess}"))
 			assert.ok(!isCommandReference("1234"))
 			assert.ok(!isCommandReference(""))
+		})
+	})
+
+	describe("lldb field conversion", () => {
+		it("maps stopAtEntry and sourceFileMap to lldb-dap names", () => {
+			assert.deepStrictEqual(
+				lldbDapFields({
+					stopAtEntry: true,
+					sourceFileMap: { "/build": "/workspace" },
+					setupCommands: [{ text: "settings set auto-confirm true" }],
+					usePrettyPrinters: true,
+					formattersPath: "/extension/scripts/lldb/v_formatters.py",
+				}),
+				{
+					stopOnEntry: true,
+					sourceMap: [["/build", "/workspace"]],
+					preRunCommands: ["settings set auto-confirm true"],
+					initCommands: ["command script import /extension/scripts/lldb/v_formatters.py"],
+				},
+			)
+		})
+
+		it("omits empty sourceMap and printer import when disabled", () => {
+			assert.deepStrictEqual(
+				lldbDapFields({ usePrettyPrinters: false, formattersPath: "/x/v_formatters.py" }),
+				{ stopOnEntry: false, preRunCommands: [], initCommands: [] },
+			)
+		})
+	})
+
+	describe("debuggee environment", () => {
+		it("preserves inherited variables under explicit entries", () => {
+			const env = buildDapEnv([{ name: "VFLAGS", value: "-d debug" }], {
+				PATH: "/usr/bin",
+				HOME: "/root",
+			})
+			assert.strictEqual(env.PATH, "/usr/bin")
+			assert.strictEqual(env.HOME, "/root")
+			assert.strictEqual(env.VFLAGS, "-d debug")
+		})
+
+		it("merges inherited < envFile < explicit entries", () => {
+			const env = buildDapEnv(
+				[{ name: "VFLAGS", value: "explicit" }],
+				{ PATH: "/usr/bin", SHARED: "base" },
+				{ SHARED: "file", FROM_FILE: "1" },
+			)
+			assert.strictEqual(env.SHARED, "file")
+			assert.strictEqual(env.FROM_FILE, "1")
+			assert.strictEqual(env.VFLAGS, "explicit")
+			assert.strictEqual(env.PATH, "/usr/bin")
+		})
+
+		it("parses KEY=VALUE files, skipping comments and blanks", () => {
+			assert.deepStrictEqual(
+				parseEnvFile("# comment\n\nA=1\nB = two = three\nNOEQUALS\n=noname\n"),
+				{ A: "1", B: "two = three" },
+			)
 		})
 	})
 })

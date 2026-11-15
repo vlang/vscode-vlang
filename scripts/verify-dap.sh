@@ -30,12 +30,12 @@ python_out="$("$GDB" --batch -ex 'python print("ok")' 2>&1 || true)"
 dap_out="$("$GDB" -i=dap --batch </dev/null 2>&1 || true)"
 
 if echo "$python_out" | grep -q "Python scripting is not supported"; then
-  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)"
   echo "gdb ${ver} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg')."
   exit 1
 fi
 if echo "$dap_out" | grep -qi "unrecognized\|Could not find interpreter"; then
-  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)"
   echo "gdb ${ver} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg')."
   exit 1
 fi

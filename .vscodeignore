@@ -42,6 +42,7 @@ out/test/**
 out/**/*.map
 scripts/**
 !scripts/gdb/v_printers.py
+!scripts/lldb/v_formatters.py
 docs/**
 .oxlintrc.json
 .oxfmtrc.json

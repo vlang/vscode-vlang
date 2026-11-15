@@ -4,6 +4,13 @@
 // paths the V extension's built-in adapter uses: launch with the printers
 // `-iex` mechanism, core-file attach, and live-PID attach. Prints one
 // PASS/FAIL line per check and exits nonzero on the first failure.
+//
+// Ordering follows the DAP spec: initialize → launch/attach →
+// configurationDone. The launch/attach request is sent WITHOUT awaiting its
+// response first — gdb 18.1 waits for configurationDone before replying to
+// launch, so awaiting the launch response first deadlocks the first check.
+// Every request carries a timeout so a stalled adapter fails loudly instead
+// of hanging CI.
 import { spawn } from "node:child_process"
 
 const args = Object.fromEntries(
@@ -18,6 +25,10 @@ const WORK = args.work || ""
 const ATTACH_PID = Number(args["attach-pid"])
 const ATTACH_BIN = args["attach-bin"] || ""
 const TIMEOUT_MS = 30_000
+/** Per-request timeout: a response that never arrives fails the check loudly
+ * instead of hanging CI. Resolves (not rejects) so callers keep the uniform
+ * `if (!response.success) fail(...)` shape. */
+const REQUEST_TIMEOUT_MS = 10_000
 
 function fail(check, message) {
 	console.log(`FAIL: ${check}: ${message}`)
@@ -72,7 +83,19 @@ function startSession(extraArgs) {
 	function send(command, args) {
 		const id = ++seq
 		return new Promise((resolve) => {
-			pending.set(id, resolve)
+			const timer = setTimeout(() => {
+				pending.delete(id)
+				resolve({
+					type: "response",
+					request_seq: id,
+					success: false,
+					message: `timed out waiting for ${command} response`,
+				})
+			}, REQUEST_TIMEOUT_MS)
+			pending.set(id, (body) => {
+				clearTimeout(timer)
+				resolve(body)
+			})
 			const payload = Buffer.from(
 				JSON.stringify({ seq: id, type: "request", command, arguments: args }),
 				"utf8",
@@ -127,11 +150,14 @@ async function checkLaunch() {
 	if (!init.success) {
 		fail("launch", `initialize failed: ${JSON.stringify(init)}`)
 	}
-	const launched = await session.send("launch", { program: `${WORK}/hello` })
+	const launchedPromise = session.send("launch", { program: `${WORK}/hello` })
+	// configurationDone goes out before the launch response arrives: gdb 18.1
+	// holds the launch reply until it sees configurationDone.
+	await session.send("configurationDone", {})
+	const launched = await launchedPromise
 	if (!launched.success) {
 		fail("launch", `launch failed: ${JSON.stringify(launched)}`)
 	}
-	await session.send("configurationDone", {})
 	const exited = await session.waitFor(
 		"launch",
 		(event) => event.event === "exited" || event.event === "terminated",
@@ -162,10 +188,12 @@ async function checkCoreAttach() {
 	if (!init.success) {
 		fail("core-file attach", `initialize failed: ${JSON.stringify(init)}`)
 	}
-	const attached = await session.send("attach", {
+	const attachedPromise = session.send("attach", {
 		program: `${WORK}/crasher`,
 		coreFile: `${WORK}/core.test`,
 	})
+	await session.send("configurationDone", {})
+	const attached = await attachedPromise
 	if (!attached.success) {
 		// gdb 15.1's DAP only knows pid/target; coreFile arrived later. The
 		// provider still sends coreFile per the documented protocol — here
@@ -218,7 +246,9 @@ async function checkLiveAttach() {
 	if (!init.success) {
 		fail("live attach", `initialize failed: ${JSON.stringify(init)}`)
 	}
-	const attached = await session.send("attach", { program: ATTACH_BIN, pid: ATTACH_PID })
+	const attachedPromise = session.send("attach", { program: ATTACH_BIN, pid: ATTACH_PID })
+	await session.send("configurationDone", {})
+	const attached = await attachedPromise
 	if (!attached.success) {
 		fail("live attach", `attach to pid ${ATTACH_PID} failed: ${JSON.stringify(attached)}`)
 	}

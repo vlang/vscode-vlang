@@ -817,7 +817,7 @@
 							},
 							"stopAtEntry": {
 								"type": "boolean",
-								"description": "Break at the start of the program.",
+								"description": "Break at the start of the program. Built-in lldb sessions send this as stopOnEntry.",
 								"default": false
 							},
 							"cwd": {
@@ -852,14 +852,14 @@
 										},
 										"text": {
 											"type": "string",
-											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames. The built-in gdb adapter translates MI shapes to CLI equivalents; under lldb these are lldb commands."
+											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames. The built-in gdb adapter translates MI shapes to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands."
 										},
 										"ignoreFailures": {
 											"type": "boolean"
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; under lldb they are lldb commands.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands.",
 								"default": []
 							},
 							"environment": {
@@ -879,11 +879,11 @@
 										}
 									}
 								},
-								"description": "Environment variables for the debugged program."
+								"description": "Environment variables for the debugged program. Built-in adapters overlay these on the inherited environment, so PATH and HOME survive; they win over envFile entries."
 							},
 							"envFile": {
 								"type": "string",
-								"description": "Path to a KEY=VALUE environment file for the debugged program. Entries overwrite environment."
+								"description": "Path to a KEY=VALUE environment file for the debugged program. Read after variable substitution; entries override the inherited environment and lose to environment. Built-in adapters merge it into env (GDB/LLDB DAP ignore envFile itself); cppdbg forwards it."
 							},
 							"externalConsole": {
 								"type": "boolean",
@@ -892,7 +892,7 @@
 							},
 							"sourceFileMap": {
 								"type": "object",
-								"description": "Map build paths to local source paths, e.g. for remote targets."
+								"description": "Map build paths to local source paths, e.g. for remote targets. Built-in lldb sessions send this as sourceMap pairs."
 							},
 							"miDebuggerServerAddress": {
 								"type": "string",
@@ -939,12 +939,12 @@
 							},
 							"processId": {
 								"type": "string",
-								"description": "Process ID to attach to. ${command:v.pickProcess} shows the process picker (${command:pickProcess} also works). Omit for core-file-only attach.",
+								"description": "Process ID to attach to. ${command:v.pickProcess} shows the process picker (${command:pickProcess} also works). Omit for core-file-only or remote-target (miDebuggerServerAddress) attach with the built-in adapters.",
 								"default": "${command:v.pickProcess}"
 							},
 							"coreFile": {
 								"type": "string",
-								"description": "Path to a core dump; gdb DAP forwards this to the inferior."
+								"description": "Path to a core dump; gdb DAP forwards this to the inferior. Needs a GDB whose DAP supports coreFile (added in GDB 18; 15.1/17.1 DAPs predate it) — install a newer GDB with Python support."
 							},
 							"cwd": {
 								"type": "string",
@@ -984,16 +984,16 @@
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; under lldb they are lldb commands.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands.",
 								"default": []
 							},
 							"sourceFileMap": {
 								"type": "object",
-								"description": "Map build paths to local source paths, e.g. for remote targets."
+								"description": "Map build paths to local source paths, e.g. for remote targets. Built-in lldb sessions send this as sourceMap pairs."
 							},
 							"miDebuggerServerAddress": {
 								"type": "string",
-								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345. With the built-in adapters a remote target alone is enough to attach (no processId needed); it takes precedence over processId for GDB DAP."
 							},
 							"pipeTransport": {
 								"type": "object",

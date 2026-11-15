@@ -12,9 +12,12 @@ import {
 	debugCompileArgs,
 	gdbSetupCommandToCli,
 	isCommandReference,
+	lldbDapFields,
+	buildDapEnv,
 	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	parseEnvFile,
 	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
@@ -83,6 +86,16 @@ const cppdbgExtensionId = "ms-vscode.cpptools"
 /** The adapter a V debug session can run on. */
 type VDebugAdapter = "gdb-dap" | "lldb-dap" | "cppdbg"
 
+/** A selected adapter plus the probed gdb DAP surface behind it.
+ *
+ * `coreFileDap` gates core-file attach: DAP coreFile support arrived in
+ * GDB 18, so older gdb DAPs (observed up to 17.1) reject `coreFile` and the
+ * provider errors out instead of launching into a guaranteed failure. */
+interface AdapterSelection {
+	adapter: VDebugAdapter
+	coreFileDap: boolean
+}
+
 /** Decide which adapter a session uses and refuse to launch a broken one.
  *
  * `v.debug.adapter` selects explicitly; `auto` prefers the built-in gdb/lldb
@@ -95,7 +108,7 @@ async function selectAdapter(
 	miMode: VDebuggerMode,
 	debuggerPath: string,
 	workspaceFolder?: string,
-): Promise<VDebugAdapter | undefined> {
+): Promise<AdapterSelection | undefined> {
 	const configured = vscode.workspace.getConfiguration("v").get<string>("debug.adapter", "auto")
 	const hasCppdbg = !!vscode.extensions.getExtension(cppdbgExtensionId)
 	if (configured === "cppdbg") {
@@ -103,7 +116,7 @@ async function selectAdapter(
 			void vscode.window.showErrorMessage(missingCppdbgMessage())
 			return undefined
 		}
-		return "cppdbg"
+		return { adapter: "cppdbg", coreFileDap: false }
 	}
 	if (miMode === "lldb") {
 		if (configured === "gdb-dap") {
@@ -116,7 +129,7 @@ async function selectAdapter(
 			resolvedCommand("lldb-dap", workspaceFolder) ||
 			resolvedCommand("lldb-vscode", workspaceFolder)
 		if (lldbDap) {
-			return "lldb-dap"
+			return { adapter: "lldb-dap", coreFileDap: false }
 		}
 		if (configured === "lldb-dap") {
 			void vscode.window.showErrorMessage(
@@ -125,7 +138,7 @@ async function selectAdapter(
 			return undefined
 		}
 		if (hasCppdbg) {
-			return "cppdbg"
+			return { adapter: "cppdbg", coreFileDap: false }
 		}
 		void vscode.window.showErrorMessage(missingDebuggerMessage(process.platform, "lldb"))
 		return undefined
@@ -138,7 +151,7 @@ async function selectAdapter(
 	}
 	const probe = await probeGdbCapability(debuggerPath)
 	if (probe.adapter === "gdb-dap") {
-		return "gdb-dap"
+		return { adapter: "gdb-dap", coreFileDap: probe.coreFileDap }
 	}
 	if (configured === "gdb-dap") {
 		void vscode.window.showErrorMessage(
@@ -147,7 +160,7 @@ async function selectAdapter(
 		return undefined
 	}
 	if (hasCppdbg) {
-		return "cppdbg"
+		return { adapter: "cppdbg", coreFileDap: probe.coreFileDap }
 	}
 	void vscode.window.showErrorMessage(
 		probe.error ?? missingDebuggerMessage(process.platform, "gdb"),
@@ -241,10 +254,11 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			)
 			return undefined
 		}
-		const adapter = await selectAdapter(miMode, debuggerPath, workspaceFolder?.uri.fsPath)
-		if (!adapter) {
+		const selection = await selectAdapter(miMode, debuggerPath, workspaceFolder?.uri.fsPath)
+		if (!selection) {
 			return undefined
 		}
+		const adapter = selection.adapter
 		const usePrettyPrinters = vscode.workspace
 			.getConfiguration("v")
 			.get("debug.usePrettyPrinters", true)
@@ -289,13 +303,29 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					usePrettyPrinters,
 				})
 			}
-			// GDB DAP and lldb-dap attach take `pid` for a live process or
-			// `coreFile` for a post-mortem: the cppdbg `processId` string
-			// (or a core-file-only configuration with no PID at all) maps
-			// here, because neither adapter recognizes `processId`.
-			const fields = dapAttachFields({ processId, coreFile })
+			// GDB DAP and lldb-dap attach take `pid` for a live process, `target`
+			// for a remote, or `coreFile` for a post-mortem: the cppdbg
+			// `processId` string (or a target-only or core-file-only
+			// configuration with no PID at all) maps here, because neither
+			// adapter recognizes `processId`. The target comes from
+			// miDebuggerServerAddress first, so a remote attach validates even
+			// without a PID — and when both are set the target wins.
+			const target = (vConfiguration.miDebuggerServerAddress ?? "").trim() || undefined
+			const fields = dapAttachFields({ processId, coreFile, target })
 			if ("error" in fields) {
 				void vscode.window.showErrorMessage(fields.error)
+				return undefined
+			}
+			if (
+				fields.coreFile &&
+				miMode === "gdb" &&
+				adapter === "gdb-dap" &&
+				!selection.coreFileDap
+			) {
+				void vscode.window.showErrorMessage(
+					"Cannot debug: core-file attach needs DAP coreFile support, which arrived in GDB 18 " +
+						"(this GDB's DAP predates it). Install a newer GDB with Python support.",
+				)
 				return undefined
 			}
 			const resolved = {
@@ -305,15 +335,25 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				program: vConfiguration.program,
 				...(fields.pid !== undefined ? { pid: fields.pid } : {}),
 				...(fields.coreFile ? { coreFile: fields.coreFile } : {}),
+				...(fields.target ? { target: fields.target } : {}),
 				cwd,
 				miDebuggerPath: debuggerPath,
 				MIMode: miMode,
 				...(vConfiguration.miDebuggerServerAddress
-					? { target: vConfiguration.miDebuggerServerAddress }
+					? { miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress }
 					: {}),
-				...(vConfiguration.sourceFileMap
-					? { sourceFileMap: vConfiguration.sourceFileMap }
-					: {}),
+				...(miMode === "lldb"
+					? lldbDapFields({
+							sourceFileMap: vConfiguration.sourceFileMap,
+							setupCommands: vConfiguration.setupCommands,
+							usePrettyPrinters,
+							formattersPath: lldbFormattersPath(),
+						})
+					: {
+							...(vConfiguration.sourceFileMap
+								? { sourceFileMap: vConfiguration.sourceFileMap }
+								: {}),
+						}),
 			}
 			delete (resolved as Partial<VDebugConfiguration>).processId
 			return resolved
@@ -360,29 +400,20 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 							usePrettyPrinters,
 						})
 					}
-					const env: Record<string, string> = {}
-					for (const entry of vConfiguration.environment ?? []) {
-						env[entry.name] = entry.value
-					}
-					if (vConfiguration.envFile) {
-						try {
-							for (const raw of fs
-								.readFileSync(vConfiguration.envFile, "utf8")
-								.split(/\r?\n/)) {
-								const line = raw.trim()
-								if (!line || line.startsWith("#")) {
-									continue
-								}
-								const eq = line.indexOf("=")
-								if (eq > 0) {
-									env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
-								}
-							}
-						} catch {
-							// envFile is optional; ignore read errors
-						}
-					}
-					const finalEnv = Object.keys(env).length ? env : undefined
+					// GDB/LLDB DAP replace the debuggee environment with `env`,
+					// so seed it from the inherited environment: an explicit
+					// entry must add to PATH, not wipe it. The envFile merges
+					// later in `resolveDebugConfigurationWithSubstitutedVariables`,
+					// once VS Code has substituted variables in its path — and
+					// read errors surface as a warning there instead of a
+					// silent empty map. Nothing configured means no `env` at
+					// all: the debuggee then inherits naturally.
+					const hasExplicitEnv =
+						(vConfiguration.environment?.length ?? 0) > 0 ||
+						!!(vConfiguration.envFile ?? "").trim()
+					const finalEnv = hasExplicitEnv
+						? buildDapEnv(vConfiguration.environment)
+						: undefined
 					return {
 						...configuration,
 						type: "v",
@@ -390,28 +421,27 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 						program: binary,
 						args: vConfiguration.args ?? [],
 						cwd,
-						stopAtEntry: vConfiguration.stopAtEntry ?? false,
-						stopAtBeginningOfMainSubprogram: vConfiguration.stopAtEntry ?? false,
 						miDebuggerPath: debuggerPath,
 						MIMode: miMode,
 						env: finalEnv,
 						envFile: vConfiguration.envFile,
 						externalConsole: vConfiguration.externalConsole,
-						sourceFileMap: vConfiguration.sourceFileMap,
 						...(miMode === "lldb"
-							? {
-									preRunCommands: (vConfiguration.setupCommands ?? []).map(
-										(c) => c.text,
-									),
-									initCommands: vscode.workspace
-										.getConfiguration("v")
-										.get("debug.usePrettyPrinters", true)
-										? [
-												`command script import ${path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")}`,
-											]
-										: [],
-								}
-							: {}),
+							? lldbDapFields({
+									stopAtEntry: vConfiguration.stopAtEntry ?? false,
+									sourceFileMap: vConfiguration.sourceFileMap,
+									setupCommands: vConfiguration.setupCommands,
+									usePrettyPrinters,
+									formattersPath: lldbFormattersPath(),
+								})
+							: {
+									stopAtEntry: vConfiguration.stopAtEntry ?? false,
+									stopAtBeginningOfMainSubprogram:
+										vConfiguration.stopAtEntry ?? false,
+									...(vConfiguration.sourceFileMap
+										? { sourceFileMap: vConfiguration.sourceFileMap }
+										: {}),
+								}),
 					}
 				} finally {
 					cancellation.dispose()
@@ -419,6 +449,53 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			},
 		)
 	}
+
+	/** Merge `envFile` into `env` after VS Code substitutes variables.
+	 *
+	 * `resolveDebugConfiguration` runs before substitution, so an
+	 * `envFile` like `${workspaceFolder}/.env` would be read literally
+	 * there and silently yield nothing. Here the path is already
+	 * substituted: parse it (`KEY=VALUE`, `#` comments and blank lines
+	 * ignored) and merge over the inherited environment, under the
+	 * explicit `environment` entries. A read error warns instead of
+	 * failing the session. `envFile` itself is dropped from the resolved
+	 * config: neither GDB DAP nor lldb-dap consumes it (the `cppdbg`
+	 * path, which does, never reaches this hook).
+	 */
+	async resolveDebugConfigurationWithSubstitutedVariables(
+		_folder: vscode.WorkspaceFolder | undefined,
+		configuration: vscode.DebugConfiguration,
+	): Promise<vscode.DebugConfiguration | undefined> {
+		const vConfiguration = configuration as VDebugConfiguration
+		if (
+			configuration.type !== "v" ||
+			configuration.request !== "launch" ||
+			typeof vConfiguration.envFile !== "string" ||
+			!vConfiguration.envFile.trim()
+		) {
+			return configuration
+		}
+		let fileEntries: Record<string, string> = {}
+		try {
+			fileEntries = parseEnvFile(fs.readFileSync(vConfiguration.envFile, "utf8"))
+		} catch (error) {
+			const detail = error instanceof Error ? error.message : String(error)
+			void vscode.window.showWarningMessage(
+				`Cannot read envFile ${vConfiguration.envFile}: ${detail}. Launching without it.`,
+			)
+		}
+		const resolved = {
+			...configuration,
+			env: buildDapEnv(vConfiguration.environment, process.env, fileEntries),
+		}
+		delete (resolved as Partial<VDebugConfiguration>).envFile
+		return resolved
+	}
+}
+
+/** The LLDB pretty-printer script shipped with the extension, next to the bundle. */
+function lldbFormattersPath(): string {
+	return path.join(__dirname, "..", "scripts", "lldb", "v_formatters.py").replace(/\\/g, "/")
 }
 
 /** Register the V debugger.
