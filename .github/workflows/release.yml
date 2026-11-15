@@ -68,7 +68,7 @@ jobs:
       # workflow_dispatch stays a packaging dry run: publishing happens only
       # on a tag push. Both steps are idempotent on re-runs (--skip-duplicate).
       - name: Publish to Visual Studio Marketplace
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: npx vsce publish --packagePath ./*.vsix --skip-duplicate
         env:
           # PAT with publish rights for the `vlanguage` publisher. If trusted
@@ -77,7 +77,7 @@ jobs:
           # already granted).
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Publish to Open VSX
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: npx -y ovsx publish --packagePath ./*.vsix --skip-duplicate
         env:
           # Personal access token from https://open-vsx.org/user-settings/tokens
