@@ -69,7 +69,10 @@ jobs:
       # on a tag push. Both steps are idempotent on re-runs (--skip-duplicate).
       - name: Publish to Visual Studio Marketplace
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        run: npx vsce publish --packagePath ./*.vsix --skip-duplicate
+        # --no-install runs the lockfile-pinned binary from `npm ci` and fails
+        # instead of fetching code from the registry while the publish token is
+        # in the environment.
+        run: npx --no-install vsce publish --packagePath ./*.vsix --skip-duplicate
         env:
           # PAT with publish rights for the `vlanguage` publisher. If trusted
           # publishing is configured for this repo instead, replace this env
@@ -78,7 +81,10 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Publish to Open VSX
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        run: npx -y ovsx publish --packagePath ./*.vsix --skip-duplicate
+        # Pinned via the `ovsx` devDependency: --no-install runs the
+        # lockfile-installed binary and fails instead of installing the
+        # latest ovsx from the registry while OVSX_PAT is in the environment.
+        run: npx --no-install ovsx publish --packagePath ./*.vsix --skip-duplicate
         env:
           # Personal access token from https://open-vsx.org/user-settings/tokens
           # with publish rights for the `vlanguage` namespace.
