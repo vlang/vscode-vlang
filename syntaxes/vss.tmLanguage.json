@@ -4,8 +4,8 @@
 	"fileTypes": [".vss"],
 	"patterns": [
 		{ "include": "#comments" },
-		{ "include": "#variables" },
 		{ "include": "#at-rules" },
+		{ "include": "#variables" },
 		{ "include": "#selectors" },
 		{ "include": "#properties" },
 		{ "include": "#values" }
@@ -17,23 +17,23 @@
 				{ "name": "comment.block.vss", "begin": "/\\*", "end": "\\*/" }
 			]
 		},
-		"variables": {
-			"patterns": [{ "name": "variable.other.vss", "match": "@[a-zA-Z_][a-zA-Z0-9_-]*" }]
-		},
 		"at-rules": {
 			"patterns": [
 				{
 					"name": "keyword.control.at-rule.vss",
-					"match": "@(media|container|accent|bg|ink)\\b"
+					"match": "@(import|keyframes|media|container)\\b"
 				},
 				{ "name": "keyword.control.at-rule.vss", "match": "\\b(light|dark)\\s*\\{" }
 			]
+		},
+		"variables": {
+			"patterns": [{ "name": "variable.other.vss", "match": "@[a-zA-Z_][a-zA-Z0-9_-]*" }]
 		},
 		"selectors": {
 			"patterns": [
 				{
 					"name": "entity.name.tag.vss",
-					"match": "\\b(Button|Label|Rectangle|View|Screen|Scroll)\\b"
+					"match": "(?i)\\b(screen|view|label|image|button|checkbox|dropdown|text_field|text_area|scroll|slider|switch_control|toggle_button|opengl)\\b"
 				},
 				{
 					"name": "entity.other.attribute-name.class.vss",
@@ -50,7 +50,7 @@
 			"patterns": [
 				{
 					"name": "support.type.property-name.vss",
-					"match": "\\b(background|color|border|radius|opacity|font-size|width|height|x|y|padding|margin|corner_radius|bold|align)\\b(?=\\s*:)"
+					"match": "(?i)\\b(background-color|background-gradient|background|color|font-size|font-family|font-weight|font-style|text-align|text-decoration|border-radius|border-color|border-width|border|opacity|box-shadow|padding|margin|gap|transition-property|transition-duration|transition-timing-function|transition-delay|transition|animation-name|animation-duration|animation-timing-function|animation-delay|animation-iteration-count|animation-direction|animation-fill-mode|animation-play-state|animation)\\b(?=\\s*:)"
 				}
 			]
 		},
