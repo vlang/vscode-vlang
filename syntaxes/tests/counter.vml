@@ -1,32 +1,73 @@
-// SYNTAX TEST "text.vml"
+// SYNTAX TEST "text.vml" "counter"
 Screen {
-	id: root
-	background: #F1F5F9
-	Style {
-		Button.action {
-			background: #3478D4;
-			color: #FFFFFF;
-		}
-		Label.count { color: #111827; font-size: 20px; }
-	}
-	Rectangle {
-		id: card
-		class: card
-		x: 76
-		y: 268
-		width: 248
-		height: 64
-		Label {
-			id: count
-			class: count
-			text: app.count
-		}
-		Button {
-			id: increment
-			class: action
-			text: "Count"
-			on_tap: app.increment()
-		}
-	}
+// <------ entity.name.tag.vml
+//     ^ punctuation.definition.block.begin.vml
+  id: root
+//^^ support.type.property-name.vml
+//  ^ punctuation.separator.key-value.vml
+  background: #F1F5F9
+//^^^^^^^^^^ support.type.property-name.vml
+//          ^ punctuation.separator.key-value.vml
+//            ^^^^^^^ constant.numeric.color.hex.vml
+  Style {
+//^^^^^ keyword.control.style.vml
+//      ^ punctuation.definition.block.begin.vml
+    Button.action {
+//  ^^^^^^ entity.name.tag.vml
+//        ^^^^^^^ entity.other.attribute-name.class.vml
+//                ^ punctuation.definition.block.begin.vml
+      background: #3478D4;
+//    ^^^^^^^^^^ support.type.property-name.vml
+//              ^ punctuation.separator.key-value.vml
+//                ^^^^^^^ constant.numeric.color.hex.vml
+//                       ^ punctuation.terminator.vml
+      color: #FFFFFF;
+//    ^^^^^ support.type.property-name.vml
+    }
+//  ^ punctuation.definition.block.end.vml
+    Label.count { color: #111827; font-size: 20px; }
+//  ^^^^^ entity.name.tag.vml
+//       ^^^^^^ entity.other.attribute-name.class.vml
+//                ^^^^^ support.type.property-name.vml
+//                       ^^^^^^^ constant.numeric.color.hex.vml
+//                                ^^^^^^^^^ support.type.property-name.vml
+//                                           ^^^^ constant.numeric.vml
+  }
+//^ punctuation.definition.block.end.vml
+  Rectangle {
+//^^^^^^^^^ entity.name.tag.vml
+//          ^ punctuation.definition.block.begin.vml
+  // card container
+//^^^^^^^^^^^^^^^^ comment.line.double-slash.vml
+    id: card
+    class: card
+//  ^^^^^ support.type.property-name.vml
+    x: 76
+//  ^ support.type.property-name.vml
+//     ^^ constant.numeric.vml
+    y: 268
+    width: 248
+    height: 64
+    Label {
+//  ^^^^^ entity.name.tag.vml
+//        ^ punctuation.definition.block.begin.vml
+      id: count
+      class: count
+      text: app.count
+//    ^^^^ support.type.property-name.vml
+//          ^^^^^^^^^ variable.other.member.vml
+    }
+    Button {
+//  ^^^^^^ entity.name.tag.vml
+//         ^ punctuation.definition.block.begin.vml
+      id: increment
+      class: action
+      text: "Count"
+//    ^^^^ support.type.property-name.vml
+//          ^^^^^^^ string.quoted.double.vml
+      on_tap: app.increment()
+//    ^^^^^^ support.type.property-name.vml
+//            ^^^^^^^^^^^^^ variable.other.member.vml
+    }
+  }
 }
-"

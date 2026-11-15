@@ -32,6 +32,7 @@ import {
 } from "./decodeStruct"
 import { hoverTextFor, literalAtOffset } from "./numberHover"
 import { blockAtLine, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
+import { parseByVersion } from "./documentMemo"
 import {
 	decodeBase32,
 	decodeBase58,
@@ -567,7 +568,7 @@ export function registerVmlHover(context: vscode.ExtensionContext): void {
 			{ language: "vml" },
 			{
 				provideHover(document, position) {
-					const nodes = parseVml(document.getText())
+					const nodes = parseByVersion(document, parseVml)
 					if (nodes.length === 0) {
 						return undefined
 					}
@@ -576,7 +577,7 @@ export function registerVmlHover(context: vscode.ExtensionContext): void {
 						return undefined
 					}
 					return new vscode.Hover(
-						vmlHoverTextFor(block, collectRules(nodes)),
+						vmlHoverTextFor(block, collectRules(nodes, block)),
 						new vscode.Range(position.line, 0, position.line, 0),
 					)
 				},

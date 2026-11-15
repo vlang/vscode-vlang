@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run grammar tests
-        run: npm run test:grammar
+        run: npm run test:grammar && npm run test:grammar:vml
 
   coverage:
     runs-on: ubuntu-latest
