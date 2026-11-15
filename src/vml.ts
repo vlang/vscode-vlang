@@ -256,20 +256,20 @@ function containsNestedBlock(body: string): boolean {
 }
 
 /**
- * Decide child node versus style rule outside `Style` mode. Any capitalized
- * header is a component (this covers `Column` and imported widgets); only a
- * selector-shaped header (`Kind.class`, `Kind:pseudo`) over flat
- * declarations is a rule.
+ * Decide child node versus style rule outside `Style` mode. A body holding
+ * a nested block is always a component (this covers `Column`, imported
+ * widgets, and lowercase custom tags); only a selector-shaped header
+ * (`Kind.class`, `Kind:pseudo`) over flat declarations is a rule.
  */
 function isComponentBlock(header: string, inner: string): boolean {
+	if (containsNestedBlock(inner)) {
+		return true
+	}
 	const first = header.split(/[.:]/)[0] ?? ""
 	if (!/^[A-Z]/.test(first)) {
 		return false
 	}
-	if (!isSelectorHeader(header)) {
-		return true
-	}
-	return containsNestedBlock(inner)
+	return !isSelectorHeader(header)
 }
 
 /** Parse one `Kind[.class][:pseudo] { … }` rule body into declarations. */

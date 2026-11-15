@@ -117,11 +117,12 @@ describe("VML reviewer fixes", () => {
 
 	it("parses unknown capitalized tags as nodes, not style rules", () => {
 		const nodes = parseVml(
-			'Screen {\n\tColumn {\n\t\tLabel { text: "hi" }\n\t}\n\tMyWidget {\n\t\tid: custom\n\t}\n}',
+			'Screen {\n\tColumn {\n\t\tLabel { text: "hi" }\n\t}\n\tMyWidget {\n\t\tid: custom\n\t}\n\tmyWidget {\n\t\tLabel { text: "low" }\n\t}\n}',
 		)
 		const kinds = nodes[0]?.children.map((child) => child.kind)
-		assert.deepStrictEqual(kinds, ["Column", "MyWidget"])
+		assert.deepStrictEqual(kinds, ["Column", "MyWidget", "myWidget"])
 		assert.strictEqual(nodes[0]?.children[0]?.children[0]?.kind, "Label")
+		assert.strictEqual(nodes[0]?.children[2]?.children[0]?.kind, "Label")
 		// A selector-shaped header over flat declarations stays a rule.
 		const scoped = collectRules(nodes, nodes[0]?.children[1])
 		assert.deepStrictEqual(scoped, [])
