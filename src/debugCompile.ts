@@ -222,8 +222,10 @@ export function cppdbgLaunchConfig(input: {
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
+	usePrettyPrinters?: boolean
 }): CppdbgLaunchConfiguration {
 	const userCommands = normalizeSetupCommands(input.setupCommands)
+	const usePrinters = input.usePrettyPrinters ?? true
 	return {
 		type: "cppdbg",
 		request: "launch",
@@ -235,7 +237,7 @@ export function cppdbgLaunchConfig(input: {
 		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: input.stopAtEntry,
 		setupCommands:
-			input.miMode === "gdb"
+			input.miMode === "gdb" && usePrinters
 				? [...gdbSetupCommands(input.printersPath), ...userCommands]
 				: userCommands,
 		...(input.environment ? { environment: input.environment } : {}),
@@ -268,8 +270,10 @@ export function cppdbgAttachConfig(input: {
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
+	usePrettyPrinters?: boolean
 }): CppdbgLaunchConfiguration {
 	const userCommands = normalizeSetupCommands(input.setupCommands)
+	const usePrinters = input.usePrettyPrinters ?? true
 	return {
 		type: "cppdbg",
 		request: "attach",
@@ -281,7 +285,7 @@ export function cppdbgAttachConfig(input: {
 		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: false,
 		setupCommands:
-			input.miMode === "gdb"
+			input.miMode === "gdb" && usePrinters
 				? [...gdbSetupCommands(input.printersPath), ...userCommands]
 				: userCommands,
 		processId: input.processId,
@@ -372,3 +376,64 @@ export const gdbPreflight = preflightGdb
 export const probeGdb = preflightGdb
 export const gdbDapPreflight = preflightGdb
 export const checkGdb = preflightGdb
+
+/** Translate an MI setup command to the GDB CLI form the built-in adapter needs.
+ *
+ * The launch schema documents `setupCommands` as MI commands, which is what
+ * the `cppdbg` adapter sends. The built-in adapter instead passes them to
+ * `gdb -iex`, which expects CLI commands: GDB 18.1 rejects the MI
+ * `-enable-pretty-printing` there as an undefined command. Known MI shapes
+ * translate exactly, any other `-command` runs wrapped in
+ * `-interpreter-exec mi`, and text that is already a CLI command passes
+ * through untouched. */
+export function gdbSetupCommandToCli(text: string): string {
+	const trimmed = text.trim()
+	if (trimmed === "-enable-pretty-printing") {
+		return "set print pretty on"
+	}
+	const consoleMatch = trimmed.match(/^-interpreter-exec\s+console\s+"([\s\S]*)"$/)
+	if (consoleMatch) {
+		return consoleMatch[1]!.replace(/\\"/g, '"').replace(/\\\\/g, "\\")
+	}
+	if (trimmed.startsWith("-")) {
+		return `-interpreter-exec mi "${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+	}
+	return text
+}
+
+/** Whether a launch value is an unsubstituted `${command:...}` reference.
+ *
+ * `resolveDebugConfiguration` runs before VS Code substitutes variables, so
+ * the built-in attach path sees the literal `${command:v.pickProcess}`
+ * default. Matching it here lets the provider run its own picker instead of
+ * handing GDB DAP a string it cannot parse as a PID. */
+export function isCommandReference(value: string): boolean {
+	return /^\$\{command:[^}]+\}$/.test(value.trim())
+}
+
+/** The DAP fields a built-in attach session needs.
+ *
+ * GDB DAP (and lldb-dap) attach takes `pid` for a live process or
+ * `coreFile` for a post-mortem, never the `processId` string the `cppdbg`
+ * adapter accepts. A PID that is not a positive integer, or an attach with
+ * neither a PID nor a core file, is a configuration error surfaced before
+ * any session starts.
+ */
+export function dapAttachFields(input: {
+	processId?: string
+	coreFile?: string
+}): { pid?: number; coreFile?: string } | { error: string } {
+	const pidText = (input.processId ?? "").trim()
+	const coreFile = (input.coreFile ?? "").trim()
+	if (!pidText && !coreFile) {
+		return { error: "Cannot debug: attach needs a processId or a coreFile." }
+	}
+	if (!pidText) {
+		return { coreFile }
+	}
+	const pid = Number(pidText)
+	if (!Number.isInteger(pid) || pid <= 0) {
+		return { error: `Cannot debug: "${input.processId}" is not a process ID.` }
+	}
+	return coreFile ? { pid, coreFile } : { pid }
+}

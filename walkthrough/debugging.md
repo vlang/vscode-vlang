@@ -3,8 +3,10 @@
 V programs debug from the Run and Debug view with no `launch.json`: the
 extension contributes a `type: "v"` debugger with a default launch
 configuration, so **Start Debugging** just works. It compiles the program
-with `-g` and hands the session to the C/C++ extension's `cppdbg`
-adapter, which needs `ms-vscode.cpptools` and `gdb` on `PATH`.
+with `-g` and drives the session through a DAP server: gdb's own
+(`gdb -i=dap`, needs gdb >= 13 with Python) or lldb's (`lldb-dap`), falling
+back to the C/C++ extension's `cppdbg` adapter (needs `ms-vscode.cpptools`)
+when the debugger cannot serve DAP itself.
 
 A **Debug Main** lens over `fn main` starts the same session without any
 configuration. Each session loads GDB pretty printers, so strings show

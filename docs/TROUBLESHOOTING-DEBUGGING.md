@@ -1,8 +1,9 @@
 # Troubleshooting V debugging
 
 Starting a `type: "v"` session compiles the program with `-g` to a fresh
-temporary binary, then hands the session to the C/C++ extension's
-`cppdbg` adapter. Most failures fall into the cases below.
+temporary binary, then runs it on the selected adapter (`v.debug.adapter`):
+the built-in gdb/lldb DAP server when the debugger supports it, else the
+C/C++ extension's `cppdbg` adapter. Most failures fall into the cases below.
 
 ## No debugger found
 
@@ -50,10 +51,12 @@ internal-console mode: that knob does not exist on `cppdbg`.
 
 `setupCommands` in the `type: "v"` config pass MI commands through
 after the printer setup, e.g. GDB `skip` rules for generated-C and
-runtime frames. That is also where lldb-specific setup goes, since the
+runtime frames (the built-in gdb adapter translates them to CLI
+equivalents). That is also where lldb-specific setup goes, since the
 printer commands are gdb-only and omitted under lldb.
 
 ## Missing C/C++ extension
 
-Delegation needs `ms-vscode.cpptools`. The extension pack recommends
-it, and a missing install shows an action that installs it.
+Only the `cppdbg` fallback needs `ms-vscode.cpptools`. The extension pack
+recommends it, and with `v.debug.adapter` set to `cppdbg` a missing install
+cancels the session with an install hint instead of launching.

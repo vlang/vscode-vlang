@@ -364,26 +364,32 @@ DAP live verification runs in CI; locally it requires gdb >= 13 with Python.
 
 V has no native debugger. The pipeline is `v -g` -> C -> DWARF -> gdb DAP:
 the extension compiles the program with `-g`, then drives the session through
-gdb's own Debug Adapter Protocol server (`gdb -i=dap`). Requires gdb >= 13
-(for DAP) or lldb via lldb-dap. The C/C++ extension
-(`ms-vscode.cpptools`) is optional: when installed, the session may delegate
-to its `cppdbg` adapter for features the built-in gdb/lldb adapters do not
-provide (external console, remote targets).
+a Debug Adapter Protocol server. `v.debug.adapter` selects which one: `auto`
+(the default) prefers gdb's own server (`gdb -i=dap`, requires gdb >= 13 with
+Python) or lldb's (`lldb-dap`) and falls back to the C/C++ extension's
+`cppdbg` adapter (`ms-vscode.cpptools`, for external consoles and remote
+targets) when the debugger cannot serve DAP itself. Explicit `gdb-dap`,
+`lldb-dap`, or `cppdbg` choices are honored, and an unsupported choice cancels
+the session instead of launching into a guaranteed failure.
 
 A default launch configuration is provided, so starting a debug session does not
 require writing a `launch.json` by hand. The `program` field is the V source file
 to debug; `args`, `stopAtEntry` and `cwd` are optional. `miDebuggerPath` names
 the MI debugger (a path or a command on PATH, with `~` expanded) and `MIMode`
 selects `gdb` or `lldb`; both default to gdb on PATH. `setupCommands` passes
-extra commands through, `environment` and `envFile` set the program environment,
-`externalConsole` runs it outside the integrated terminal, and `sourceFileMap`
-maps build paths to local source paths.
+extra commands through as MI commands; the built-in gdb adapter translates them
+to CLI equivalents (`-enable-pretty-printing` runs as `set print pretty on`),
+while under `lldb` they are lldb commands. `environment` and `envFile` set the
+program environment, `externalConsole` runs it outside the integrated terminal
+(cppdbg only), and `sourceFileMap` maps build paths to local source paths.
 
 Attach works with `"request": "attach"`: `program` names the running binary for
 symbols (nothing is compiled), `processId` takes a PID or
-`${command:v.pickProcess}`, and `coreFile` opens a core dump. `sourceFileMap`,
-`miDebuggerServerAddress` and `pipeTransport` reach remote targets (cppdbg
-fallback only).
+`${command:v.pickProcess}`, and `coreFile` opens a core dump without any PID.
+The built-in adapter forwards the PID as the numeric `pid` (or the dump as
+`coreFile`) that GDB DAP and lldb-dap expect; `miDebuggerServerAddress` becomes
+their `target`. `sourceFileMap`, `miDebuggerServerAddress` and `pipeTransport`
+reach remote targets (cppdbg fallback only, except `target` on attach).
 
 A `Debug Main` lens over `fn main` starts the same pipeline without a launch
 configuration. Panics stop in the debugger instead of exiting: debug builds trap
@@ -393,7 +399,8 @@ Hexadecimal display is per variable, not a launch option: in the Debug Console,
 `-exec -var-set-format <name> hex` reformats a value.
 
 Each session loads GDB pretty printers for V values when
-`v.debug.usePrettyPrinters` is true: strings show as text, `Option` and
+`v.debug.usePrettyPrinters` is true, on the built-in adapter and the cppdbg
+fallback alike: strings show as text, `Option` and
 `Result` show their payload, and arrays and maps summarize their lengths. This
 needs a GDB with Python support; without it the session still runs, only
 without the pretty display. If the printers fail to load, a warning is printed

@@ -1,4 +1,4 @@
-import { execFile as _execFile } from "child_process"
+import { execFile as _execFile, spawn as _spawn } from "child_process"
 import { promisify } from "util"
 import * as path from "path"
 import * as fs from "fs"
@@ -7,14 +7,20 @@ import { parseByVersion } from "./documentMemo"
 import {
 	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
+	dapAttachFields,
 	debugBinaryPath,
 	debugCompileArgs,
+	gdbSetupCommandToCli,
+	isCommandReference,
 	mainFunctionLines,
+	missingCppdbgMessage,
 	missingDebuggerMessage,
+	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
 	type CppdbgEnvironmentEntry,
 	type CppdbgPipeTransport,
+	type GdbPreflightResult,
 	type VDebuggerMode,
 	type VSetupCommandInput,
 } from "./debugCompile"
@@ -74,12 +80,130 @@ async function compileForDebug(
 
 /** The extension a V debug session can delegate to when it is present. */
 const cppdbgExtensionId = "ms-vscode.cpptools"
+/** The adapter a V debug session can run on. */
+type VDebugAdapter = "gdb-dap" | "lldb-dap" | "cppdbg"
+
+/** Decide which adapter a session uses and refuse to launch a broken one.
+ *
+ * `v.debug.adapter` selects explicitly; `auto` prefers the built-in gdb/lldb
+ * DAP server and falls back to `cppdbg` when the debugger cannot serve DAP
+ * itself. Probing gdb first matters: launching an unsupported gdb would die
+ * on `Content-Length` errors, so an explicit `gdb-dap` that fails the probe
+ * cancels the session instead of falling back silently.
+ */
+async function selectAdapter(
+	miMode: VDebuggerMode,
+	debuggerPath: string,
+	workspaceFolder?: string,
+): Promise<VDebugAdapter | undefined> {
+	const configured = vscode.workspace.getConfiguration("v").get<string>("debug.adapter", "auto")
+	const hasCppdbg = !!vscode.extensions.getExtension(cppdbgExtensionId)
+	if (configured === "cppdbg") {
+		if (!hasCppdbg) {
+			void vscode.window.showErrorMessage(missingCppdbgMessage())
+			return undefined
+		}
+		return "cppdbg"
+	}
+	if (miMode === "lldb") {
+		if (configured === "gdb-dap") {
+			void vscode.window.showErrorMessage(
+				'Cannot debug: v.debug.adapter is "gdb-dap" but MIMode is "lldb". Use "lldb-dap" or "auto".',
+			)
+			return undefined
+		}
+		const lldbDap =
+			resolvedCommand("lldb-dap", workspaceFolder) ||
+			resolvedCommand("lldb-vscode", workspaceFolder)
+		if (lldbDap) {
+			return "lldb-dap"
+		}
+		if (configured === "lldb-dap") {
+			void vscode.window.showErrorMessage(
+				missingDebuggerMessage(process.platform, "lldb-dap"),
+			)
+			return undefined
+		}
+		if (hasCppdbg) {
+			return "cppdbg"
+		}
+		void vscode.window.showErrorMessage(missingDebuggerMessage(process.platform, "lldb"))
+		return undefined
+	}
+	if (configured === "lldb-dap") {
+		void vscode.window.showErrorMessage(
+			'Cannot debug: v.debug.adapter is "lldb-dap" but MIMode is "gdb". Use "gdb-dap" or "auto".',
+		)
+		return undefined
+	}
+	const probe = await probeGdbCapability(debuggerPath)
+	if (probe.adapter === "gdb-dap") {
+		return "gdb-dap"
+	}
+	if (configured === "gdb-dap") {
+		void vscode.window.showErrorMessage(
+			probe.error ?? missingDebuggerMessage(process.platform, "gdb"),
+		)
+		return undefined
+	}
+	if (hasCppdbg) {
+		return "cppdbg"
+	}
+	void vscode.window.showErrorMessage(
+		probe.error ?? missingDebuggerMessage(process.platform, "gdb"),
+	)
+	return undefined
+}
+
+/** Probe a gdb binary for DAP capability without starting a session.
+ *
+ * Runs the same three checks `scripts/verify-dap.sh` gates CI on (version,
+ * Python support, the `dap` interpreter) and feeds the combined output to
+ * `preflightGdb`, so the provider and the script agree on what counts as
+ * DAP-capable.
+ */
+async function probeGdbCapability(gdbPath: string): Promise<GdbPreflightResult> {
+	const runs: Promise<string>[] = [
+		runProbe(gdbPath, ["--version"]),
+		runProbe(gdbPath, ["--batch", "-ex", 'python print("ok")']),
+		runProbe(gdbPath, ["-i=dap", "--batch"]),
+	]
+	return preflightGdb((await Promise.all(runs)).join("\n"))
+}
+
+/** Run one gdb probe, folding spawn failures into text the preflight parser reads. */
+function runProbe(gdbPath: string, args: string[]): Promise<string> {
+	return new Promise((resolve) => {
+		// `stdio: "ignore"` for stdin mirrors the `</dev/null` the verify
+		// script uses: `gdb -i=dap --batch` must see EOF, not a held pipe.
+		const child = _spawn(gdbPath, args, { stdio: ["ignore", "pipe", "pipe"] })
+		let stdout = ""
+		let stderr = ""
+		const timer = setTimeout(() => child.kill("SIGKILL"), 15_000)
+		child.stdout?.on("data", (chunk) => {
+			stdout += String(chunk)
+		})
+		child.stderr?.on("data", (chunk) => {
+			stderr += String(chunk)
+		})
+		child.on("error", (error) => {
+			clearTimeout(timer)
+			resolve(`${stdout}\n${stderr}\n${error.message}`)
+		})
+		child.on("close", () => {
+			clearTimeout(timer)
+			resolve(`${stdout}\n${stderr}`)
+		})
+	})
+}
+
 /** Rewrite a V launch configuration into a real debug session.
  *
  * Spawning raw `gdb --interpreter=mi2` cannot work: it never answers DAP
  * `initialize` (`Undefined command: "Content-Length"`), so no session can
  * run that way on any platform. Instead the program is compiled here and
- * the configuration is rewritten to the C/C++ extension's `cppdbg`
+ * the configuration runs on the selected adapter: the built-in gdb/lldb DAP
+ * server when the debugger supports it, else the C/C++ extension's `cppdbg`
  * adapter, which speaks DAP. The compile still happens here rather than
  * in a `preLaunchTask`, so the debugger stays self-contained: a user
  * does not need a task defined to start a session.
@@ -117,24 +241,43 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			)
 			return undefined
 		}
-		const hasCppdbg = !!vscode.extensions.getExtension(cppdbgExtensionId)
+		const adapter = await selectAdapter(miMode, debuggerPath, workspaceFolder?.uri.fsPath)
+		if (!adapter) {
+			return undefined
+		}
+		const usePrettyPrinters = vscode.workspace
+			.getConfiguration("v")
+			.get("debug.usePrettyPrinters", true)
 		const vCommand = vCommandForProgram(vConfiguration.program, workspaceFolder)
 		const cwd =
 			vConfiguration.cwd ||
 			workspaceFolder?.uri.fsPath ||
 			path.dirname(vConfiguration.program)
 		if (vConfiguration.request === "attach") {
-			if (!vConfiguration.processId) {
-				void vscode.window.showErrorMessage(
-					"Cannot debug: attach needs a processId, e.g. ${command:pickProcess}.",
-				)
-				return undefined
+			let processId = vConfiguration.processId
+			if (processId && isCommandReference(processId)) {
+				// Variable substitution has not run yet, so the built-in
+				// adapter cannot defer to a picker command: run ours now.
+				const picked = await pickProcess()
+				if (!picked) {
+					return undefined
+				}
+				processId = picked
 			}
-			if (hasCppdbg) {
+			const coreFile = (vConfiguration.coreFile ?? "").trim() || undefined
+			if (adapter === "cppdbg") {
+				if (!processId) {
+					void vscode.window.showErrorMessage(
+						coreFile
+							? 'Cannot debug: core-file attach needs the built-in adapter; set v.debug.adapter to "auto" or "gdb-dap".'
+							: "Cannot debug: attach needs a processId, e.g. ${command:v.pickProcess}.",
+					)
+					return undefined
+				}
 				return cppdbgAttachConfig({
 					name: configuration.name,
 					program: vConfiguration.program,
-					processId: vConfiguration.processId,
+					processId,
 					cwd,
 					printersPath: vPrintersPath(__dirname),
 					miMode,
@@ -143,22 +286,37 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					sourceFileMap: vConfiguration.sourceFileMap,
 					miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
 					pipeTransport: vConfiguration.pipeTransport,
+					usePrettyPrinters,
 				})
 			}
-			return {
+			// GDB DAP and lldb-dap attach take `pid` for a live process or
+			// `coreFile` for a post-mortem: the cppdbg `processId` string
+			// (or a core-file-only configuration with no PID at all) maps
+			// here, because neither adapter recognizes `processId`.
+			const fields = dapAttachFields({ processId, coreFile })
+			if ("error" in fields) {
+				void vscode.window.showErrorMessage(fields.error)
+				return undefined
+			}
+			const resolved = {
 				...configuration,
 				type: "v",
 				request: "attach",
 				program: vConfiguration.program,
-				processId: vConfiguration.processId,
+				...(fields.pid !== undefined ? { pid: fields.pid } : {}),
+				...(fields.coreFile ? { coreFile: fields.coreFile } : {}),
 				cwd,
 				miDebuggerPath: debuggerPath,
 				MIMode: miMode,
 				...(vConfiguration.miDebuggerServerAddress
 					? { target: vConfiguration.miDebuggerServerAddress }
 					: {}),
-				...(vConfiguration.coreFile ? { coreFile: vConfiguration.coreFile } : {}),
+				...(vConfiguration.sourceFileMap
+					? { sourceFileMap: vConfiguration.sourceFileMap }
+					: {}),
 			}
+			delete (resolved as Partial<VDebugConfiguration>).processId
+			return resolved
 		}
 		return vscode.window.withProgress(
 			{
@@ -182,7 +340,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 					if (token.isCancellationRequested) {
 						return undefined
 					}
-					if (hasCppdbg) {
+					if (adapter === "cppdbg") {
 						return cppdbgLaunchConfig({
 							name: configuration.name,
 							binary,
@@ -199,6 +357,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 							sourceFileMap: vConfiguration.sourceFileMap,
 							miDebuggerServerAddress: vConfiguration.miDebuggerServerAddress,
 							pipeTransport: vConfiguration.pipeTransport,
+							usePrettyPrinters,
 						})
 					}
 					const env: Record<string, string> = {}
@@ -265,15 +424,22 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 /** Register the V debugger.
  *
  * The debugger is contributed in `package.json` with `type: "v"`. This
- * provider compiles the program and rewrites the configuration to the
- * `cppdbg` adapter before the session starts. A CodeLens over `fn main`
- * starts the same pipeline without a launch configuration.
+ * provider compiles the program and selects the adapter (`v.debug.adapter`:
+ * the built-in gdb/lldb DAP server when the debugger supports it, else the
+ * `cppdbg` adapter). A CodeLens over `fn main` starts the same pipeline
+ * without a launch configuration.
  */
 export function registerDebugger(context: vscode.ExtensionContext): void {
+	// `v.pickProcess` is the documented picker and is always ours. The bare
+	// `pickProcess` id is legacy: it is registered here only when cpptools is
+	// absent, otherwise it would shadow the C/C++ extension's own picker that
+	// `cppdbg` configurations rely on.
+	context.subscriptions.push(
+		vscode.commands.registerCommand("v.pickProcess", () => pickProcess()),
+	)
 	if (!vscode.extensions.getExtension(cppdbgExtensionId)) {
 		context.subscriptions.push(
 			vscode.commands.registerCommand("pickProcess", () => pickProcess()),
-			vscode.commands.registerCommand("v.pickProcess", () => pickProcess()),
 		)
 	}
 	context.subscriptions.push(
@@ -358,10 +524,22 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 			if (!pipePath) {
 				return undefined
 			}
-			const args = [...(pt.pipeArgs ?? []), debuggerPath]
+			if (miMode === "lldb") {
+				const lldbDap =
+					resolvedCommand("lldb-dap", folder?.uri.fsPath) ||
+					resolvedCommand("lldb-vscode", folder?.uri.fsPath)
+				if (!lldbDap) {
+					return undefined
+				}
+				return new vscode.DebugAdapterExecutable(
+					pipePath,
+					[...(pt.pipeArgs ?? []), lldbDap],
+					pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
+				)
+			}
 			return new vscode.DebugAdapterExecutable(
 				pipePath,
-				args,
+				[...(pt.pipeArgs ?? []), debuggerPath, "-i=dap"],
 				pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
 			)
 		}
@@ -387,8 +565,11 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 		for (const [from, to] of Object.entries(sessionConfig.sourceFileMap ?? {})) {
 			args.push("-iex", `set substitute-path ${from} ${to}`)
 		}
+		// `setupCommands` are documented as MI commands; `gdb -iex` expects
+		// CLI, so known MI shapes translate (the pretty-printer enablement
+		// included) instead of failing as undefined commands.
 		for (const command of sessionConfig.setupCommands ?? []) {
-			args.push("-iex", command.text)
+			args.push("-iex", gdbSetupCommandToCli(command.text))
 		}
 		return new vscode.DebugAdapterExecutable(debuggerPath, args)
 	}

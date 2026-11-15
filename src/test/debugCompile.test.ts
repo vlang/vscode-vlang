@@ -5,9 +5,12 @@ import { describe, it } from "node:test"
 import {
 	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
+	dapAttachFields,
 	debugBinaryPath,
 	debugCompileArgs,
+	gdbSetupCommandToCli,
 	gdbSetupCommands,
+	isCommandReference,
 	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
@@ -355,6 +358,132 @@ describe("V debug compile", () => {
 			const result = preflightGdb("gdb not found on PATH")
 			assert.strictEqual(result.adapter, null)
 			assert.strictEqual(result.error, "gdb not found on PATH")
+		})
+	})
+
+	describe("pretty-printer toggle", () => {
+		it("omits the printer commands from a cppdbg launch when disabled", () => {
+			const config = cppdbgLaunchConfig({
+				name: "Debug V Program",
+				binary: "/tmp/v-debug-main",
+				args: [],
+				cwd: "/workspace",
+				stopAtEntry: false,
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+				setupCommands: [{ text: "skip -gfi vlib/*" }],
+				usePrettyPrinters: false,
+			})
+			assert.deepStrictEqual(
+				config.setupCommands.map((command) => command.text),
+				["skip -gfi vlib/*"],
+			)
+		})
+
+		it("omits the printer commands from a cppdbg attach when disabled", () => {
+			const config = cppdbgAttachConfig({
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				processId: "1234",
+				cwd: "/workspace",
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+				usePrettyPrinters: false,
+			})
+			assert.deepStrictEqual(config.setupCommands, [])
+		})
+
+		it("keeps the printer commands by default", () => {
+			const launch = cppdbgLaunchConfig({
+				name: "Debug V Program",
+				binary: "/tmp/v-debug-main",
+				args: [],
+				cwd: "/workspace",
+				stopAtEntry: false,
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+			})
+			assert.strictEqual(launch.setupCommands.length, 2)
+			const attach = cppdbgAttachConfig({
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				processId: "1234",
+				cwd: "/workspace",
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+			})
+			assert.strictEqual(attach.setupCommands.length, 2)
+		})
+	})
+
+	describe("MI setup command translation", () => {
+		it("translates the pretty-printing enablement to CLI", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli("-enable-pretty-printing"),
+				"set print pretty on",
+			)
+		})
+
+		it("unwraps console interpreter-exec to the inner CLI command", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli(
+					'-interpreter-exec console "source \\"/extension/scripts/gdb/v_printers.py\\""',
+				),
+				'source "/extension/scripts/gdb/v_printers.py"',
+			)
+		})
+
+		it("runs other MI commands through the MI interpreter", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli("-gdb-set print pretty on"),
+				'-interpreter-exec mi "-gdb-set print pretty on"',
+			)
+		})
+
+		it("passes CLI commands through untouched", () => {
+			assert.strictEqual(gdbSetupCommandToCli("skip -gfi vlib/*"), "skip -gfi vlib/*")
+		})
+	})
+
+	describe("built-in attach fields", () => {
+		it("maps a processId string to a numeric pid", () => {
+			assert.deepStrictEqual(dapAttachFields({ processId: "1234" }), { pid: 1234 })
+		})
+
+		it("accepts a core-file-only configuration with no PID", () => {
+			assert.deepStrictEqual(dapAttachFields({ coreFile: "/tmp/core.test" }), {
+				coreFile: "/tmp/core.test",
+			})
+		})
+
+		it("keeps both pid and coreFile when both are set", () => {
+			assert.deepStrictEqual(
+				dapAttachFields({ processId: "1234", coreFile: "/tmp/core.test" }),
+				{ pid: 1234, coreFile: "/tmp/core.test" },
+			)
+		})
+
+		it("rejects an attach with neither PID nor core file", () => {
+			const result = dapAttachFields({})
+			assert.ok("error" in result)
+		})
+
+		it("rejects a PID that is not a positive integer", () => {
+			for (const processId of ["${command:v.pickProcess}", "abc", "0", "-5", "12.5"]) {
+				const result = dapAttachFields({ processId })
+				assert.ok("error" in result, processId)
+			}
+		})
+
+		it("recognizes unsubstituted command references", () => {
+			assert.ok(isCommandReference("${command:v.pickProcess}"))
+			assert.ok(isCommandReference("${command:pickProcess}"))
+			assert.ok(!isCommandReference("1234"))
+			assert.ok(!isCommandReference(""))
 		})
 	})
 })

@@ -421,7 +421,7 @@
 						"auto"
 					],
 					"default": "auto",
-					"description": "Which debug adapter to use. auto prefers gdb-dap when gdb is DAP-capable."
+					"description": "Which debug adapter to use. auto prefers the built-in gdb/lldb DAP server when the debugger is DAP-capable and falls back to cppdbg; an explicit adapter that cannot run cancels the session."
 				}
 			}
 		},
@@ -852,14 +852,14 @@
 										},
 										"text": {
 											"type": "string",
-											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames."
+											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames. The built-in gdb adapter translates MI shapes to CLI equivalents; under lldb these are lldb commands."
 										},
 										"ignoreFailures": {
 											"type": "boolean"
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; under lldb they are lldb commands.",
 								"default": []
 							},
 							"environment": {
@@ -930,8 +930,7 @@
 					},
 					"attach": {
 						"required": [
-							"program",
-							"processId"
+							"program"
 						],
 						"properties": {
 							"program": {
@@ -940,8 +939,8 @@
 							},
 							"processId": {
 								"type": "string",
-								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
-								"default": "${command:pickProcess}"
+								"description": "Process ID to attach to. ${command:v.pickProcess} shows the process picker (${command:pickProcess} also works). Omit for core-file-only attach.",
+								"default": "${command:v.pickProcess}"
 							},
 							"coreFile": {
 								"type": "string",
@@ -985,7 +984,7 @@
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; under lldb they are lldb commands.",
 								"default": []
 							},
 							"sourceFileMap": {
@@ -1091,6 +1090,7 @@
 	},
 	"activationEvents": [
 		"onCommand:v.pickProcess",
+		"onCommand:pickProcess",
 		"workspaceContains:**/*.v",
 		"workspaceContains:**/*.vv",
 		"workspaceContains:**/*.xml",
