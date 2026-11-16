@@ -12,9 +12,7 @@
 	],
 	"repository": {
 		"comments": {
-			"patterns": [
-				{ "name": "comment.block.vss", "begin": "/\\*", "end": "\\*/" }
-			]
+			"patterns": [{ "name": "comment.block.vss", "begin": "/\\*", "end": "\\*/" }]
 		},
 		"at-rules": {
 			"patterns": [
