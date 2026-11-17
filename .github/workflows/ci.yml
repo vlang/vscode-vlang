@@ -111,19 +111,19 @@ jobs:
           # The build is pure for a pinned source revision, so the key names both
           # pinned revisions: the other server variants then restore this build
           # instead of re-running it.
-          key: v-toolchain-${{ runner.os }}-8236d53e2219b37b4d0a9e7795291a5c122fe5ee-2e290b62f0fe11eed347d487619f8ee48b5562ae
+          key: v-toolchain-${{ runner.os }}-eeee53a268261d8cd15a831b55704628ba710def-99533a7cecef5d59f7bf01ee5034f24b759ce294
       - name: Build V compiler
         if: steps.v-toolchain.outputs.cache-hit != 'true'
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
           git init "$RUNNER_TEMP/v"
-          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 8236d53e2219b37b4d0a9e7795291a5c122fe5ee
+          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git eeee53a268261d8cd15a831b55704628ba710def
           git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
           # Keep the bootstrap compatible with the pinned V source. A newer vc
           # can reject code that this compiler revision still accepts.
           git init "$RUNNER_TEMP/v/vc"
-          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 2e290b62f0fe11eed347d487619f8ee48b5562ae
+          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 99533a7cecef5d59f7bf01ee5034f24b759ce294
           git -C "$RUNNER_TEMP/v/vc" checkout --detach FETCH_HEAD
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
@@ -136,19 +136,13 @@ jobs:
           path: ${{ runner.temp }}/vls
           # Keyed on the V revision the server is built with as well as its own,
           # because the compiler that produces it is part of what is cached.
-          key: vls-toolchain-${{ runner.os }}-e61d428dc80453397f8d4a128f202b7c6be22fb0-8236d53e2219b37b4d0a9e7795291a5c122fe5ee
+          key: vls-toolchain-${{ runner.os }}-e61d428dc80453397f8d4a128f202b7c6be22fb0-eeee53a268261d8cd15a831b55704628ba710def
       - name: Build VLS with version reporting
         if: matrix.server == 'real' && steps.vls-toolchain.outputs.cache-hit != 'true'
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
           git init "$RUNNER_TEMP/vls"
-          # Pin the CLI version follow-up on top of current upstream VLS so the
-          # real host exercises an external executable without managed metadata.
-          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
-          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
-          cd "$RUNNER_TEMP/vls"
-          "$RUNNER_TEMP/v/v" -new-compiler .
           # Pin the CLI version follow-up on top of current upstream VLS so the
           # real host exercises an external executable without managed metadata.
           git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
