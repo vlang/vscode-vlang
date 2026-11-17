@@ -149,12 +149,13 @@ jobs:
           git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
           cd "$RUNNER_TEMP/vls"
           "$RUNNER_TEMP/v/v" -new-compiler .
-          # Pin the CLI version follow-up on top of current upstream VLS so the
-          # real host exercises an external executable without managed metadata.
-          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
-          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
-          cd "$RUNNER_TEMP/vls"
-          "$RUNNER_TEMP/v/v" -new-compiler .
+      - name: Smoke-test V toolchain
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+        run: |
+          "$RUNNER_TEMP/v/v" --version
+          printf 'module main\nfn main() { println(3) }\n' > "$RUNNER_TEMP/hello.v"
+          "$RUNNER_TEMP/v/v" -nocolor run "$RUNNER_TEMP/hello.v"
       - name: Run VS Code integration tests
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback

@@ -56,12 +56,24 @@ async function assertVlsReady(pid: number, document: vscode.TextDocument): Promi
 }
 
 async function taskExit(command: string, ...args: unknown[]): Promise<number | undefined> {
-	let listener: vscode.Disposable | undefined
+	let startListener: vscode.Disposable | undefined
+	let endListener: vscode.Disposable | undefined
 	let timer: NodeJS.Timeout | undefined
+	const started = new Set<vscode.TaskExecution>()
 	const done = new Promise<number | undefined>((resolve, reject) => {
 		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 60_000)
-		listener = vscode.tasks.onDidEndTaskProcess((event) => {
+		startListener = vscode.tasks.onDidStartTask((event) => {
+			if (event.execution.task.definition.type === "v") started.add(event.execution)
+		})
+		endListener = vscode.tasks.onDidEndTaskProcess((event) => {
 			if (event.execution.task.definition.type !== "v") return
+			// Only accept tasks that started after this helper ran. The previous
+			// version resolved on any V task end, so a delayed end from the prior
+			// step could be mistaken for the current command on slower hosts.
+			if (!started.has(event.execution)) return
+			console.log(
+				`Task ${command} ended: action=${event.execution.task.definition.action} exit=${event.exitCode}`,
+			)
 			resolve(event.exitCode)
 		})
 	})
@@ -69,7 +81,8 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 		await vscode.commands.executeCommand(command, ...args)
 		return await done
 	} finally {
-		listener?.dispose()
+		startListener?.dispose()
+		endListener?.dispose()
 		if (timer) clearTimeout(timer)
 	}
 }
