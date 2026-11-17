@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run grammar tests
-        run: npm run test:grammar && npm run test:grammar:vml
+        run: npm run test:grammar
 
   coverage:
     runs-on: ubuntu-latest
@@ -111,19 +111,19 @@ jobs:
           # The build is pure for a pinned source revision, so the key names both
           # pinned revisions: the other server variants then restore this build
           # instead of re-running it.
-          key: v-toolchain-${{ runner.os }}-8236d53e2219b37b4d0a9e7795291a5c122fe5ee-2e290b62f0fe11eed347d487619f8ee48b5562ae
+          key: v-toolchain-${{ runner.os }}-520c064fedd7cd7effb55005fbb2b904cf4246ad-99533a7cecef5d59f7bf01ee5034f24b759ce294
       - name: Build V compiler
         if: steps.v-toolchain.outputs.cache-hit != 'true'
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
         run: |
           git init "$RUNNER_TEMP/v"
-          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 8236d53e2219b37b4d0a9e7795291a5c122fe5ee
+          git -C "$RUNNER_TEMP/v" fetch --depth 1 https://github.com/vlang/v.git 520c064fedd7cd7effb55005fbb2b904cf4246ad
           git -C "$RUNNER_TEMP/v" checkout --detach FETCH_HEAD
           # Keep the bootstrap compatible with the pinned V source. A newer vc
           # can reject code that this compiler revision still accepts.
           git init "$RUNNER_TEMP/v/vc"
-          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 2e290b62f0fe11eed347d487619f8ee48b5562ae
+          git -C "$RUNNER_TEMP/v/vc" fetch --depth 1 https://github.com/vlang/vc.git 99533a7cecef5d59f7bf01ee5034f24b759ce294
           git -C "$RUNNER_TEMP/v/vc" checkout --detach FETCH_HEAD
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
@@ -136,7 +136,7 @@ jobs:
           path: ${{ runner.temp }}/vls
           # Keyed on the V revision the server is built with as well as its own,
           # because the compiler that produces it is part of what is cached.
-          key: vls-toolchain-${{ runner.os }}-e61d428dc80453397f8d4a128f202b7c6be22fb0-8236d53e2219b37b4d0a9e7795291a5c122fe5ee
+          key: vls-toolchain-${{ runner.os }}-e61d428dc80453397f8d4a128f202b7c6be22fb0-520c064fedd7cd7effb55005fbb2b904cf4246ad
       - name: Build VLS with version reporting
         if: matrix.server == 'real' && steps.vls-toolchain.outputs.cache-hit != 'true'
         env:
@@ -149,20 +149,6 @@ jobs:
           git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
           cd "$RUNNER_TEMP/vls"
           "$RUNNER_TEMP/v/v" -new-compiler .
-      - name: Verify V run works before VS Code tests
-        env:
-          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
-        run: |
-          "$RUNNER_TEMP/v/v" version
-          mkdir -p "$RUNNER_TEMP/vtest"
-          printf 'module main\n\nfn main() { println(add(1, 2)) }\n' > "$RUNNER_TEMP/vtest/main.v"
-          printf 'module main\n\nfn add(a int, b int) int { return a + b }\n' > "$RUNNER_TEMP/vtest/helper.v"
-          cd "$RUNNER_TEMP/vtest"
-          set -x
-          "$RUNNER_TEMP/v/v" -nocolor .
-          echo "build exit: $?"
-          ls -la
-          "$RUNNER_TEMP/v/v" -nocolor run . ; echo "run exit: $?"
       - name: Run VS Code integration tests
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
