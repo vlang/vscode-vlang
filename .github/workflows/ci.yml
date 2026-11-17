@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run grammar tests
-        run: npm run test:grammar
+        run: npm run test:grammar && npm run test:grammar:vml
 
   coverage:
     runs-on: ubuntu-latest
@@ -149,12 +149,20 @@ jobs:
           git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
           cd "$RUNNER_TEMP/vls"
           "$RUNNER_TEMP/v/v" -new-compiler .
-          # Pin the CLI version follow-up on top of current upstream VLS so the
-          # real host exercises an external executable without managed metadata.
-          git -C "$RUNNER_TEMP/vls" fetch --depth 1 https://github.com/tomaszbk/vls.git e61d428dc80453397f8d4a128f202b7c6be22fb0
-          git -C "$RUNNER_TEMP/vls" checkout --detach FETCH_HEAD
-          cd "$RUNNER_TEMP/vls"
-          "$RUNNER_TEMP/v/v" -new-compiler .
+      - name: Verify V run works before VS Code tests
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+        run: |
+          "$RUNNER_TEMP/v/v" version
+          mkdir -p "$RUNNER_TEMP/vtest"
+          printf 'module main\n\nfn main() { println(add(1, 2)) }\n' > "$RUNNER_TEMP/vtest/main.v"
+          printf 'module main\n\nfn add(a int, b int) int { return a + b }\n' > "$RUNNER_TEMP/vtest/helper.v"
+          cd "$RUNNER_TEMP/vtest"
+          set -x
+          "$RUNNER_TEMP/v/v" -nocolor .
+          echo "build exit: $?"
+          ls -la
+          "$RUNNER_TEMP/v/v" -nocolor run . ; echo "run exit: $?"
       - name: Run VS Code integration tests
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
