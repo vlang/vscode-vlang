@@ -156,6 +156,13 @@ jobs:
           "$RUNNER_TEMP/v/v" --version
           printf 'module main\nfn main() { println(3) }\n' > "$RUNNER_TEMP/hello.v"
           "$RUNNER_TEMP/v/v" -nocolor run "$RUNNER_TEMP/hello.v"
+          rm -rf "$RUNNER_TEMP/smoke-workspace" && mkdir -p "$RUNNER_TEMP/smoke-workspace"
+          printf 'module main\n\nfn main() { println(add(1, 2)) }\n' > "$RUNNER_TEMP/smoke-workspace/main.v"
+          printf 'module main\n\nfn add(a int, b int) int { return a + b }\n' > "$RUNNER_TEMP/smoke-workspace/helper.v"
+          printf 'module main\n\nfn test_add() { assert add(1, 2) == 3 }\n' > "$RUNNER_TEMP/smoke-workspace/main_test.v"
+          cd "$RUNNER_TEMP/smoke-workspace"
+          "$RUNNER_TEMP/v/v" -nocolor .
+          "$RUNNER_TEMP/v/v" -nocolor run .
       - name: Run VS Code integration tests
         env:
           V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
