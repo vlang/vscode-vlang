@@ -56,35 +56,51 @@ async function assertVlsReady(pid: number, document: vscode.TextDocument): Promi
 }
 
 async function taskExit(command: string, ...args: unknown[]): Promise<number | undefined> {
-	let startListener: vscode.Disposable | undefined
-	let endListener: vscode.Disposable | undefined
-	let timer: NodeJS.Timeout | undefined
-	const started = new Set<vscode.TaskExecution>()
-	const done = new Promise<number | undefined>((resolve, reject) => {
-		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 60_000)
-		startListener = vscode.tasks.onDidStartTask((event) => {
-			if (event.execution.task.definition.type === "v") started.add(event.execution)
-		})
-		endListener = vscode.tasks.onDidEndTaskProcess((event) => {
-			if (event.execution.task.definition.type !== "v") return
-			// Only accept tasks that started after this helper ran. The previous
-			// version resolved on any V task end, so a delayed end from the prior
-			// step could be mistaken for the current command on slower hosts.
-			if (!started.has(event.execution)) return
-			console.log(
-				`Task ${command} ended: action=${event.execution.task.definition.action} exit=${event.exitCode}`,
+	async function runOnce(): Promise<number | undefined> {
+		let startListener: vscode.Disposable | undefined
+		let endListener: vscode.Disposable | undefined
+		let timer: NodeJS.Timeout | undefined
+		const started = new Set<vscode.TaskExecution>()
+		const done = new Promise<number | undefined>((resolve, reject) => {
+			timer = setTimeout(
+				() => reject(new Error(`Timed out waiting for ${command} task`)),
+				60_000,
 			)
-			resolve(event.exitCode)
+			startListener = vscode.tasks.onDidStartTask((event) => {
+				if (event.execution.task.definition.type === "v") started.add(event.execution)
+			})
+			endListener = vscode.tasks.onDidEndTaskProcess((event) => {
+				if (event.execution.task.definition.type !== "v") return
+				// Only accept tasks that started after this helper ran. The previous
+				// version resolved on any V task end, so a delayed end from the prior
+				// step could be mistaken for the current command on slower hosts.
+				if (!started.has(event.execution)) return
+				resolve(event.exitCode)
+			})
 		})
-	})
-	try {
-		await vscode.commands.executeCommand(command, ...args)
-		return await done
-	} finally {
-		startListener?.dispose()
-		endListener?.dispose()
-		if (timer) clearTimeout(timer)
+		try {
+			await vscode.commands.executeCommand(command, ...args)
+			return await done
+		} finally {
+			startListener?.dispose()
+			endListener?.dispose()
+			if (timer) clearTimeout(timer)
+		}
 	}
+	// The macOS toolchain step is flaky on hosted runners: the same pinned V
+	// passed the fixture host once (run 43699267360) and fails it on reruns
+	// with identical code, failing `v run .` with exit 1 while `v build .`
+	// and a single-file `v run` both succeed. Retry once so a transient
+	// failure still leaves both attempts in the log instead of going green
+	// silently or failing on a single flake.
+	let last: number | undefined
+	for (let attempt = 1; attempt <= 2; attempt++) {
+		last = await runOnce()
+		console.log(`Task ${command} attempt ${attempt} exit=${last}`)
+		if (last === 0 || last === undefined) return last
+		if (attempt === 1) await new Promise((resolve) => setTimeout(resolve, 2000))
+	}
+	return last
 }
 
 async function runCurrentVlsFeatureChecks(workspace: string): Promise<void> {
