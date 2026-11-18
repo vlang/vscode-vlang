@@ -19,11 +19,13 @@ jobs:
     # A release is written against the tag, so the job needs contents: write.
     # Everything else is read-only, and the checkout is the tagged tree: what
     # gets published is what CI already verified on that SHA.
+    # No `id-token: write` here: this job runs `npm ci`, tests, build, and
+    # packaging before publishing, so any of that code could request an OIDC
+    # token. Publishing below uses PATs; a future switch to trusted
+    # publishing (`vsce publish --oidc`) needs a separate minimal publish
+    # job that only gets `id-token: write` and the built VSIX.
     permissions:
       contents: write
-      # Needed only for Marketplace trusted publishing (`vsce publish --oidc`).
-      # Harmless when publishing with a PAT instead.
-      id-token: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -54,7 +56,11 @@ jobs:
         run: npm run build
       - name: Package
         run: npm run package
+      # Tag pushes only: a manual `workflow_dispatch` from a branch must not
+      # create a GitHub Release (or tag) from that branch. Dispatch stays a
+      # packaging dry run -- it builds the VSIX locally and uploads nothing.
       - name: Attach the VSIX to the release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: |
           # The tag may arrive with no release yet (a maintainer pushed it), or
           # with one already created on GitHub by tagging a release. Both land
@@ -65,8 +71,9 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" ./*.vsix --clobber
         env:
           GH_TOKEN: ${{ github.token }}
-      # workflow_dispatch stays a packaging dry run: publishing happens only
-      # on a tag push. Both steps are idempotent on re-runs (--skip-duplicate).
+      # workflow_dispatch stays a packaging dry run: nothing is attached or
+      # published. Attaching and publishing happen only on a tag push. Both
+      # publish steps are idempotent on re-runs (--skip-duplicate).
       - name: Publish to Visual Studio Marketplace
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         # --no-install runs the lockfile-pinned binary from `npm ci` and fails
@@ -74,10 +81,10 @@ jobs:
         # in the environment.
         run: npx --no-install vsce publish --packagePath ./*.vsix --skip-duplicate
         env:
-          # PAT with publish rights for the `vlanguage` publisher. If trusted
-          # publishing is configured for this repo instead, replace this env
-          # with the `--oidc` flag on the run line above (id-token: write is
-          # already granted).
+          # PAT with publish rights for the `vlanguage` publisher. A future
+          # switch to trusted publishing (`vsce publish --oidc`) needs a
+          # separate minimal job with `id-token: write`; do not grant it to
+          # this job, which runs untrusted build code before publishing.
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Publish to Open VSX
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
