@@ -128,6 +128,18 @@ jobs:
           make -C "$RUNNER_TEMP/v" latest_tcc
           make -C "$RUNNER_TEMP/v" local=1
           make -C "$RUNNER_TEMP/v" v1
+      - name: V smoke test (mirrors integration workspace)
+        env:
+          V1_FALLBACK_CACHE_DIR: ${{ runner.temp }}/v1-fallback
+        run: |
+          "$RUNNER_TEMP/v/v" version
+          mkdir -p "$RUNNER_TEMP/smoke"
+          printf 'module main\n\nfn main() { println(add(1, 2)) }\n' > "$RUNNER_TEMP/smoke/main.v"
+          printf 'module main\n\nfn add(a int, b int) int { return a + b }\n' > "$RUNNER_TEMP/smoke/helper.v"
+          printf 'module main\n\nfn test_add() { assert add(1, 2) == 3 }\n' > "$RUNNER_TEMP/smoke/main_test.v"
+          cd "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/v/v" -nocolor .
+          "$RUNNER_TEMP/v/v" -nocolor run .
       - name: VLS toolchain cache
         if: matrix.server == 'real'
         id: vls-toolchain
