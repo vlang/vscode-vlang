@@ -56,12 +56,24 @@ async function assertVlsReady(pid: number, document: vscode.TextDocument): Promi
 }
 
 async function taskExit(command: string, ...args: unknown[]): Promise<number | undefined> {
+	// Previous V tasks must have fully ended before starting a new one.
+	// Otherwise a stale onDidEndTaskProcess from the previous task can be
+	// captured by the next taskExit, attributing the wrong exit code.
+	// macOS cleans up task terminals slower than Linux, making the race visible there.
+	await waitFor(async () => {
+		const running = vscode.tasks.taskExecutions.filter(
+			(execution) => execution.task.definition.type === "v",
+		)
+		return running.length === 0 ? true : undefined
+	}, "previous V tasks to finish")
+	const known = new Set(vscode.tasks.taskExecutions)
 	let listener: vscode.Disposable | undefined
 	let timer: NodeJS.Timeout | undefined
 	const done = new Promise<number | undefined>((resolve, reject) => {
 		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 60_000)
 		listener = vscode.tasks.onDidEndTaskProcess((event) => {
 			if (event.execution.task.definition.type !== "v") return
+			if (known.has(event.execution)) return
 			resolve(event.exitCode)
 		})
 	})
