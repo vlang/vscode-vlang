@@ -94,6 +94,10 @@ Label.dim { opacity: 50%; }
 //               ^^^^^^^ constant.numeric.color.hex.vss
 //                        ^^^^^ variable.other.vss
 //                               ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+:root { --title-boost: #ffffff; }
+//<----- entity.other.attribute-name.pseudo-class.vss
+//      ^^^^^^^^^^^^^ variable.other.vss
+//                     ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
 View.tokens { color: var(--brand); background: var(--ink, #172033); }
 //<---- entity.name.tag.vss
 //  ^^^^^^^ entity.other.attribute-name.class.vss

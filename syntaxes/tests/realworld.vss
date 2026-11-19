@@ -10,6 +10,8 @@ light { @bg: #f1f5f9; @surface: #ffffff; @line: #cbd5e1; @ink: #172033; @muted: 
 //      ^^^ variable.other.vss
 //           ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
 //                    ^^^^^^^^ variable.other.vss
+//                              ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+//                                              ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
 //                                       ^^^^^ variable.other.vss
 //                                                       ^^^^ variable.other.vss
 //                                                             ^^^^^^^ constant.numeric.color.hex.vss

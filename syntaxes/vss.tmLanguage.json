@@ -1,6 +1,7 @@
 {
 	"name": "VSS",
 	"scopeName": "source.vss",
+	"$comment": "values precede selectors so hex colors win over ID selectors (ID rule also guards hex explicitly); at-rules cover supports plus a generic block fallback; -- custom properties are variables; transition-*/animation-* intentionally absent (unsupported).",
 	"fileTypes": [".vss"],
 	"patterns": [
 		{ "include": "#comments" },
