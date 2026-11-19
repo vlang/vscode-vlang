@@ -70,4 +70,22 @@ Screen {
 //            ^^^^^^^^^^^^^ variable.other.member.vml
     }
   }
+  Column {
+//^^^^^^ entity.name.tag.vml
+//       ^ punctuation.definition.block.begin.vml
+    id: layout
+//  ^^ support.type.property-name.vml
+    myWidget {
+//  ^^^^^^^^ entity.name.tag.vml
+//           ^ punctuation.definition.block.begin.vml
+      id: custom
+      text: "hi"
+//    ^^^^ support.type.property-name.vml
+//          ^^^^ string.quoted.double.vml
+    }
+//  ^ punctuation.definition.block.end.vml
+  }
+//^ punctuation.definition.block.end.vml
+  <!-- Button { id: ghost } -->
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.block.vml
 }

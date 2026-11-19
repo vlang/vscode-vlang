@@ -31,7 +31,7 @@ import {
 	schemaFromXml,
 } from "./decodeStruct"
 import { hoverTextFor, literalAtOffset } from "./numberHover"
-import { blockAtLine, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
+import { blockAtPosition, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
 import { parseByVersion } from "./documentMemo"
 import {
 	decodeBase32,
@@ -572,7 +572,7 @@ export function registerVmlHover(context: vscode.ExtensionContext): void {
 					if (nodes.length === 0) {
 						return undefined
 					}
-					const block = blockAtLine(nodes, position.line)
+					const block = blockAtPosition(nodes, position.line, position.character)
 					if (!block) {
 						return undefined
 					}

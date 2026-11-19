@@ -18,6 +18,9 @@ export interface VmlNode {
 	/** Zero-based document lines covering the block header through `}`. */
 	startLine: number
 	endLine: number
+	/** Zero-based UTF-16 columns of the header start and the closing `}`. */
+	startCol: number
+	endCol: number
 }
 
 export interface VmlStyleRule {
@@ -31,7 +34,12 @@ export interface VmlStyleRule {
 	line: number
 }
 
-/** Strip `//` comments, leaving anything inside quotes (e.g. URLs) alone. */
+/**
+ * Strip `//` and `<!-- … -->` comments, leaving anything inside quotes
+ * (e.g. URLs) alone. Removed characters are blanked with spaces — newlines
+ * included — so offsets, lines and columns in the cleaned text still match
+ * the original document.
+ */
 function stripComments(text: string): string {
 	let out = ""
 	let quote = ""
@@ -56,6 +64,7 @@ function stripComments(text: string): string {
 		}
 		if (char === "/" && text[index + 1] === "/") {
 			while (index < text.length && text[index] !== "\n") {
+				out += " "
 				index++
 			}
 			// Keep the newline so later line numbers still line up.
@@ -64,19 +73,38 @@ function stripComments(text: string): string {
 			}
 			continue
 		}
+		if (text.startsWith("<!--", index)) {
+			const end = text.indexOf("-->", index + 4)
+			const stop = end === -1 ? text.length : end + 3
+			for (; index < stop; index++) {
+				out += text[index] === "\n" ? "\n" : " "
+			}
+			// The loop's increment lands on `stop`.
+			index--
+			continue
+		}
 		out += char
 	}
 	return out
 }
 
-function lineOf(text: string, index: number): number {
+/** Zero-based line and UTF-16 column of an index into the document. */
+function positionOf(text: string, index: number): { line: number; col: number } {
 	let line = 0
+	let col = 0
 	for (let i = 0; i < index && i < text.length; i++) {
 		if (text[i] === "\n") {
 			line++
+			col = 0
+		} else {
+			col++
 		}
 	}
-	return line
+	return { line, col }
+}
+
+function lineOf(text: string, index: number): number {
+	return positionOf(text, index).line
 }
 
 /** Find the `}` closing the brace at `openIndex`, ignoring braces in strings. */
@@ -104,6 +132,11 @@ function findMatchingBrace(text: string, openIndex: number): number {
 			while (index < text.length && text[index] !== "\n") {
 				index++
 			}
+			continue
+		}
+		if (text.startsWith("<!--", index)) {
+			const end = text.indexOf("-->", index + 4)
+			index = end === -1 ? text.length : end + 2
 			continue
 		}
 		if (char === "{") {
@@ -258,16 +291,13 @@ function containsNestedBlock(body: string): boolean {
 /**
  * Decide child node versus style rule outside `Style` mode. A body holding
  * a nested block is always a component (this covers `Column`, imported
- * widgets, and lowercase custom tags); only a selector-shaped header
- * (`Kind.class`, `Kind:pseudo`) over flat declarations is a rule.
+ * widgets, and lowercase custom tags); otherwise only a selector-shaped
+ * header (`Kind.class`, `Kind:pseudo`) over flat declarations is a rule —
+ * any other header, upper- or lowercase, names a component node.
  */
 function isComponentBlock(header: string, inner: string): boolean {
 	if (containsNestedBlock(inner)) {
 		return true
-	}
-	const first = header.split(/[.:]/)[0] ?? ""
-	if (!/^[A-Z]/.test(first)) {
-		return false
 	}
 	return !isSelectorHeader(header)
 }
@@ -375,8 +405,9 @@ function parseBlock(
 	if (!kind) {
 		return undefined
 	}
-	const braceClose = findMatchingBrace(full, full.indexOf("{", offset))
-	const parsed = parseBody(full, body, offset + header.length + 1, kind === "Style")
+	const braceOpen = full.indexOf("{", offset)
+	const braceClose = findMatchingBrace(full, braceOpen)
+	const parsed = parseBody(full, body, braceOpen + 1, kind === "Style")
 	const props = { ...parsed.props }
 	if (!props["class"]) {
 		const [, className] = parseSelector(header)
@@ -384,12 +415,17 @@ function parseBlock(
 			props["class"] = className
 		}
 	}
+	const start = positionOf(full, offset)
+	const end =
+		braceClose === -1 ? { line: start.line, col: start.col } : positionOf(full, braceClose)
 	const node: VmlNode = {
 		kind,
 		props,
 		children: parsed.children.filter((child) => child.kind !== "Style"),
-		startLine: lineOf(full, offset),
-		endLine: braceClose === -1 ? lineOf(full, offset) : lineOf(full, braceClose),
+		startLine: start.line,
+		startCol: start.col,
+		endLine: end.line,
+		endCol: end.col,
 	}
 	const embedded: VmlStyleRule[] = [...parsed.rules]
 	for (const child of parsed.children) {
@@ -656,6 +692,43 @@ export function blockAtLine(nodes: VmlNode[], line: number): VmlNode | undefined
 			for (const child of node.children) {
 				visit(child)
 			}
+		}
+	}
+	for (const node of nodes) {
+		visit(node)
+	}
+	return found
+}
+
+/**
+ * Innermost block covering a zero-based (line, character) cursor position,
+ * if any. Unlike `blockAtLine` this tells same-line siblings apart: only a
+ * block whose column span holds the cursor matches, so hovering the first of
+ * `Button { … } Label { … }` on one line returns the `Button`, not the last
+ * sibling.
+ */
+export function blockAtPosition(
+	nodes: VmlNode[],
+	line: number,
+	character: number,
+): VmlNode | undefined {
+	let found: VmlNode | undefined
+	const contains = (node: VmlNode): boolean => {
+		const afterStart =
+			line > node.startLine || (line === node.startLine && character >= node.startCol)
+		const beforeEnd = line < node.endLine || (line === node.endLine && character <= node.endCol)
+		return afterStart && beforeEnd
+	}
+	const visit = (node: VmlNode): void => {
+		if (node.kind === "Style") {
+			return
+		}
+		if (!contains(node)) {
+			return
+		}
+		found = node
+		for (const child of node.children) {
+			visit(child)
 		}
 	}
 	for (const node of nodes) {

@@ -59,6 +59,23 @@
 						{ "include": "#prop" },
 						{ "include": "#block" }
 					]
+				},
+				{
+					"name": "meta.block.vml",
+					"begin": "\\b([A-Za-z_][A-Za-z0-9_]*)((?:\\.[A-Za-z_][A-Za-z0-9_-]*|:[a-zA-Z_-]+)*)\\s*(\\{)",
+					"beginCaptures": {
+						"1": { "name": "entity.name.tag.vml" },
+						"2": { "name": "entity.other.attribute-name.class.vml" },
+						"3": { "name": "punctuation.definition.block.begin.vml" }
+					},
+					"end": "\\}",
+					"endCaptures": { "0": { "name": "punctuation.definition.block.end.vml" } },
+					"patterns": [
+						{ "include": "#comments" },
+						{ "include": "#property-decl" },
+						{ "include": "#prop" },
+						{ "include": "#block" }
+					]
 				}
 			]
 		},
@@ -110,7 +127,7 @@
 				{
 					"name": "meta.prop.vml",
 					"begin": "(?=[a-zA-Z_][a-zA-Z0-9_.]*\\s*:)",
-					"end": "(?=[};]|\\b[A-Z][A-Za-z]*[\\s\\{]|$)",
+					"end": "(?=[};]|\\b[A-Za-z_][A-Za-z0-9_.:]*\\s*\\{|$)",
 					"patterns": [
 						{
 							"match": "([a-zA-Z_][a-zA-Z0-9_.]*)\\s*(:)",

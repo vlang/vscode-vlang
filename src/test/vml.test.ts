@@ -2,6 +2,7 @@ import * as assert from "assert"
 import { describe, it } from "node:test"
 import {
 	blockAtLine,
+	blockAtPosition,
 	collectRules,
 	hoverTextFor,
 	matchingRules,
@@ -197,5 +198,55 @@ describe("VML reviewer fixes", () => {
 		assert.strictEqual(resolved["color"], "#123")
 		assert.strictEqual(resolved["font-size"], "20px")
 		assert.strictEqual(resolved["border-radius"], "4")
+	})
+})
+
+describe("VML review follow-ups", () => {
+	it("ignores commented-out blocks in HTML-style comments", () => {
+		const nodes = parseVml(
+			"Screen {\n\t<!-- Button { id: ghost } -->\n\tButton { id: real }\n}",
+		)
+		assert.deepStrictEqual(
+			nodes[0]?.children.map((child) => child.kind),
+			["Button"],
+		)
+		assert.strictEqual(nodes[0]?.children[0]?.props["id"], "real")
+	})
+
+	it("keeps block comments spanning lines from shifting later line numbers", () => {
+		const nodes = parseVml(
+			"Screen {\n\t<!--\n\t\tButton { id: ghost }\n\t-->\n\tButton { id: real }\n}",
+		)
+		const real = nodes[0]?.children[0]
+		assert.ok(real)
+		assert.strictEqual(real.props["id"], "real")
+		assert.strictEqual(real.startLine, 4)
+	})
+
+	it("keeps block comment markers inside strings", () => {
+		const nodes = parseVml('Screen {\n\tLabel { text: "<!-- kept -->" }\n}')
+		assert.strictEqual(nodes[0]?.children.length, 1)
+		assert.strictEqual(nodes[0]?.children[0]?.props["text"], '"<!-- kept -->"')
+	})
+
+	it("resolves same-line siblings by cursor column", () => {
+		const doc = "Screen { Button { id: first } Label { id: second } }"
+		const nodes = parseVml(doc)
+		assert.strictEqual(blockAtPosition(nodes, 0, doc.indexOf("first"))?.props["id"], "first")
+		assert.strictEqual(blockAtPosition(nodes, 0, doc.indexOf("second"))?.props["id"], "second")
+		// The gap between the siblings belongs to the parent block.
+		const gap = doc.indexOf("} L")
+		assert.strictEqual(blockAtPosition(nodes, 0, gap + 1)?.kind, "Screen")
+	})
+
+	it("keeps flat lowercase blocks as component nodes", () => {
+		const nodes = parseVml("Screen {\n\tmyWidget { id: custom }\n}")
+		assert.deepStrictEqual(
+			nodes[0]?.children.map((child) => child.kind),
+			["myWidget"],
+		)
+		assert.strictEqual(nodes[0]?.children[0]?.props["id"], "custom")
+		// Hovering the widget resolves to it, not to its parent.
+		assert.strictEqual(blockAtPosition(nodes, 1, 4)?.kind, "myWidget")
 	})
 })
