@@ -88,3 +88,27 @@ Label.dim { opacity: 50%; }
 //           ^^^^^^^^^^^^^ support.type.property-name.vss
 //                          ^^^^ constant.numeric.vss
 }
+:root { --brand: #2563eb; --ink: #abcdef; }
+//<----- entity.other.attribute-name.pseudo-class.vss
+//      ^^^^^^^ variable.other.vss
+//               ^^^^^^^ constant.numeric.color.hex.vss
+//                        ^^^^^ variable.other.vss
+//                               ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+View.tokens { color: var(--brand); background: var(--ink, #172033); }
+//<---- entity.name.tag.vss
+//  ^^^^^^^ entity.other.attribute-name.class.vss
+//            ^^^^^ support.type.property-name.vss
+//                       ^^^^^^^ variable.other.vss
+//                                 ^^^^^^^^^^ support.type.property-name.vss
+//                                                 ^^^^^ variable.other.vss
+//                                                        ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+View.still { transition-duration: 1px; animation-name: white; }
+//<---- entity.name.tag.vss
+//  ^^^^^ entity.other.attribute-name.class.vss
+//           ^^^^^^^^^^^^^^^^^^^ - support.type.property-name.vss
+//                                ^^^ constant.numeric.vss
+//                                     ^^^^^^^^^^^^^^ - support.type.property-name.vss
+#main { color: white; }
+//<----- entity.other.attribute-name.id.vss
+//      ^^^^^ support.type.property-name.vss
+}

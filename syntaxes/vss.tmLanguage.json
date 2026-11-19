@@ -28,7 +28,10 @@
 			]
 		},
 		"variables": {
-			"patterns": [{ "name": "variable.other.vss", "match": "@[a-zA-Z_][a-zA-Z0-9_-]*" }]
+			"patterns": [
+				{ "name": "variable.other.vss", "match": "@[a-zA-Z_][a-zA-Z0-9_-]*" },
+				{ "name": "variable.other.vss", "match": "--[a-zA-Z_][a-zA-Z0-9_-]*" }
+			]
 		},
 		"selectors": {
 			"patterns": [
@@ -42,7 +45,7 @@
 				},
 				{
 					"name": "entity.other.attribute-name.id.vss",
-					"match": "#[a-zA-Z_][a-zA-Z0-9_-]*"
+					"match": "#(?![0-9a-fA-F]{3,8}\\b)[a-zA-Z_][a-zA-Z0-9_-]*"
 				},
 				{ "name": "entity.other.attribute-name.pseudo-class.vss", "match": ":[a-zA-Z_-]+" }
 			]
