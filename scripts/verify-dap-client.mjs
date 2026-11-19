@@ -9,8 +9,9 @@
 // configurationDone. The launch/attach request is sent WITHOUT awaiting its
 // response first — gdb 18.1 waits for configurationDone before replying to
 // launch, so awaiting the launch response first deadlocks the first check.
-// Every request carries a timeout so a stalled adapter fails loudly instead
-// of hanging CI.
+// Every request carries a timeout, a dead child fails pending requests
+// immediately, and disconnect/kill in cleanup race short timers, so a
+// stalled adapter fails loudly instead of hanging CI.
 import { spawn } from "node:child_process"
 
 const args = Object.fromEntries(
@@ -47,12 +48,32 @@ function startSession(extraArgs) {
 	const events = []
 	let seq = 0
 	let stderrText = ""
+	let exited = false
+	let exitCode = null
 
 	child.stderr.on("data", (chunk) => {
 		stderrText += chunk.toString()
 	})
 	child.on("error", (error) => {
 		fail("spawn", `${GDB} -i=dap: ${error.message}`)
+	})
+	// Async stdin failures (e.g. EPIPE after a crash) surface as failed
+	// requests through send(), never as an unhandled stream error.
+	child.stdin.on("error", () => {})
+	// A dead child can never answer: fail pending requests immediately
+	// instead of making each one sit out its full timeout.
+	child.on("exit", (code) => {
+		exited = true
+		exitCode = code
+		for (const [id, resume] of pending) {
+			pending.delete(id)
+			resume({
+				type: "response",
+				request_seq: id,
+				success: false,
+				message: `gdb exited (code ${code}) before responding`,
+			})
+		}
 	})
 
 	child.stdout.on("data", (chunk) => {
@@ -82,6 +103,14 @@ function startSession(extraArgs) {
 
 	function send(command, args) {
 		const id = ++seq
+		if (exited) {
+			return Promise.resolve({
+				type: "response",
+				request_seq: id,
+				success: false,
+				message: `gdb already exited (code ${exitCode}); cannot send ${command}`,
+			})
+		}
 		return new Promise((resolve) => {
 			const timer = setTimeout(() => {
 				pending.delete(id)
@@ -96,16 +125,40 @@ function startSession(extraArgs) {
 				clearTimeout(timer)
 				resolve(body)
 			})
-			const payload = Buffer.from(
-				JSON.stringify({ seq: id, type: "request", command, arguments: args }),
-				"utf8",
-			)
-			child.stdin.write(
-				Buffer.concat([
-					Buffer.from(`Content-Length: ${payload.length}\r\n\r\n`, "utf8"),
-					payload,
-				]),
-			)
+			let payload
+			try {
+				payload = Buffer.from(
+					JSON.stringify({ seq: id, type: "request", command, arguments: args }),
+					"utf8",
+				)
+			} catch (error) {
+				clearTimeout(timer)
+				pending.delete(id)
+				resolve({
+					type: "response",
+					request_seq: id,
+					success: false,
+					message: `could not encode ${command} request: ${error.message}`,
+				})
+				return
+			}
+			try {
+				child.stdin.write(
+					Buffer.concat([
+						Buffer.from(`Content-Length: ${payload.length}\r\n\r\n`, "utf8"),
+						payload,
+					]),
+				)
+			} catch (error) {
+				clearTimeout(timer)
+				pending.delete(id)
+				resolve({
+					type: "response",
+					request_seq: id,
+					success: false,
+					message: `could not write ${command} request: ${error.message}`,
+				})
+			}
 		})
 	}
 
@@ -129,14 +182,27 @@ function startSession(extraArgs) {
 		events,
 		stderr: () => stderrText,
 		async close() {
+			// Disconnect races a short cleanup timer: a hung adapter must not
+			// hold cleanup hostage after every request already timed out.
 			try {
-				await send("disconnect", {})
+				await Promise.race([
+					send("disconnect", {}),
+					new Promise((resolve) => setTimeout(resolve, 5000)),
+				])
 			} catch {}
-			child.stdin.end()
+			try {
+				child.stdin.end()
+			} catch {}
 			await new Promise((resolve) => {
-				const timer = setTimeout(() => child.kill("SIGKILL"), 5000)
+				if (exited) {
+					resolve()
+					return
+				}
+				const killer = setTimeout(() => child.kill("SIGKILL"), 5000)
+				const failsafe = setTimeout(resolve, 15000)
 				child.on("exit", () => {
-					clearTimeout(timer)
+					clearTimeout(killer)
+					clearTimeout(failsafe)
 					resolve()
 				})
 			})

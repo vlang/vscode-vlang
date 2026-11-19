@@ -41,7 +41,9 @@ coverage/**
 out/test/**
 out/**/*.map
 scripts/**
+!scripts/gdb/
 !scripts/gdb/v_printers.py
+!scripts/lldb/
 !scripts/lldb/v_formatters.py
 docs/**
 .oxlintrc.json

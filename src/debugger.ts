@@ -19,6 +19,7 @@ import {
 	missingDebuggerMessage,
 	parseEnvFile,
 	preflightGdb,
+	pipeTransportArgs,
 	resolveDebuggerCommand,
 	vPrintersPath,
 	type CppdbgEnvironmentEntry,
@@ -26,6 +27,7 @@ import {
 	type GdbPreflightResult,
 	type VDebuggerMode,
 	type VSetupCommandInput,
+	withEnvFileEntries,
 } from "./debugCompile"
 import { resolvedCommand } from "./vCommand"
 import { vCommandForProgram } from "./vExecutable"
@@ -484,12 +486,7 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				`Cannot read envFile ${vConfiguration.envFile}: ${detail}. Launching without it.`,
 			)
 		}
-		const resolved = {
-			...configuration,
-			env: buildDapEnv(vConfiguration.environment, process.env, fileEntries),
-		}
-		delete (resolved as Partial<VDebugConfiguration>).envFile
-		return resolved
+		return withEnvFileEntries(configuration, fileEntries) as vscode.DebugConfiguration
 	}
 }
 
@@ -598,25 +595,22 @@ class VDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFac
 		if (config.pipeTransport) {
 			const pt = config.pipeTransport
 			const pipePath = resolvedCommand(pt.pipeProgram, folder?.uri.fsPath)
-			if (!pipePath) {
+			if (!pipePath || !pt.debuggerPath.trim()) {
 				return undefined
 			}
+			// `pt.debuggerPath` is the debugger on the remote end: it goes
+			// verbatim after the pipe arguments and is never resolved against
+			// the local PATH, where it may not exist at all.
 			if (miMode === "lldb") {
-				const lldbDap =
-					resolvedCommand("lldb-dap", folder?.uri.fsPath) ||
-					resolvedCommand("lldb-vscode", folder?.uri.fsPath)
-				if (!lldbDap) {
-					return undefined
-				}
 				return new vscode.DebugAdapterExecutable(
 					pipePath,
-					[...(pt.pipeArgs ?? []), lldbDap],
+					pipeTransportArgs(pt),
 					pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
 				)
 			}
 			return new vscode.DebugAdapterExecutable(
 				pipePath,
-				[...(pt.pipeArgs ?? []), debuggerPath, "-i=dap"],
+				pipeTransportArgs(pt, ["-i=dap"]),
 				pt.pipeCwd ? { cwd: pt.pipeCwd } : undefined,
 			)
 		}

@@ -30,12 +30,12 @@ python_out="$("$GDB" --batch -ex 'python print("ok")' 2>&1 || true)"
 dap_out="$("$GDB" -i=dap --batch </dev/null 2>&1 || true)"
 
 if echo "$python_out" | grep -q "Python scripting is not supported"; then
-  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)"
+  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
   echo "gdb ${ver} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg')."
   exit 1
 fi
 if echo "$dap_out" | grep -qi "unrecognized\|Could not find interpreter"; then
-  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)"
+  ver="$("$GDB" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
   echo "gdb ${ver} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg')."
   exit 1
 fi
@@ -106,11 +106,22 @@ EOF
 "${WORK}/victim" &
 VICTIM_PID=$!
 
-node "${ROOT}/scripts/verify-dap-client.mjs" \
-  --gdb="$GDB" \
-  --printers="${ROOT}/scripts/gdb/v_printers.py" \
-  --work="$WORK" \
-  --attach-bin="${WORK}/victim" \
-  --attach-pid="$VICTIM_PID"
+# The client bounds every request internally; `timeout` (where available)
+# caps the whole step so a wedged adapter fails loudly instead of hanging CI.
+if command -v timeout >/dev/null 2>&1; then
+  timeout 300 node "${ROOT}/scripts/verify-dap-client.mjs" \
+    --gdb="$GDB" \
+    --printers="${ROOT}/scripts/gdb/v_printers.py" \
+    --work="$WORK" \
+    --attach-bin="${WORK}/victim" \
+    --attach-pid="$VICTIM_PID"
+else
+  node "${ROOT}/scripts/verify-dap-client.mjs" \
+    --gdb="$GDB" \
+    --printers="${ROOT}/scripts/gdb/v_printers.py" \
+    --work="$WORK" \
+    --attach-bin="${WORK}/victim" \
+    --attach-pid="$VICTIM_PID"
+fi
 
 echo "PASS: verify-dap"

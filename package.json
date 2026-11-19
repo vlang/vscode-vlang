@@ -924,7 +924,7 @@
 										"type": "string"
 									}
 								},
-								"description": "Reach a remote debugger through a pipe program such as ssh."
+								"description": "Reach a remote debugger through a pipe program such as ssh. debuggerPath is the debugger executable on the remote machine and is used verbatim."
 							}
 						}
 					},
@@ -1021,7 +1021,7 @@
 										"type": "string"
 									}
 								},
-								"description": "Reach a remote debugger through a pipe program such as ssh."
+								"description": "Reach a remote debugger through a pipe program such as ssh. debuggerPath is the debugger executable on the remote machine and is used verbatim."
 							}
 						}
 					}

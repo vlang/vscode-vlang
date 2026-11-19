@@ -18,9 +18,11 @@ import {
 	missingDebuggerMessage,
 	parseEnvFile,
 	parseGdbVersion,
+	pipeTransportArgs,
 	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
+	withEnvFileEntries,
 } from "../debugCompile"
 
 describe("V debug compile", () => {
@@ -349,12 +351,25 @@ describe("V debug compile", () => {
 			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: true })
 		})
 		it("accepts distro-packaged version banners", () => {
-			// Ubuntu tags the vendor before the version: the version is the
-			// LAST X.Y on the first line, not the (GDB) shape.
+			// Ubuntu/Debian tag the vendor before the version; the version
+			// is the token right after the vendor tag, not the (GDB) shape
+			// and not a later dotted distro suffix.
 			assert.strictEqual(parseGdbVersion("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n"), "15.1")
+			assert.strictEqual(parseGdbVersion("GNU gdb (Debian 13.1-3) 13.1\nok\n"), "13.1")
+			assert.strictEqual(
+				parseGdbVersion("GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1\nok\n"),
+				"12.1",
+			)
 			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) 17.1\nok\n"), "17.1")
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) Fedora 13.2-5.fc38\nok\n"), "13.2")
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) 16.0.50.20240513-git\nok\n"), "16.0")
+			assert.strictEqual(parseGdbVersion("not a gdb banner\nok\n"), "")
 			const result = preflightGdb("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n")
 			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: false })
+			assert.deepStrictEqual(preflightGdb("GNU gdb (Debian 13.1-3) 13.1\nok\n"), {
+				adapter: "gdb-dap",
+				coreFileDap: false,
+			})
 		})
 		it("rejects this host's gdb 17.1 (no Python/DAP)", () => {
 			const recorded =
@@ -580,6 +595,55 @@ describe("V debug compile", () => {
 			assert.deepStrictEqual(
 				parseEnvFile("# comment\n\nA=1\nB = two = three\nNOEQUALS\n=noname\n"),
 				{ A: "1", B: "two = three" },
+			)
+		})
+
+		it("merges envFile entries after substitution and drops envFile", () => {
+			// The hook runs after VS Code substitutes variables, so the path
+			// here is already expanded; the merge must keep inherited values,
+			// let the file override them, and let explicit entries win.
+			const resolved = withEnvFileEntries(
+				{
+					type: "v",
+					request: "launch",
+					program: "/tmp/v-debug-main",
+					envFile: "/w/app/.env",
+					environment: [{ name: "SHARED", value: "explicit" }],
+				},
+				{ SHARED: "file", FROM_FILE: "1" },
+				{ PATH: "/usr/bin", SHARED: "base" },
+			)
+			assert.deepStrictEqual(resolved.env, {
+				PATH: "/usr/bin",
+				SHARED: "explicit",
+				FROM_FILE: "1",
+			})
+			assert.ok(!("envFile" in resolved))
+			assert.strictEqual(resolved.program, "/tmp/v-debug-main")
+		})
+	})
+
+	describe("remote pipe transport", () => {
+		it("passes the remote debugger path through verbatim", () => {
+			// The remote gdb may live at a different path than the local one,
+			// so it must not be resolved against the local PATH.
+			assert.deepStrictEqual(
+				pipeTransportArgs(
+					{
+						pipeProgram: "ssh",
+						pipeArgs: ["remote"],
+						debuggerPath: "/opt/remote/bin/gdb",
+					},
+					["-i=dap"],
+				),
+				["remote", "/opt/remote/bin/gdb", "-i=dap"],
+			)
+		})
+
+		it("handles a bare pipe with no extra args", () => {
+			assert.deepStrictEqual(
+				pipeTransportArgs({ pipeProgram: "ssh", debuggerPath: "/usr/bin/lldb-dap" }),
+				["/usr/bin/lldb-dap"],
 			)
 		})
 	})

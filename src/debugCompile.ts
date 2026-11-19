@@ -133,13 +133,31 @@ export interface CppdbgLaunchConfiguration {
 	pipeTransport?: CppdbgPipeTransport
 }
 
-/** Remote debugging transport for the MI debugger. */
+/** Remote debugging transport for the MI debugger.
+ *
+ * `debuggerPath` is the debugger on the REMOTE end of the pipe: it may live
+ * at a different path than the local `miDebuggerPath` (that is why the pipe
+ * exists at all), so it must never be resolved against the local PATH. The
+ * pipe program itself (`ssh`, ...) is local and resolved normally. */
 export interface CppdbgPipeTransport {
 	pipeProgram: string
 	pipeArgs?: string[]
 	pipeCwd?: string
 	pipeEnv?: Record<string, string>
 	debuggerPath: string
+}
+
+/** Arguments that run the remote debugger through a pipe program.
+ *
+ * The remote debugger path goes verbatim after the pipe arguments: resolving
+ * it locally would substitute the wrong executable whenever the remote gdb
+ * or lldb-dap lives at a different path. Extra debugger arguments (e.g.
+ * gdb's `-i=dap`) follow the remote path. */
+export function pipeTransportArgs(
+	pipeTransport: CppdbgPipeTransport,
+	debuggerArgs: string[] = [],
+): string[] {
+	return [...(pipeTransport.pipeArgs ?? []), pipeTransport.debuggerPath, ...debuggerArgs]
 }
 
 /** An environment entry for the debugged program. */
@@ -321,12 +339,19 @@ export interface GdbPreflightResult {
 /** Extract the gdb version from a `--version` banner.
  *
  * Distro packaging adds a vendor tag that shifts the version away from the
- * `(GDB)` shape, e.g. `GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1`: the version is
- * the LAST `X.Y` on the first line, whatever precedes it. */
+ * `(GDB)` shape, e.g. `GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1` or
+ * `GNU gdb (Debian 13.1-3) 13.1`. The canonical form ends with the version
+ * right after the vendor tag, so prefer that: a dotted distro suffix
+ * (`~22.04`), a Fedora release tag (`13.2-5.fc38`), or a git build stamp
+ * (`16.0.50.20240513-git`) must never win over the real version. Without
+ * a vendor tag the first `X.Y` is the version. */
 export function parseGdbVersion(text: string): string {
 	const firstLine = text.split(/\r?\n/)[0] ?? ""
-	const matches = firstLine.match(/\d+\.\d+/g)
-	return matches?.[matches.length - 1] ?? ""
+	const trailing = /\)\s*(\d+\.\d+)/.exec(firstLine)?.[1]
+	if (trailing) {
+		return trailing
+	}
+	return firstLine.match(/\d+\.\d+/)?.[0] ?? ""
 }
 
 /** Normalize a preflight input into text + exit code. */
@@ -513,6 +538,37 @@ export function buildDapEnv(
 		env[entry.name] = entry.value
 	}
 	return env
+}
+
+/** A launch configuration carrying the pieces the env merge reads.
+ *
+ * Structural (not `vscode.DebugConfiguration`) so the merge stays testable
+ * without the vscode API: the provider narrows its own config to this. */
+export interface DapLaunchEnvConfig {
+	environment?: CppdbgEnvironmentEntry[]
+	envFile?: string
+	env?: Record<string, string>
+}
+
+/** Merge parsed envFile entries into a launch configuration.
+ *
+ * Runs on the substituted config (see the provider's
+ * `resolveDebugConfigurationWithSubstitutedVariables`): the `envFile` path
+ * there is already expanded, so `${workspaceFolder}/.env` resolves instead
+ * of being read literally and swallowed. Precedence is inherited < envFile
+ * < explicit `environment`; `envFile` itself is dropped because neither GDB
+ * DAP nor lldb-dap consumes it. */
+export function withEnvFileEntries(
+	configuration: DapLaunchEnvConfig & Record<string, unknown>,
+	fileEntries: Record<string, string>,
+	base: NodeJS.ProcessEnv = process.env,
+): DapLaunchEnvConfig & Record<string, unknown> {
+	const resolved: DapLaunchEnvConfig & Record<string, unknown> = {
+		...configuration,
+		env: buildDapEnv(configuration.environment, base, fileEntries),
+	}
+	delete resolved.envFile
+	return resolved
 }
 
 /** The lldb-dap fields a V launch or attach configuration needs.
