@@ -60,20 +60,28 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 	// Otherwise a stale onDidEndTaskProcess from the previous task can be
 	// captured by the next taskExit, attributing the wrong exit code.
 	// macOS cleans up task terminals slower than Linux, making the race visible there.
+	// The new execution is captured via onDidStartTask and only its own end
+	// event is accepted by identity, so a stale pending end from a previous
+	// task (already gone from taskExecutions) can never match.
 	await waitFor(async () => {
 		const running = vscode.tasks.taskExecutions.filter(
 			(execution) => execution.task.definition.type === "v",
 		)
 		return running.length === 0 ? true : undefined
 	}, "previous V tasks to finish")
-	const known = new Set(vscode.tasks.taskExecutions)
-	let listener: vscode.Disposable | undefined
+	let target: vscode.TaskExecution | undefined
+	let startListener: vscode.Disposable | undefined
+	let endListener: vscode.Disposable | undefined
 	let timer: NodeJS.Timeout | undefined
 	const done = new Promise<number | undefined>((resolve, reject) => {
 		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 60_000)
-		listener = vscode.tasks.onDidEndTaskProcess((event) => {
+		startListener = vscode.tasks.onDidStartTask((event) => {
 			if (event.execution.task.definition.type !== "v") return
-			if (known.has(event.execution)) return
+			if (!target) target = event.execution
+		})
+		endListener = vscode.tasks.onDidEndTaskProcess((event) => {
+			if (event.execution.task.definition.type !== "v") return
+			if (event.execution !== target) return
 			resolve(event.exitCode)
 		})
 	})
@@ -81,7 +89,8 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 		await vscode.commands.executeCommand(command, ...args)
 		return await done
 	} finally {
-		listener?.dispose()
+		startListener?.dispose()
+		endListener?.dispose()
 		if (timer) clearTimeout(timer)
 	}
 }
