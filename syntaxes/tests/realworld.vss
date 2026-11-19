@@ -1,0 +1,146 @@
+// SYNTAX TEST "source.vss"
+@accent: #2563eb;
+//<------- variable.other.vss
+//       ^^^^^^^ constant.numeric.color.hex.vss
+@accent-hover: #1d4ed8;
+//<------------- variable.other.vss
+//             ^^^^^^^ constant.numeric.color.hex.vss
+light { @bg: #f1f5f9; @surface: #ffffff; @line: #cbd5e1; @ink: #172033; @muted: #64748b; }
+//<------- keyword.control.at-rule.vss
+//      ^^^ variable.other.vss
+//           ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+//                    ^^^^^^^^ variable.other.vss
+//                              ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+//                                              ^^^^^^^ constant.numeric.color.hex.vss - entity.other.attribute-name.id.vss
+//                                       ^^^^^ variable.other.vss
+//                                                       ^^^^ variable.other.vss
+//                                                             ^^^^^^^ constant.numeric.color.hex.vss
+//                                                                      ^^^^^^ variable.other.vss
+//                                                                              ^^^^^^^ constant.numeric.color.hex.vss
+dark { @bg: #0f172a; @surface: #1e293b; @line: #334155; @ink: #f8fafc; @muted: #b4c0d0; }
+//<------ keyword.control.at-rule.vss
+//     ^^^ variable.other.vss
+//          ^^^^^^^ constant.numeric.color.hex.vss
+//                   ^^^^^^^^ variable.other.vss
+//                             ^^^^^^^ constant.numeric.color.hex.vss
+//                                      ^^^^^ variable.other.vss
+//                                             ^^^^^^^ constant.numeric.color.hex.vss
+//                                                      ^^^^ variable.other.vss
+//                                                                     ^^^^^^ variable.other.vss
+
+Button {
+//<------ entity.name.tag.vss
+	background: @accent;
+//<~---------- support.type.property-name.vss
+//           ^^^^^^^ variable.other.vss
+	color: white;
+//<~----- support.type.property-name.vss
+	border-radius: 6px;
+//<~------------- support.type.property-name.vss
+//              ^^^ constant.numeric.vss
+	font-size: 14px;
+//<~--------- support.type.property-name.vss
+//          ^^^^ constant.numeric.vss
+}
+Button:hover { background: @accent-hover; }
+//<------ entity.name.tag.vss
+//    ^^^^^^ entity.other.attribute-name.pseudo-class.vss
+//             ^^^^^^^^^^ support.type.property-name.vss
+//                         ^^^^^^^^^^^^^ variable.other.vss
+Button:pressed { opacity: 0.85; }
+//<------ entity.name.tag.vss
+//    ^^^^^^^^ entity.other.attribute-name.pseudo-class.vss
+//               ^^^^^^^ support.type.property-name.vss
+//                        ^^^^ constant.numeric.vss
+Button:disabled { opacity: 0.4; }
+//<------ entity.name.tag.vss
+//    ^^^^^^^^^ entity.other.attribute-name.pseudo-class.vss
+//                ^^^^^^^ support.type.property-name.vss
+//                         ^^^ constant.numeric.vss
+Button.ghost { background: @bg; color: @ink; border-color: @accent; border-width: 1px; }
+//<------ entity.name.tag.vss
+//    ^^^^^^ entity.other.attribute-name.class.vss
+//             ^^^^^^^^^^ support.type.property-name.vss
+//                         ^^^ variable.other.vss
+//                              ^^^^^ support.type.property-name.vss
+//                                     ^^^^ variable.other.vss
+//                                           ^^^^^^^^^^^^ support.type.property-name.vss
+//                                                         ^^^^^^^ variable.other.vss
+//                                                                  ^^^^^^^^^^^^ support.type.property-name.vss
+//                                                                                ^^^ constant.numeric.vss
+Label { color: @ink; font-size: 14px; }
+//<----- entity.name.tag.vss
+//      ^^^^^ support.type.property-name.vss
+//             ^^^^ variable.other.vss
+//                   ^^^^^^^^^ support.type.property-name.vss
+//                              ^^^^ constant.numeric.vss
+Label.title { font-size: 22px; font-weight: bold; }
+//<----- entity.name.tag.vss
+//   ^^^^^^ entity.other.attribute-name.class.vss
+//            ^^^^^^^^^ support.type.property-name.vss
+//                       ^^^^ constant.numeric.vss
+//                             ^^^^^^^^^^^ support.type.property-name.vss
+Label.muted { color: @muted; font-size: 13px; }
+//<----- entity.name.tag.vss
+//   ^^^^^^ entity.other.attribute-name.class.vss
+//            ^^^^^ support.type.property-name.vss
+//                   ^^^^^^ variable.other.vss
+//                           ^^^^^^^^^ support.type.property-name.vss
+//                                      ^^^^ constant.numeric.vss
+@media (max-width: 480px) { Label.title { font-size: 16px; } }
+//<------ keyword.control.at-rule.vss - variable.other.vss
+//                 ^^^^^ constant.numeric.vss
+//                          ^^^^^ entity.name.tag.vss
+//                               ^^^^^^ entity.other.attribute-name.class.vss
+//                                        ^^^^^^^^^ support.type.property-name.vss
+//                                                   ^^^^ constant.numeric.vss
+Label.counter { font-size: 20px; font-weight: bold; }
+//<----- entity.name.tag.vss
+//   ^^^^^^^^ entity.other.attribute-name.class.vss
+//              ^^^^^^^^^ support.type.property-name.vss
+//                         ^^^^ constant.numeric.vss
+//                               ^^^^^^^^^^^ support.type.property-name.vss
+Checkbox { color: @ink; }
+//<-------- entity.name.tag.vss
+//         ^^^^^ support.type.property-name.vss
+//                ^^^^ variable.other.vss
+Checkbox:checked { color: @accent; }
+//<-------- entity.name.tag.vss
+//      ^^^^^^^^ entity.other.attribute-name.pseudo-class.vss
+//                 ^^^^^ support.type.property-name.vss
+//                        ^^^^^^^ variable.other.vss
+View.card {
+//<---- entity.name.tag.vss
+//  ^^^^^ entity.other.attribute-name.class.vss
+	background: @surface;
+//<~---------- support.type.property-name.vss
+//           ^^^^^^^^ variable.other.vss
+	border-radius: 10px;
+//<~------------- support.type.property-name.vss
+//              ^^^^ constant.numeric.vss
+	border-color: @line;
+//<~------------ support.type.property-name.vss
+//             ^^^^^ variable.other.vss
+	border-width: 1px;
+//<~------------ support.type.property-name.vss
+//             ^^^ constant.numeric.vss
+}
+/* theme tokens */
+//<---------------- comment.block.vss
+@supports (container-queries) {
+//<--------- keyword.control.at-rule.vss - variable.other.vss
+	View.card { border-radius: 16px; }
+//<~---- entity.name.tag.vss
+//   ^^^^^ entity.other.attribute-name.class.vss
+//           ^^^^^^^^^^^^^ support.type.property-name.vss
+//                          ^^^^ constant.numeric.vss
+:root { --pad: 12px; }
+//<----- entity.other.attribute-name.pseudo-class.vss
+//      ^^^^^ variable.other.vss
+//             ^^^^ constant.numeric.vss
+Button { font-size: var(--pad, 14px); }
+//<------ entity.name.tag.vss
+//       ^^^^^^^^^ support.type.property-name.vss
+//                      ^^^^^ variable.other.vss
+//                             ^^^^ constant.numeric.vss
+}

@@ -22,7 +22,9 @@ needed by the extension-host tests (see _V toolchain_).
   Source modules only: test files and the vscode stand-in are excluded, because
   a suite's own lines are counted against it twice over once it is bundled.
 - `npm run test:grammar` — vscode-tmgrammar-test over `syntaxes/tests/*.v`
-  against `syntaxes/v.tmLanguage.json`.
+  against `syntaxes/v.tmLanguage.json`, then over `syntaxes/tests/*.vss`
+  against `syntaxes/vss.tmLanguage.json` (`test:grammar:v` and
+  `test:grammar:vss` run each half).
 - `npm run test:vscode` — run the extension in a real VS Code.
 - `npm run package` — `build:prod` then `vsce package`, producing a `.vsix`.
 
@@ -113,7 +115,9 @@ split that matters is **pure logic in one module, editor API in another**:
 `syntaxes/v.tmLanguage.json` is the TextMate grammar for `v`, and
 `syntaxes/v.mod.tmLanguage.json` for `v.mod`. A grammar change ships with a
 `// SYNTAX TEST` case in `syntaxes/tests/*.v`: a header naming the scope, then
-caret assertions under each token. `npm run test:grammar` runs them.
+caret assertions under each token. `npm run test:grammar` runs them, plus the
+`syntaxes/tests/*.vss` cases for the `vss` (ui2 stylesheet) grammar, which use
+the same header-and-assertion format.
 
 Do not put syntax in the grammar, or in a module, that V does not have.
 `#region` is the example: a line starting with `#` is one directive token to
