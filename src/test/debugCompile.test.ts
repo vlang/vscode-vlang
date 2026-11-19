@@ -12,6 +12,7 @@ import {
 	gdbSetupCommandToCli,
 	gdbSetupCommands,
 	isCommandReference,
+	shouldSkipProcessPicker,
 	lldbDapFields,
 	mainFunctionLines,
 	missingCppdbgMessage,
@@ -399,6 +400,17 @@ describe("V debug compile", () => {
 			assert.strictEqual(result.adapter, null)
 			assert.strictEqual(result.error, "gdb not found on PATH")
 		})
+		it("rejects a failed DAP probe even without a recognized diagnostic", () => {
+			// A failed probe must not be classified capable just because its
+			// output lacks the known unrecognized-interpreter text: the
+			// object path carries the non-zero exit code the string path
+			// would default to zero.
+			const result = preflightGdb({
+				output: "GNU gdb (GDB) 18.1\nsome odd failure\n",
+				exitCode: 1,
+			})
+			assert.strictEqual(result.adapter, null)
+		})
 	})
 
 	describe("pretty-printer toggle", () => {
@@ -477,10 +489,20 @@ describe("V debug compile", () => {
 			)
 		})
 
-		it("runs other MI commands through the MI interpreter", () => {
+		it("translates -gdb-set to a CLI set command", () => {
 			assert.strictEqual(
 				gdbSetupCommandToCli("-gdb-set print pretty on"),
-				'-interpreter-exec mi "-gdb-set print pretty on"',
+				"set print pretty on",
+			)
+			assert.strictEqual(gdbSetupCommandToCli("-gdb-set   confirm off"), "set confirm off")
+		})
+
+		it("runs other MI commands through the MI interpreter", () => {
+			// `-iex` expects CLI, so the wrapper is `interpreter-exec mi`
+			// (no leading dash): GDB rejects `-interpreter-exec mi` there.
+			assert.strictEqual(
+				gdbSetupCommandToCli("-break-insert main"),
+				'interpreter-exec mi "-break-insert main"',
 			)
 		})
 
@@ -538,6 +560,41 @@ describe("V debug compile", () => {
 			assert.ok(isCommandReference("${command:pickProcess}"))
 			assert.ok(!isCommandReference("1234"))
 			assert.ok(!isCommandReference(""))
+		})
+
+		it("skips the picker reference when a core file is present", () => {
+			// The attach schema defaults processId to the picker, so a
+			// core-file-only config still carries it; running the picker
+			// would send both pid and coreFile and GDB would prefer the PID.
+			assert.strictEqual(
+				shouldSkipProcessPicker({
+					processId: "${command:v.pickProcess}",
+					coreFile: "/tmp/core.test",
+				}),
+				true,
+			)
+		})
+
+		it("skips the picker reference when a remote target is present", () => {
+			assert.strictEqual(
+				shouldSkipProcessPicker({
+					processId: "${command:v.pickProcess}",
+					target: "localhost:2345",
+				}),
+				true,
+			)
+		})
+
+		it("keeps the picker reference for a live-process attach", () => {
+			assert.strictEqual(
+				shouldSkipProcessPicker({ processId: "${command:v.pickProcess}" }),
+				false,
+			)
+			assert.strictEqual(shouldSkipProcessPicker({ processId: "1234" }), false)
+			assert.strictEqual(
+				shouldSkipProcessPicker({ processId: "1234", coreFile: "/tmp/core.test" }),
+				false,
+			)
 		})
 	})
 

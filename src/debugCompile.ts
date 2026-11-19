@@ -424,8 +424,11 @@ export const checkGdb = preflightGdb
  * the `cppdbg` adapter sends. The built-in adapter instead passes them to
  * `gdb -iex`, which expects CLI commands: GDB 18.1 rejects the MI
  * `-enable-pretty-printing` there as an undefined command. Known MI shapes
- * translate exactly, any other `-command` runs wrapped in
- * `-interpreter-exec mi`, and text that is already a CLI command passes
+ * translate exactly (`-enable-pretty-printing` to `set print pretty on`,
+ * `-gdb-set` to `set`, console `interpreter-exec` unwraps), any other
+ * `-command` runs wrapped in the CLI `interpreter-exec mi` (no leading
+ * dash: `-iex` expects CLI, so `-interpreter-exec mi` is rejected as an
+ * undefined command), and text that is already a CLI command passes
  * through untouched. */
 export function gdbSetupCommandToCli(text: string): string {
 	const trimmed = text.trim()
@@ -436,8 +439,12 @@ export function gdbSetupCommandToCli(text: string): string {
 	if (consoleMatch) {
 		return consoleMatch[1]!.replace(/\\"/g, '"').replace(/\\\\/g, "\\")
 	}
+	const gdbSetMatch = trimmed.match(/^-gdb-set\s+([\s\S]*)$/)
+	if (gdbSetMatch) {
+		return `set ${gdbSetMatch[1]!.trim()}`
+	}
 	if (trimmed.startsWith("-")) {
-		return `-interpreter-exec mi "${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+		return `interpreter-exec mi "${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
 	}
 	return text
 }
@@ -450,6 +457,27 @@ export function gdbSetupCommandToCli(text: string): string {
  * handing GDB DAP a string it cannot parse as a PID. */
 export function isCommandReference(value: string): boolean {
 	return /^\$\{command:[^}]+\}$/.test(value.trim())
+}
+
+/** Whether a `${command:...}` picker reference should be ignored for attach.
+ *
+ * The attach schema defaults `processId` to `${command:v.pickProcess}`, so a
+ * core-file-only or remote-target-only configuration still carries the picker
+ * reference. Running the picker then sends both `pid` and `coreFile`/`target`,
+ * and GDB DAP prefers the PID over the requested dump or remote. When a core
+ * file or remote target is present, a command reference is treated as absent:
+ * skip the picker and send no PID. An explicit numeric PID still wins and is
+ * never skipped. */
+export function shouldSkipProcessPicker(input: {
+	processId?: string
+	coreFile?: string
+	target?: string
+}): boolean {
+	const pidText = (input.processId ?? "").trim()
+	if (!pidText || !isCommandReference(pidText)) {
+		return false
+	}
+	return Boolean((input.coreFile ?? "").trim() || (input.target ?? "").trim())
 }
 
 /** The DAP fields a built-in attach session needs.

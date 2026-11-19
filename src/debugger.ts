@@ -12,6 +12,7 @@ import {
 	debugCompileArgs,
 	gdbSetupCommandToCli,
 	isCommandReference,
+	shouldSkipProcessPicker,
 	lldbDapFields,
 	buildDapEnv,
 	mainFunctionLines,
@@ -175,19 +176,23 @@ async function selectAdapter(
  * Runs the same three checks `scripts/verify-dap.sh` gates CI on (version,
  * Python support, the `dap` interpreter) and feeds the combined output to
  * `preflightGdb`, so the provider and the script agree on what counts as
- * DAP-capable.
+ * DAP-capable. Probe exit codes are preserved: a failed probe must not be
+ * classified as capable just because its diagnostic text is unrecognized.
  */
 async function probeGdbCapability(gdbPath: string): Promise<GdbPreflightResult> {
-	const runs: Promise<string>[] = [
+	const runs: Promise<{ output: string; exitCode: number }>[] = [
 		runProbe(gdbPath, ["--version"]),
 		runProbe(gdbPath, ["--batch", "-ex", 'python print("ok")']),
 		runProbe(gdbPath, ["-i=dap", "--batch"]),
 	]
-	return preflightGdb((await Promise.all(runs)).join("\n"))
+	const results = await Promise.all(runs)
+	const combined = results.map((result) => result.output).join("\n")
+	const exitCode = results.some((result) => result.exitCode !== 0) ? 1 : 0
+	return preflightGdb({ output: combined, exitCode })
 }
 
 /** Run one gdb probe, folding spawn failures into text the preflight parser reads. */
-function runProbe(gdbPath: string, args: string[]): Promise<string> {
+function runProbe(gdbPath: string, args: string[]): Promise<{ output: string; exitCode: number }> {
 	return new Promise((resolve) => {
 		// `stdio: "ignore"` for stdin mirrors the `</dev/null` the verify
 		// script uses: `gdb -i=dap --batch` must see EOF, not a held pipe.
@@ -203,11 +208,14 @@ function runProbe(gdbPath: string, args: string[]): Promise<string> {
 		})
 		child.on("error", (error) => {
 			clearTimeout(timer)
-			resolve(`${stdout}\n${stderr}\n${error.message}`)
+			resolve({ output: `${stdout}\n${stderr}\n${error.message}`, exitCode: 1 })
 		})
-		child.on("close", () => {
+		child.on("close", (code) => {
 			clearTimeout(timer)
-			resolve(`${stdout}\n${stderr}`)
+			resolve({
+				output: `${stdout}\n${stderr}`,
+				exitCode: typeof code === "number" ? code : 1,
+			})
 		})
 	})
 }
@@ -270,8 +278,19 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			workspaceFolder?.uri.fsPath ||
 			path.dirname(vConfiguration.program)
 		if (vConfiguration.request === "attach") {
+			// Read `coreFile` and the remote target before the picker: the
+			// attach schema defaults `processId` to `${command:v.pickProcess}`,
+			// so a core-file-only or target-only config still carries the
+			// picker reference. Running it would send both `pid` and
+			// `coreFile`/`target`, and GDB DAP prefers the PID over the
+			// requested dump or remote. A command reference alongside a core
+			// file or target is treated as absent (no pick, no PID).
+			const coreFile = (vConfiguration.coreFile ?? "").trim() || undefined
+			const target = (vConfiguration.miDebuggerServerAddress ?? "").trim() || undefined
 			let processId = vConfiguration.processId
-			if (processId && isCommandReference(processId)) {
+			if (processId && shouldSkipProcessPicker({ processId, coreFile, target })) {
+				processId = undefined
+			} else if (processId && isCommandReference(processId)) {
 				// Variable substitution has not run yet, so the built-in
 				// adapter cannot defer to a picker command: run ours now.
 				const picked = await pickProcess()
@@ -280,7 +299,6 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 				}
 				processId = picked
 			}
-			const coreFile = (vConfiguration.coreFile ?? "").trim() || undefined
 			if (adapter === "cppdbg") {
 				if (!processId) {
 					void vscode.window.showErrorMessage(
@@ -312,7 +330,6 @@ export class VDebugConfigurationProvider implements vscode.DebugConfigurationPro
 			// adapter recognizes `processId`. The target comes from
 			// miDebuggerServerAddress first, so a remote attach validates even
 			// without a PID — and when both are set the target wins.
-			const target = (vConfiguration.miDebuggerServerAddress ?? "").trim() || undefined
 			const fields = dapAttachFields({ processId, coreFile, target })
 			if ("error" in fields) {
 				void vscode.window.showErrorMessage(fields.error)
