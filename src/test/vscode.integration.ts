@@ -69,12 +69,16 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 		)
 		return running.length === 0 ? true : undefined
 	}, "previous V tasks to finish")
+	// Even after taskExecutions empties, VS Code may still be tearing down the
+	// previous terminal on macOS. A brief settle avoids attributing the tail of
+	// that teardown to the next task.
+	await new Promise((resolve) => setTimeout(resolve, 1000))
 	let target: vscode.TaskExecution | undefined
 	let startListener: vscode.Disposable | undefined
 	let endListener: vscode.Disposable | undefined
 	let timer: NodeJS.Timeout | undefined
 	const done = new Promise<number | undefined>((resolve, reject) => {
-		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 60_000)
+		timer = setTimeout(() => reject(new Error(`Timed out waiting for ${command} task`)), 90_000)
 		startListener = vscode.tasks.onDidStartTask((event) => {
 			if (event.execution.task.definition.type !== "v") return
 			if (!target) target = event.execution
@@ -82,12 +86,15 @@ async function taskExit(command: string, ...args: unknown[]): Promise<number | u
 		endListener = vscode.tasks.onDidEndTaskProcess((event) => {
 			if (event.execution.task.definition.type !== "v") return
 			if (event.execution !== target) return
+			console.log(`Task ${command} exited with code ${event.exitCode}`)
 			resolve(event.exitCode)
 		})
 	})
 	try {
 		await vscode.commands.executeCommand(command, ...args)
-		return await done
+		const code = await done
+		if (code !== 0) console.log(`Task ${command} failed with exit code ${code}`)
+		return code
 	} finally {
 		startListener?.dispose()
 		endListener?.dispose()

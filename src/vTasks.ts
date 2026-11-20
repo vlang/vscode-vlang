@@ -444,7 +444,14 @@ export class VTaskManager implements vscode.Disposable {
 				void showMissingVCompiler(folder)
 				return undefined
 			}
-			this.activeExecutions.get(executionKey)?.terminate()
+			const previous = this.activeExecutions.get(executionKey)
+			// Only terminate a previous execution that is still running. The test
+			// harness resolves on onDidEndTaskProcess, which fires before
+			// onDidEndTask clears this map, so an already-finished execution can
+			// still be present here. Terminating it logs "Task to terminate not
+			// found" and, on macOS, races the next task's terminal teardown.
+			if (previous && vscode.tasks.taskExecutions.includes(previous)) previous.terminate()
+			else if (previous) this.activeExecutions.delete(executionKey)
 			const execution = await vscode.tasks.executeTask(task)
 			if (this.disposed) {
 				execution.terminate()
