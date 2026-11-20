@@ -13,6 +13,14 @@ on:
   # otherwise the only way to find out whether this file is wrong.
   workflow_dispatch:
 
+# Least privilege: nothing in this workflow runs with implicit token scopes.
+# The release job below declares exactly what it uses (`contents: write`
+# to attach the VSIX to the GitHub Release, `actions: read` to verify CI
+# passed on the tagged SHA). In particular no `id-token: write` is granted
+# anywhere here: publishing uses PATs (see below); a future switch to
+# trusted publishing needs a separate minimal publish job.
+permissions: {}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -26,6 +34,9 @@ jobs:
     # job that only gets `id-token: write` and the built VSIX.
     permissions:
       contents: write
+      # Read the CI workflow runs to refuse publishing a tag whose SHA never
+      # passed CI (see the gate step below).
+      actions: read
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,6 +56,14 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match package.json version $pkg"
             exit 1
           fi
+          # A version with a hyphen suffix (e.g. 0.3.0-rc.1) is a pre-release
+          # and must be marked as such on both registries; otherwise it would
+          # be published as stable. The publish steps below expand $PRE_RELEASE.
+          if [ "$pkg" != "${pkg%%-*}" ]; then
+            echo "PRE_RELEASE=--pre-release" >> "$GITHUB_ENV"
+          else
+            echo "PRE_RELEASE=" >> "$GITHUB_ENV"
+          fi
         if: startsWith(github.ref, 'refs/tags/')
       # A release is published only from a tree that passed, so the gates run
       # again here rather than being assumed from the earlier CI run.
@@ -56,6 +75,23 @@ jobs:
         run: npm run build
       - name: Package
         run: npm run package
+      # Publishing is only meaningful from a tree CI verified: this workflow
+      # runs its own unit/type/lint/grammar/build/package gates, but not the
+      # extension-host matrix (VS Code integration tests on ubuntu/macos with
+      # fixture and real VLS servers). A tag pushed on a SHA that never passed
+      # CI must not publish, so refuse when the CI workflow has no successful
+      # run for the tagged commit.
+      - name: Require green CI on the tagged SHA
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          sha="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          conclusion="$(gh run list --commit "$sha" --workflow 'CI' --limit 1 --json conclusion --jq '.[0].conclusion // empty')"
+          if [ "$conclusion" != 'success' ]; then
+            echo "No successful CI run for tag $GITHUB_REF_NAME ($sha); refusing to publish (got: '${conclusion:-none}')."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
       # Tag pushes only: a manual `workflow_dispatch` from a branch must not
       # create a GitHub Release (or tag) from that branch. Dispatch stays a
       # packaging dry run -- it builds the VSIX locally and uploads nothing.
@@ -79,7 +115,7 @@ jobs:
         # --no-install runs the lockfile-pinned binary from `npm ci` and fails
         # instead of fetching code from the registry while the publish token is
         # in the environment.
-        run: npx --no-install vsce publish --packagePath ./*.vsix --skip-duplicate
+        run: npx --no-install vsce publish --packagePath ./*.vsix --skip-duplicate $PRE_RELEASE
         env:
           # PAT with publish rights for the `vlanguage` publisher. A future
           # switch to trusted publishing (`vsce publish --oidc`) needs a
@@ -91,7 +127,7 @@ jobs:
         # Pinned via the `ovsx` devDependency: --no-install runs the
         # lockfile-installed binary and fails instead of installing the
         # latest ovsx from the registry while OVSX_PAT is in the environment.
-        run: npx --no-install ovsx publish --packagePath ./*.vsix --skip-duplicate
+        run: npx --no-install ovsx publish --packagePath ./*.vsix --skip-duplicate $PRE_RELEASE
         env:
           # Personal access token from https://open-vsx.org/user-settings/tokens
           # with publish rights for the `vlanguage` namespace.
