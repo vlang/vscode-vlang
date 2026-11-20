@@ -31,7 +31,14 @@ import {
 	schemaFromXml,
 } from "./decodeStruct"
 import { hoverTextFor, literalAtOffset } from "./numberHover"
-import { blockAtPosition, collectRules, hoverTextFor as vmlHoverTextFor, parseVml } from "./vml"
+import {
+	blockAtPosition,
+	collectRules,
+	collectVariables,
+	ancestorsOf,
+	hoverTextFor as vmlHoverTextFor,
+	parseVml,
+} from "./vml"
 import { parseByVersion } from "./documentMemo"
 import {
 	decodeBase32,
@@ -577,7 +584,12 @@ export function registerVmlHover(context: vscode.ExtensionContext): void {
 						return undefined
 					}
 					return new vscode.Hover(
-						vmlHoverTextFor(block, collectRules(nodes, block)),
+						vmlHoverTextFor(
+							block,
+							collectRules(nodes, block),
+							ancestorsOf(nodes, block),
+							collectVariables(nodes, block),
+						),
 						new vscode.Range(position.line, 0, position.line, 0),
 					)
 				},

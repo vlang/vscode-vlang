@@ -1,9 +1,11 @@
 import * as assert from "assert"
 import { describe, it } from "node:test"
 import {
+	ancestorsOf,
 	blockAtLine,
 	blockAtPosition,
 	collectRules,
+	collectVariables,
 	hoverTextFor,
 	matchingRules,
 	parseVml,
@@ -248,5 +250,102 @@ describe("VML review follow-ups", () => {
 		assert.strictEqual(nodes[0]?.children[0]?.props["id"], "custom")
 		// Hovering the widget resolves to it, not to its parent.
 		assert.strictEqual(blockAtPosition(nodes, 1, 4)?.kind, "myWidget")
+	})
+})
+
+describe("VML round-2 reviewer fixes", () => {
+	it("skips VSS block comments while balancing braces", () => {
+		const nodes = parseVml(
+			"Screen {\n\tStyle {\n\t\t/* } */\n\t\tButton { color: red; }\n\t}\n\tButton { id: real }\n}",
+		)
+		assert.deepStrictEqual(
+			nodes[0]?.children.map((child) => child.kind),
+			["Button"],
+		)
+		const rules = collectRules(nodes)
+		assert.deepStrictEqual(
+			rules.map((rule) => rule.selector),
+			["Button"],
+		)
+		const button = nodes[0]?.children[0]
+		assert.ok(button)
+		assert.strictEqual(
+			resolvedDeclarations(button, collectRules(nodes, button))["color"],
+			"red",
+		)
+	})
+
+	it("keeps VSS block comment markers inside strings", () => {
+		const nodes = parseVml('Screen {\n\tLabel { text: "/* kept */" }\n}')
+		assert.strictEqual(nodes[0]?.children.length, 1)
+		assert.strictEqual(nodes[0]?.children[0]?.props["text"], '"/* kept */"')
+	})
+
+	it("handles Button#login, .card and descendant selectors", () => {
+		const nodes = parseVml(
+			"Screen {\n\tStyle {\n\t\tButton#login { color: one; }\n\t\t.card { color: two; }\n\t\tScreen Button { color: three; }\n\t}\n\tButton { id: login }\n\tRectangle { class: card }\n\tButton { id: other }\n}",
+		)
+		assert.deepStrictEqual(
+			collectRules(nodes)
+				.map((rule) => rule.selector)
+				.sort(),
+			[".card", "Button#login", "Screen Button"].sort(),
+		)
+		const login = nodes[0]?.children.find((child) => child.props["id"] === "login")
+		const card = nodes[0]?.children.find((child) => child.kind === "Rectangle")
+		const other = nodes[0]?.children.find((child) => child.props["id"] === "other")
+		assert.ok(login && card && other)
+		// An id rule beats a descendant kind rule on the same node.
+		assert.deepStrictEqual(
+			matchingRules(login, collectRules(nodes, login), ancestorsOf(nodes, login)).map(
+				(rule) => rule.selector,
+			),
+			["Screen Button", "Button#login"],
+		)
+		assert.deepStrictEqual(
+			matchingRules(card, collectRules(nodes, card), ancestorsOf(nodes, card)).map(
+				(rule) => rule.selector,
+			),
+			[".card"],
+		)
+		// A plain Button still matches the descendant rule through Screen.
+		assert.deepStrictEqual(
+			matchingRules(other, collectRules(nodes, other), ancestorsOf(nodes, other)).map(
+				(rule) => rule.selector,
+			),
+			["Screen Button"],
+		)
+	})
+
+	it("maps bold and italic props over sheet typography", () => {
+		const nodes = parseVml(
+			"Screen {\n\tStyle {\n\t\tLabel { font-weight: normal; font-style: normal; }\n\t}\n\tLabel { bold: true italic: true }\n}",
+		)
+		const label = nodes[0]?.children[0]
+		assert.ok(label)
+		const resolved = resolvedDeclarations(
+			label,
+			collectRules(nodes, label),
+			ancestorsOf(nodes, label),
+			collectVariables(nodes, label),
+		)
+		assert.strictEqual(resolved["font-weight"], "bold")
+		assert.strictEqual(resolved["font-style"], "italic")
+	})
+
+	it("resolves VSS variables before reporting applied values", () => {
+		const nodes = parseVml(
+			"Screen {\n\tStyle {\n\t\t@brand: #3478D4;\n\t\tButton { background: @brand; }\n\t}\n\tButton { id: x }\n}",
+		)
+		const button = nodes[0]?.children[0]
+		assert.ok(button)
+		const rules = collectRules(nodes, button)
+		const vars = collectVariables(nodes, button)
+		assert.strictEqual(vars["@brand"], "#3478D4")
+		const resolved = resolvedDeclarations(button, rules, ancestorsOf(nodes, button), vars)
+		assert.strictEqual(resolved["background"], "#3478D4")
+		const hover = hoverTextFor(button, rules, ancestorsOf(nodes, button), vars)
+		assert.ok(hover.includes("#3478D4"))
+		assert.ok(!hover.includes("@brand"))
 	})
 })

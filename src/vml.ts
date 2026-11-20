@@ -23,22 +23,36 @@ export interface VmlNode {
 	endCol: number
 }
 
+export interface VmlSelectorPart {
+	kind: string
+	/** Without the leading `#` (`login` for `Button#login`). */
+	id: string
+	/** Dot-joined when the compound lists several classes (`primary.big`). */
+	className: string
+}
+
 export interface VmlStyleRule {
 	kind: string
 	/** Dot-joined when the selector lists several classes (`primary.big`). */
 	className: string
+	/** Without the leading `#` (`login` for `Button#login`), or "" when absent. */
+	id: string
 	/** Pseudo-class without the colon (`hover`), or "" when unconditional. */
 	pseudo: string
+	/** Full selector header as written (`Screen Button#login.primary`), for hover. */
+	selector: string
+	/** Ancestor compounds for descendant selectors, outermost first. */
+	ancestors: VmlSelectorPart[]
 	declarations: Record<string, string>
 	/** Zero-based line of the rule header, for hover ranges. */
 	line: number
 }
 
 /**
- * Strip `//` and `<!-- … -->` comments, leaving anything inside quotes
- * (e.g. URLs) alone. Removed characters are blanked with spaces — newlines
- * included — so offsets, lines and columns in the cleaned text still match
- * the original document.
+ * Strip line, VSS block and HTML comments, leaving anything inside
+ * quotes (e.g. URLs) alone. Removed characters are blanked with spaces —
+ * newlines included — so offsets, lines and columns in the cleaned text
+ * still match the original document.
  */
 function stripComments(text: string): string {
 	let out = ""
@@ -71,6 +85,16 @@ function stripComments(text: string): string {
 			if (index < text.length) {
 				out += "\n"
 			}
+			continue
+		}
+		if (char === "/" && text[index + 1] === "*") {
+			const end = text.indexOf("*/", index + 2)
+			const stop = end === -1 ? text.length : end + 2
+			for (; index < stop; index++) {
+				out += text[index] === "\n" ? "\n" : " "
+			}
+			// The loop's increment lands on `stop`.
+			index--
 			continue
 		}
 		if (text.startsWith("<!--", index)) {
@@ -134,6 +158,11 @@ function findMatchingBrace(text: string, openIndex: number): number {
 			}
 			continue
 		}
+		if (char === "/" && text[index + 1] === "*") {
+			const end = text.indexOf("*/", index + 2)
+			index = end === -1 ? text.length : end + 1
+			continue
+		}
 		if (text.startsWith("<!--", index)) {
 			const end = text.indexOf("-->", index + 4)
 			index = end === -1 ? text.length : end + 2
@@ -151,7 +180,7 @@ function findMatchingBrace(text: string, openIndex: number): number {
 	return -1
 }
 
-const propKeyPattern = /^([A-Za-z_][A-Za-z0-9_.-]*)\s*:/
+const propKeyPattern = /^(@?[A-Za-z_][A-Za-z0-9_.-]*)\s*:/
 
 /**
  * Split one line into generic `key: value` segments. Any key matches (no
@@ -238,20 +267,136 @@ function splitOutsideQuotes(text: string, separator: string): string[] {
 	return parts
 }
 
-function parseSelector(header: string): [string, string, string] {
-	const colon = header.indexOf(":")
-	const pseudo = colon === -1 ? "" : ((header.slice(colon + 1) ?? "").trim() ?? "")
-	const base = (colon === -1 ? header : header.slice(0, colon)).trim()
-	const dot = base.indexOf(".")
-	if (dot === -1) {
-		return [base, "", pseudo]
+/** Parse one compound such as `Button#login.primary`, `.card`, `#login` or `*`. */
+function parseCompound(part: string): VmlSelectorPart | undefined {
+	if (part === "*") {
+		return { kind: "*", id: "", className: "" }
 	}
-	return [base.slice(0, dot).trim(), base.slice(dot + 1).trim(), pseudo]
+	const kindMatch = part.match(/^([A-Za-z_][A-Za-z0-9_]*)/)
+	const kind = kindMatch?.[1] ?? ""
+	let rest = kind ? part.slice(kind.length) : part
+	let id = ""
+	const classes: string[] = []
+	while (rest.length > 0) {
+		if (rest.startsWith("#")) {
+			if (id) {
+				return undefined
+			}
+			const idMatch = rest.match(/^#([A-Za-z_][A-Za-z0-9_-]*)/)
+			if (!idMatch?.[1]) {
+				return undefined
+			}
+			id = idMatch[1]
+			rest = rest.slice(idMatch[0].length)
+		} else if (rest.startsWith(".")) {
+			const classMatch = rest.match(/^\.([A-Za-z_][A-Za-z0-9_-]*)/)
+			if (!classMatch?.[1]) {
+				return undefined
+			}
+			classes.push(classMatch[1])
+			rest = rest.slice(classMatch[0].length)
+		} else {
+			return undefined
+		}
+	}
+	if (!kind && !id && classes.length === 0) {
+		return undefined
+	}
+	return { kind, id, className: classes.join(".") }
 }
 
-/** A header names a style selector when it carries a class or pseudo-class. */
+function parseSelectorHeader(header: string):
+	| {
+			kind: string
+			id: string
+			className: string
+			pseudo: string
+			ancestors: VmlSelectorPart[]
+			selector: string
+	  }
+	| undefined {
+	const trimmed = header
+		.trim()
+		.replace(/\s+/g, " ")
+		.replace(/\s*>\s*/g, " > ")
+	if (!trimmed || /["'${}()]/.test(trimmed)) {
+		return undefined
+	}
+	let withoutPseudo = trimmed
+	let pseudo = ""
+	const pseudoMatch = trimmed.match(/^(.*):([A-Za-z_-]+)\s*$/)
+	if (pseudoMatch?.[1] !== undefined && pseudoMatch?.[2]) {
+		const base = (pseudoMatch[1] ?? "").trim()
+		// A `key: value` prop has a space after the colon; a pseudo never does,
+		// and the base must still look like selector compounds.
+		if (base && !base.endsWith(":") && !/\s:\s/.test(trimmed)) {
+			withoutPseudo = base
+			pseudo = pseudoMatch[2]
+		}
+	}
+	const tokens = withoutPseudo
+		.replace(/\s*>\s*/g, " > ")
+		.split(/\s+/)
+		.filter((token) => token.length > 0)
+	if (tokens.length === 0) {
+		return undefined
+	}
+	const parts: VmlSelectorPart[] = []
+	for (const token of tokens) {
+		if (token === ">") {
+			continue
+		}
+		const parsed = parseCompound(token)
+		if (!parsed) {
+			return undefined
+		}
+		parts.push(parsed)
+	}
+	if (parts.length === 0) {
+		return undefined
+	}
+	const last = parts[parts.length - 1]
+	if (!last) {
+		return undefined
+	}
+	return {
+		kind: last.kind,
+		id: last.id,
+		className: last.className,
+		pseudo,
+		ancestors: parts.slice(0, -1),
+		selector: trimmed,
+	}
+}
+
+function parseSelector(header: string): [string, string, string] {
+	const parsed = parseSelectorHeader(header)
+	if (!parsed) {
+		const colon = header.indexOf(":")
+		const pseudo = colon === -1 ? "" : ((header.slice(colon + 1) ?? "").trim() ?? "")
+		const base = (colon === -1 ? header : header.slice(0, colon)).trim()
+		const dot = base.indexOf(".")
+		if (dot === -1) {
+			return [base, "", pseudo]
+		}
+		return [base.slice(0, dot).trim(), base.slice(dot + 1).trim(), pseudo]
+	}
+	return [parsed.kind, parsed.className, parsed.pseudo]
+}
+
+/** A header names a style selector when it carries a class, id, pseudo or ancestor. */
 function isSelectorHeader(header: string): boolean {
-	return header.includes(".") || header.includes(":")
+	const parsed = parseSelectorHeader(header)
+	if (!parsed) {
+		return header.includes(".") || header.includes(":")
+	}
+	if (parsed.ancestors.length > 0) {
+		return true
+	}
+	if (parsed.id || parsed.className || parsed.pseudo) {
+		return true
+	}
+	return parsed.kind === "*"
 }
 
 /**
@@ -281,7 +426,7 @@ function containsNestedBlock(body: string): boolean {
 		if (char !== "{") {
 			continue
 		}
-		if (/(?:^|[\s;}:])\s*[A-Za-z_][A-Za-z0-9_.:]*\s*$/.test(body.slice(0, index))) {
+		if (/(?:^|[\s;}:])\s*[A-Za-z_][A-Za-z0-9_.:#]*\s*$/.test(body.slice(0, index))) {
 			return true
 		}
 	}
@@ -292,8 +437,9 @@ function containsNestedBlock(body: string): boolean {
  * Decide child node versus style rule outside `Style` mode. A body holding
  * a nested block is always a component (this covers `Column`, imported
  * widgets, and lowercase custom tags); otherwise only a selector-shaped
- * header (`Kind.class`, `Kind:pseudo`) over flat declarations is a rule —
- * any other header, upper- or lowercase, names a component node.
+ * header (`Kind.class`, `Kind#id`, `.class`, `Kind:pseudo`, descendants)
+ * over flat declarations is a rule — any other header, upper- or lowercase,
+ * names a component node.
  */
 function isComponentBlock(header: string, inner: string): boolean {
 	if (containsNestedBlock(inner)) {
@@ -302,9 +448,15 @@ function isComponentBlock(header: string, inner: string): boolean {
 	return !isSelectorHeader(header)
 }
 
-/** Parse one `Kind[.class][:pseudo] { … }` rule body into declarations. */
+/** Parse one `Kind[#id][.class][:pseudo]` (or descendant) rule body into declarations. */
 function parseRule(full: string, header: string, inner: string, offset: number): VmlStyleRule {
-	const [kind, className, pseudo] = parseSelector(header)
+	const parsed = parseSelectorHeader(header)
+	const kind = parsed?.kind ?? parseSelector(header)[0] ?? ""
+	const className = parsed?.className ?? parseSelector(header)[1] ?? ""
+	const pseudo = parsed?.pseudo ?? parseSelector(header)[2] ?? ""
+	const id = parsed?.id ?? ""
+	const ancestors = parsed?.ancestors ?? []
+	const selector = parsed?.selector ?? header.trim()
 	const declarations: Record<string, string> = {}
 	for (const chunk of splitOutsideQuotes(inner, ";")) {
 		for (const line of chunk.split("\n")) {
@@ -319,7 +471,16 @@ function parseRule(full: string, header: string, inner: string, offset: number):
 			}
 		}
 	}
-	return { kind, className, pseudo, declarations, line: lineOf(full, offset) }
+	return {
+		kind,
+		className,
+		id,
+		pseudo,
+		selector,
+		ancestors,
+		declarations,
+		line: lineOf(full, offset),
+	}
 }
 
 /** Parse one block body into props, style rules and child blocks. */
@@ -341,8 +502,8 @@ function parseBody(
 			break
 		}
 		const rest = body.slice(index)
-		const blockMatch = rest.match(/^([A-Za-z_][A-Za-z0-9_.:]*)\s*\{/)
-		if (blockMatch) {
+		const blockMatch = rest.match(/^([A-Za-z_.*#][A-Za-z0-9_.#:*\s>-]*?)\s*\{/)
+		if (blockMatch && !/:\s/.test(blockMatch[1] ?? "")) {
 			const header = (blockMatch[1] ?? "").trim()
 			const braceOpen = index + (blockMatch[0].length - 1)
 			const braceClose = findMatchingBrace(body, braceOpen)
@@ -387,12 +548,64 @@ function appendEmbeddedRules(node: VmlNode, rules: VmlStyleRule[]): void {
 	let existing: VmlStyleRule[] = []
 	if (node.props.__rules) {
 		try {
-			existing = JSON.parse(node.props.__rules) as VmlStyleRule[]
+			existing = normalizeRules(JSON.parse(node.props.__rules) as VmlStyleRule[])
 		} catch {
 			existing = []
 		}
 	}
 	node.props.__rules = JSON.stringify([...existing, ...rules])
+}
+
+/** `@var` definitions held directly in a props map (values unquoted). */
+function varsFromProps(props: Record<string, string>): Record<string, string> {
+	const vars: Record<string, string> = {}
+	for (const [key, value] of Object.entries(props)) {
+		if (key.startsWith("@") && key.length > 1) {
+			vars[key] = unquote(value)
+		}
+	}
+	return vars
+}
+
+function appendEmbeddedVars(node: VmlNode, vars: Record<string, string>): void {
+	const keys = Object.keys(vars)
+	if (keys.length === 0) {
+		return
+	}
+	let existing: Record<string, string> = {}
+	if (node.props.__vars) {
+		try {
+			existing = JSON.parse(node.props.__vars) as Record<string, string>
+		} catch {
+			existing = {}
+		}
+	}
+	node.props.__vars = JSON.stringify({ ...existing, ...vars })
+}
+
+/** Backfill rules read from `__rules` JSON that predate `id`/`selector` fields. */
+function normalizeRules(rules: VmlStyleRule[]): VmlStyleRule[] {
+	return rules.map((rule) => {
+		if (
+			typeof rule.id === "string" &&
+			typeof rule.selector === "string" &&
+			Array.isArray(rule.ancestors)
+		) {
+			return rule
+		}
+		const header = `${rule.kind ?? ""}${rule.className ? `.${rule.className}` : ""}${rule.pseudo ? `:${rule.pseudo}` : ""}`
+		const parsed = parseSelectorHeader(header || "*")
+		return {
+			kind: rule.kind ?? "",
+			className: rule.className ?? "",
+			id: "",
+			pseudo: rule.pseudo ?? "",
+			selector: header || "*",
+			ancestors: parsed?.ancestors ?? [],
+			declarations: rule.declarations ?? {},
+			line: rule.line ?? 0,
+		}
+	})
 }
 
 function parseBlock(
@@ -401,8 +614,13 @@ function parseBlock(
 	body: string,
 	offset: number,
 ): VmlNode | undefined {
-	const kind = header.split(/[.:]/)[0]?.trim() ?? ""
-	if (!kind) {
+	const lastToken =
+		header
+			.trim()
+			.split(/\s*>\s*|\s+/)
+			.pop() ?? ""
+	const kind = lastToken.split(/[.:#]/)[0]?.trim() ?? ""
+	if (!kind || kind === "*") {
 		return undefined
 	}
 	const braceOpen = full.indexOf("{", offset)
@@ -428,17 +646,37 @@ function parseBlock(
 		endCol: end.col,
 	}
 	const embedded: VmlStyleRule[] = [...parsed.rules]
+	const embeddedVars: Record<string, string> = varsFromProps(parsed.props)
 	for (const child of parsed.children) {
-		if (child.kind === "Style" && child.props.__rules) {
-			try {
-				embedded.push(...(JSON.parse(child.props.__rules) as VmlStyleRule[]))
-			} catch {
-				// Malformed embedded rules never break the hover.
+		if (child.kind === "Style") {
+			if (child.props.__rules) {
+				try {
+					embedded.push(
+						...normalizeRules(JSON.parse(child.props.__rules) as VmlStyleRule[]),
+					)
+				} catch {
+					// Malformed embedded rules never break the hover.
+				}
 			}
+			if (child.props.__vars) {
+				try {
+					Object.assign(
+						embeddedVars,
+						JSON.parse(child.props.__vars) as Record<string, string>,
+					)
+				} catch {
+					// Malformed embedded variables never break the hover.
+				}
+			}
+			// A `Style` child's own `@var` props (kept alongside `__vars`).
+			Object.assign(embeddedVars, varsFromProps(child.props))
 		}
 	}
 	if (embedded.length > 0) {
 		node.props.__rules = JSON.stringify(embedded)
+	}
+	if (Object.keys(embeddedVars).length > 0) {
+		node.props.__vars = JSON.stringify(embeddedVars)
 	}
 	return node
 }
@@ -448,6 +686,7 @@ export function parseVml(text: string): VmlNode[] {
 	const clean = stripComments(text)
 	const nodes: VmlNode[] = []
 	const globals: VmlStyleRule[] = []
+	const globalVars: Record<string, string> = {}
 	let index = 0
 	while (index < clean.length) {
 		while (index < clean.length && /\s/.test(clean[index] ?? "")) {
@@ -457,8 +696,15 @@ export function parseVml(text: string): VmlNode[] {
 			break
 		}
 		const rest = clean.slice(index)
-		const blockMatch = rest.match(/^([A-Za-z_][A-Za-z0-9_.:]*)\s*\{/)
-		if (!blockMatch) {
+		const blockMatch = rest.match(/^([A-Za-z_.*#][A-Za-z0-9_.#:*\s>-]*?)\s*\{/)
+		if (!blockMatch || /:\s/.test(blockMatch[1] ?? "")) {
+			// A top-level `@var: value;` definition (no owning block).
+			const varMatch = rest.match(/^(@[A-Za-z_][A-Za-z0-9_.-]*)\s*:\s*([^\n;{}]+);?/)
+			if (varMatch?.[1] && varMatch?.[2] !== undefined) {
+				globalVars[varMatch[1]] = unquote(varMatch[2] ?? "")
+				index += varMatch[0].length
+				continue
+			}
 			index++
 			continue
 		}
@@ -485,6 +731,11 @@ export function parseVml(text: string): VmlNode[] {
 			appendEmbeddedRules(node, globals)
 		}
 	}
+	if (Object.keys(globalVars).length > 0) {
+		for (const node of nodes) {
+			appendEmbeddedVars(node, globalVars)
+		}
+	}
 	return nodes
 }
 
@@ -498,7 +749,7 @@ export function collectRules(nodes: VmlNode[], target?: VmlNode): VmlStyleRule[]
 	const ownRules = (node: VmlNode): VmlStyleRule[] => {
 		if (!node.props.__rules) return []
 		try {
-			return JSON.parse(node.props.__rules) as VmlStyleRule[]
+			return normalizeRules(JSON.parse(node.props.__rules) as VmlStyleRule[])
 		} catch {
 			return []
 		}
@@ -532,6 +783,58 @@ export function collectRules(nodes: VmlNode[], target?: VmlNode): VmlStyleRule[]
 	return rules
 }
 
+/** Ancestor chain for a block, outermost first (empty when absent). */
+export function ancestorsOf(nodes: VmlNode[], target: VmlNode): VmlNode[] {
+	const findPath = (node: VmlNode, trail: VmlNode[]): VmlNode[] | undefined => {
+		if (node === target) return trail
+		for (const child of node.children) {
+			const found = findPath(child, [...trail, node])
+			if (found) return found
+		}
+		return undefined
+	}
+	for (const node of nodes) {
+		const found = findPath(node, [])
+		if (found) return found
+	}
+	return []
+}
+
+/** `@var` values in scope for a tree (ancestor chain plus own, inner wins). */
+export function collectVariables(nodes: VmlNode[], target?: VmlNode): Record<string, string> {
+	const ownVars = (node: VmlNode): Record<string, string> => {
+		const merged = varsFromProps(node.props)
+		if (node.props.__vars) {
+			try {
+				Object.assign(merged, JSON.parse(node.props.__vars) as Record<string, string>)
+			} catch {
+				// Malformed variables never break the hover.
+			}
+		}
+		return merged
+	}
+	if (target) {
+		const path = ancestorsOf(nodes, target)
+		const merged: Record<string, string> = {}
+		for (const ancestor of path) {
+			Object.assign(merged, ownVars(ancestor))
+		}
+		Object.assign(merged, ownVars(target))
+		return merged
+	}
+	const merged: Record<string, string> = {}
+	const visit = (node: VmlNode): void => {
+		Object.assign(merged, ownVars(node))
+		for (const child of node.children) {
+			visit(child)
+		}
+	}
+	for (const node of nodes) {
+		visit(node)
+	}
+	return merged
+}
+
 /** Space-separated class list of a node, without surrounding quotes. */
 function nodeClasses(node: VmlNode): string[] {
 	return unquote(node.props["class"] ?? "")
@@ -540,13 +843,20 @@ function nodeClasses(node: VmlNode): string[] {
 		.filter((entry) => entry.length > 0)
 }
 
-/** Kind and (all) classes match; pseudo-classes are checked separately. */
-function selectorMatches(rule: VmlStyleRule, kind: string, classes: string[]): boolean {
-	if (rule.kind && rule.kind !== kind) {
+/** Unquoted `id` prop of a node, or "" when absent. */
+function nodeId(node: VmlNode): string {
+	return unquote(node.props["id"] ?? "").trim()
+}
+
+function partMatches(part: VmlSelectorPart, kind: string, classes: string[], id: string): boolean {
+	if (part.kind && part.kind !== "*" && part.kind !== kind) {
 		return false
 	}
-	if (rule.className) {
-		const wanted = rule.className
+	if (part.id && part.id !== id) {
+		return false
+	}
+	if (part.className) {
+		const wanted = part.className
 			.split(".")
 			.map((entry) => entry.trim())
 			.filter((entry) => entry.length > 0)
@@ -557,15 +867,73 @@ function selectorMatches(rule: VmlStyleRule, kind: string, classes: string[]): b
 	return true
 }
 
-/** Class selectors beat kind-only selectors, regardless of source order. */
-function specificity(rule: VmlStyleRule): number {
-	if (!rule.className) {
-		return 0
+/** Kind, id and (all) classes match; pseudo-classes are checked separately. */
+function selectorMatches(
+	rule: VmlStyleRule,
+	kind: string,
+	classes: string[],
+	id = "",
+	ancestors: VmlNode[] = [],
+): boolean {
+	if (
+		!partMatches({ kind: rule.kind, id: rule.id, className: rule.className }, kind, classes, id)
+	) {
+		return false
 	}
-	return rule.className
-		.split(".")
-		.map((entry) => entry.trim())
-		.filter((entry) => entry.length > 0).length
+	if (rule.ancestors.length === 0) {
+		return true
+	}
+	// Descendant (and child `>`) ancestors match outermost first against the
+	// node's ancestor chain. `>` requires the immediate parent; a space
+	// matches any ancestor in order. The header normalizes `>` spacing, but
+	// the stored parts lose the combinator, so `>` is approximated as a
+	// descendant match here — still reporting rules UI2 applies rather than
+	// omitting them.
+	let cursor = 0
+	const chain = ancestors.map((ancestor) => ({
+		kind: ancestor.kind,
+		classes: nodeClasses(ancestor),
+		id: nodeId(ancestor),
+	}))
+	for (const wanted of rule.ancestors) {
+		let found = -1
+		for (let i = cursor; i < chain.length; i++) {
+			const entry = chain[i]
+			if (entry && partMatches(wanted, entry.kind, entry.classes, entry.id)) {
+				found = i
+				break
+			}
+		}
+		if (found === -1) {
+			return false
+		}
+		cursor = found + 1
+	}
+	return true
+}
+
+/** IDs beat classes, classes beat kinds, regardless of source order. */
+function specificity(rule: VmlStyleRule): number {
+	const countClasses = (dotted: string): number =>
+		dotted
+			.split(".")
+			.map((entry) => entry.trim())
+			.filter((entry) => entry.length > 0).length
+	let score = 0
+	const parts: VmlSelectorPart[] = [
+		...rule.ancestors,
+		{ kind: rule.kind, id: rule.id, className: rule.className },
+	]
+	for (const part of parts) {
+		if (part.id) {
+			score += 100
+		}
+		score += countClasses(part.className) * 10
+		if (part.kind && part.kind !== "*") {
+			score += 1
+		}
+	}
+	return score
 }
 
 /**
@@ -574,10 +942,15 @@ function specificity(rule: VmlStyleRule): number {
  * match statically — `:hover` only applies while hovered, so merging it in
  * would report style that is not applied.
  */
-export function matchingRules(node: VmlNode, rules: VmlStyleRule[]): VmlStyleRule[] {
+export function matchingRules(
+	node: VmlNode,
+	rules: VmlStyleRule[],
+	ancestors: VmlNode[] = [],
+): VmlStyleRule[] {
 	const classes = nodeClasses(node)
-	return rules
-		.filter((rule) => !rule.pseudo && selectorMatches(rule, node.kind, classes))
+	const id = nodeId(node)
+	return normalizeRules(rules)
+		.filter((rule) => !rule.pseudo && selectorMatches(rule, node.kind, classes, id, ancestors))
 		.sort((a, b) => specificity(a) - specificity(b))
 }
 
@@ -591,7 +964,11 @@ const inlinePropertyAliases: Record<string, string> = {
 	font_size: "font-size",
 	"font-weight": "font-weight",
 	font_weight: "font-weight",
+	bold: "font-weight",
 	font_family: "font-family",
+	"font-style": "font-style",
+	font_style: "font-style",
+	italic: "font-style",
 	corner_radius: "border-radius",
 	border_color: "border-color",
 	border_width: "border-width",
@@ -641,24 +1018,110 @@ function parseStyleAttribute(value: string): Record<string, string> {
 }
 
 /**
+ * Substitute `@var` references with scoped VSS variable values. Unknown
+ * names are left alone so a typo stays visible instead of vanishing.
+ * Chains (`@a` holding another `@b`) resolve iteratively with a small cap
+ * so a cyclic definition terminates.
+ */
+function resolveValue(value: string, vars: Record<string, string>): string {
+	if (!value.includes("@")) {
+		return value
+	}
+	let result = value
+	for (let pass = 0; pass < 5; pass++) {
+		const next = result.replace(/@[A-Za-z_][A-Za-z0-9_-]*/g, (token) => {
+			if (Object.hasOwn(vars, token)) {
+				return vars[token] ?? token
+			}
+			const withoutAt = token.slice(1)
+			if (Object.hasOwn(vars, withoutAt)) {
+				return vars[withoutAt] ?? token
+			}
+			return token
+		})
+		if (next === result) {
+			break
+		}
+		result = next
+	}
+	return result
+}
+
+/** Map `bold`/`italic` booleans to their CSS keywords before merging. */
+function inlineCssValue(prop: string, raw: string, vars: Record<string, string>): string {
+	const resolved = resolveValue(unquote(raw), vars)
+	const lower = resolved.toLowerCase().trim()
+	if (prop === "bold") {
+		if (lower === "true") {
+			return "bold"
+		}
+		if (lower === "false") {
+			return "normal"
+		}
+		return resolved
+	}
+	if (prop === "italic") {
+		if (lower === "true") {
+			return "italic"
+		}
+		if (lower === "false") {
+			return "normal"
+		}
+		return resolved
+	}
+	return resolved
+}
+
+/**
  * Merged declarations for a block: sheet rules in cascade order, then the
  * `style` attribute, then individual inline props (most specific wins).
+ * `@var` definitions never appear as applied style; references to them
+ * resolve to the scoped value UI2 applies.
  */
-export function resolvedDeclarations(node: VmlNode, rules: VmlStyleRule[]): Record<string, string> {
+export function resolvedDeclarations(
+	node: VmlNode,
+	rules: VmlStyleRule[],
+	ancestors: VmlNode[] = [],
+	variables: Record<string, string> = {},
+): Record<string, string> {
 	const merged: Record<string, string> = {}
-	for (const rule of matchingRules(node, rules)) {
-		Object.assign(merged, rule.declarations)
+	const matched = matchingRules(node, normalizeRules(rules), ancestors)
+	const vars: Record<string, string> = { ...variables }
+	for (const rule of matched) {
+		for (const [key, value] of Object.entries(rule.declarations)) {
+			if (key.startsWith("@")) {
+				vars[key] = resolveValue(unquote(value), vars)
+				if (!key.startsWith("@@")) {
+					vars[key.slice(1)] = vars[key] ?? ""
+				}
+			}
+		}
+	}
+	for (const rule of matched) {
+		for (const [key, value] of Object.entries(rule.declarations)) {
+			if (key.startsWith("@")) {
+				continue
+			}
+			merged[key] = resolveValue(value, vars)
+		}
 	}
 	if (node.props["style"] !== undefined) {
-		Object.assign(merged, parseStyleAttribute(node.props["style"] ?? ""))
+		const style = parseStyleAttribute(node.props["style"] ?? "")
+		for (const [key, value] of Object.entries(style)) {
+			if (key.startsWith("@")) {
+				vars[key] = resolveValue(value, vars)
+				continue
+			}
+			merged[key] = resolveValue(value, vars)
+		}
 	}
 	for (const [prop, raw] of Object.entries(node.props)) {
-		if (prop === "__rules" || prop === "style") {
+		if (prop === "__rules" || prop === "__vars" || prop === "style" || prop.startsWith("@")) {
 			continue
 		}
 		const css = inlineCssProperty(prop)
 		if (css !== undefined) {
-			merged[css] = unquote(raw)
+			merged[css] = inlineCssValue(prop, raw, vars)
 		}
 	}
 	return merged
@@ -676,7 +1139,20 @@ function unquote(value: string): string {
 }
 
 function selectorText(rule: VmlStyleRule): string {
-	const base = rule.className ? `${rule.kind}.${rule.className}` : rule.kind || "*"
+	if (rule.selector) {
+		return rule.pseudo && !rule.selector.endsWith(`:${rule.pseudo}`)
+			? `${rule.selector}:${rule.pseudo}`
+			: rule.selector
+	}
+	const kindPart = rule.kind || "*"
+	const idPart = rule.id ? `#${rule.id}` : ""
+	const classPart = rule.className
+		? `.${rule.className
+				.split(".")
+				.filter((entry) => entry.length > 0)
+				.join(".")}`
+		: ""
+	const base = `${kindPart}${idPart}${classPart}` || "*"
 	return rule.pseudo ? `${base}:${rule.pseudo}` : base
 }
 
@@ -738,15 +1214,21 @@ export function blockAtPosition(
 }
 
 /** Markdown hover text for a block: identity, matched rules, resolved style. */
-export function hoverTextFor(node: VmlNode, rules: VmlStyleRule[]): string {
+export function hoverTextFor(
+	node: VmlNode,
+	rules: VmlStyleRule[],
+	ancestors: VmlNode[] = [],
+	variables: Record<string, string> = {},
+): string {
 	const lines: string[] = []
 	const id = node.props["id"] ? ` id \`${unquote(node.props["id"] ?? "")}\`` : ""
 	const className = node.props["class"] ? ` class \`${unquote(node.props["class"] ?? "")}\`` : ""
 	lines.push(`**${node.kind}**${id}${className}`)
-	const matched = matchingRules(node, rules)
+	const matched = matchingRules(node, rules, ancestors)
 	const classes = nodeClasses(node)
-	const conditional = rules.filter(
-		(rule) => rule.pseudo && selectorMatches(rule, node.kind, classes),
+	const nodeIdValue = nodeId(node)
+	const conditional = normalizeRules(rules).filter(
+		(rule) => rule.pseudo && selectorMatches(rule, node.kind, classes, nodeIdValue, ancestors),
 	)
 	if (matched.length === 0 && conditional.length === 0) {
 		lines.push("")
@@ -767,7 +1249,7 @@ export function hoverTextFor(node: VmlNode, rules: VmlStyleRule[]): string {
 			}
 		}
 	}
-	const resolved = resolvedDeclarations(node, rules)
+	const resolved = resolvedDeclarations(node, rules, ancestors, variables)
 	const keys = Object.keys(resolved)
 	if (keys.length > 0) {
 		lines.push("")
