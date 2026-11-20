@@ -162,3 +162,7 @@ def _v_printer_collection():
 # for every debug session, and replace=True keeps a relaunch from stacking
 # duplicate printers.
 gdb.printing.register_pretty_printer(None, _v_printer_collection(), replace=True)
+
+# Surface a load marker so the extension (and tests) can confirm the printers
+# actually loaded in this session.
+print("V pretty printers loaded")

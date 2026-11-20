@@ -133,13 +133,31 @@ export interface CppdbgLaunchConfiguration {
 	pipeTransport?: CppdbgPipeTransport
 }
 
-/** Remote debugging transport for the MI debugger. */
+/** Remote debugging transport for the MI debugger.
+ *
+ * `debuggerPath` is the debugger on the REMOTE end of the pipe: it may live
+ * at a different path than the local `miDebuggerPath` (that is why the pipe
+ * exists at all), so it must never be resolved against the local PATH. The
+ * pipe program itself (`ssh`, ...) is local and resolved normally. */
 export interface CppdbgPipeTransport {
 	pipeProgram: string
 	pipeArgs?: string[]
 	pipeCwd?: string
 	pipeEnv?: Record<string, string>
 	debuggerPath: string
+}
+
+/** Arguments that run the remote debugger through a pipe program.
+ *
+ * The remote debugger path goes verbatim after the pipe arguments: resolving
+ * it locally would substitute the wrong executable whenever the remote gdb
+ * or lldb-dap lives at a different path. Extra debugger arguments (e.g.
+ * gdb's `-i=dap`) follow the remote path. */
+export function pipeTransportArgs(
+	pipeTransport: CppdbgPipeTransport,
+	debuggerArgs: string[] = [],
+): string[] {
+	return [...(pipeTransport.pipeArgs ?? []), pipeTransport.debuggerPath, ...debuggerArgs]
 }
 
 /** An environment entry for the debugged program. */
@@ -222,8 +240,10 @@ export function cppdbgLaunchConfig(input: {
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
+	usePrettyPrinters?: boolean
 }): CppdbgLaunchConfiguration {
 	const userCommands = normalizeSetupCommands(input.setupCommands)
+	const usePrinters = input.usePrettyPrinters ?? true
 	return {
 		type: "cppdbg",
 		request: "launch",
@@ -235,7 +255,7 @@ export function cppdbgLaunchConfig(input: {
 		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: input.stopAtEntry,
 		setupCommands:
-			input.miMode === "gdb"
+			input.miMode === "gdb" && usePrinters
 				? [...gdbSetupCommands(input.printersPath), ...userCommands]
 				: userCommands,
 		...(input.environment ? { environment: input.environment } : {}),
@@ -268,8 +288,10 @@ export function cppdbgAttachConfig(input: {
 	sourceFileMap?: Record<string, string>
 	miDebuggerServerAddress?: string
 	pipeTransport?: CppdbgPipeTransport
+	usePrettyPrinters?: boolean
 }): CppdbgLaunchConfiguration {
 	const userCommands = normalizeSetupCommands(input.setupCommands)
+	const usePrinters = input.usePrettyPrinters ?? true
 	return {
 		type: "cppdbg",
 		request: "attach",
@@ -281,7 +303,7 @@ export function cppdbgAttachConfig(input: {
 		miDebuggerPath: input.miDebuggerPath,
 		stopAtEntry: false,
 		setupCommands:
-			input.miMode === "gdb"
+			input.miMode === "gdb" && usePrinters
 				? [...gdbSetupCommands(input.printersPath), ...userCommands]
 				: userCommands,
 		processId: input.processId,
@@ -300,4 +322,313 @@ export function cppdbgAttachConfig(input: {
  */
 export function missingCppdbgMessage(): string {
 	return "Cannot debug: the C/C++ extension (ms-vscode.cpptools) is not installed. Install it from the Marketplace — V debugging delegates to its cppdbg adapter."
+}
+
+/** Result of probing a gdb for DAP capability. */
+export interface GdbPreflightResult {
+	adapter: "gdb-dap" | "cppdbg" | null
+	/** Whether the probed gdb's DAP accepts `coreFile` on attach.
+	 *
+	 * DAP core-file support arrived in GDB 18 (gdb-patches, April 2026):
+	 * GDB 15.1 and 17.1 only accept `pid`/`target` (the live verifier
+	 * records a SKIP there), so core-file attach is gated on GDB 18+. */
+	coreFileDap: boolean
+	error?: string
+}
+
+/** Extract the gdb version from a `--version` banner.
+ *
+ * Distro packaging adds a vendor tag that shifts the version away from the
+ * `(GDB)` shape, e.g. `GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1` or
+ * `GNU gdb (Debian 13.1-3) 13.1`. The canonical form ends with the version
+ * right after the vendor tag, so prefer that: a dotted distro suffix
+ * (`~22.04`), a Fedora release tag (`13.2-5.fc38`), or a git build stamp
+ * (`16.0.50.20240513-git`) must never win over the real version. Without
+ * a vendor tag the first `X.Y` is the version. */
+export function parseGdbVersion(text: string): string {
+	const firstLine = text.split(/\r?\n/)[0] ?? ""
+	const trailing = /\)\s*(\d+\.\d+)/.exec(firstLine)?.[1]
+	if (trailing) {
+		return trailing
+	}
+	return firstLine.match(/\d+\.\d+/)?.[0] ?? ""
+}
+
+/** Normalize a preflight input into text + exit code. */
+function normalizePreflightInput(input: unknown): {
+	text: string
+	exitCode: number
+	version: string
+	notFound: boolean
+	cppdbgAvailable: boolean
+} {
+	if (input === null || input === undefined) {
+		return { text: "", exitCode: 1, version: "", notFound: true, cppdbgAvailable: false }
+	}
+	if (typeof input === "string") {
+		const text = input
+		const notFound =
+			/not found/i.test(text) || /not recognized/i.test(text) || /no such file/i.test(text)
+		const version = parseGdbVersion(text)
+		return { text, exitCode: notFound ? 127 : 0, version, notFound, cppdbgAvailable: false }
+	}
+	const obj = input as Record<string, unknown>
+	const stdout = String(obj.stdout ?? obj.output ?? "")
+	const stderr = String(obj.stderr ?? "")
+	const text = `${stdout}\n${stderr}`
+	const exitCode = Number(obj.exitCode ?? obj.code ?? obj.status ?? 0)
+	const version = (typeof obj.version === "string" && obj.version) || parseGdbVersion(text)
+	const notFound = Boolean(obj.notFound) || /not found/i.test(text)
+	const cppdbgAvailable = Boolean(obj.cppdbgAvailable ?? obj.cppdbg)
+	return { text, exitCode, version, notFound, cppdbgAvailable }
+}
+
+/** Probe a gdb's recorded output and decide which adapter to use. */
+export function preflightGdb(input?: unknown): GdbPreflightResult {
+	const { text, exitCode, version, notFound, cppdbgAvailable } = normalizePreflightInput(input)
+	if (notFound) {
+		return { adapter: null, coreFileDap: false, error: "gdb not found on PATH" }
+	}
+	const hasPython =
+		!/Python scripting is not supported/i.test(text) && !/No module named/i.test(text)
+	const hasDap =
+		!/Interpreter `dap' unrecognized/i.test(text) &&
+		!/Could not find interpreter "dap"/i.test(text) &&
+		!/unrecognized/i.test(text) &&
+		(exitCode === 0 || /ok/i.test(text))
+	const verNum = parseFloat(version || "0")
+	const coreFileDap = verNum >= 18
+	if (hasPython && hasDap && verNum >= 13) {
+		return { adapter: "gdb-dap", coreFileDap }
+	}
+	if (cppdbgAvailable) {
+		return { adapter: "cppdbg", coreFileDap }
+	}
+	const verLabel = version ? `gdb ${version}` : "gdb"
+	return {
+		adapter: null,
+		coreFileDap,
+		error: `${verLabel} has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg').`,
+	}
+}
+
+export const parseGdbPreflight = preflightGdb
+export const gdbPreflight = preflightGdb
+export const probeGdb = preflightGdb
+export const gdbDapPreflight = preflightGdb
+export const checkGdb = preflightGdb
+
+/** Translate an MI setup command to the GDB CLI form the built-in adapter needs.
+ *
+ * The launch schema documents `setupCommands` as MI commands, which is what
+ * the `cppdbg` adapter sends. The built-in adapter instead passes them to
+ * `gdb -iex`, which expects CLI commands: GDB 18.1 rejects the MI
+ * `-enable-pretty-printing` there as an undefined command. Known MI shapes
+ * translate exactly (`-enable-pretty-printing` to `set print pretty on`,
+ * `-gdb-set` to `set`, console `interpreter-exec` unwraps), any other
+ * `-command` runs wrapped in the CLI `interpreter-exec mi` (no leading
+ * dash: `-iex` expects CLI, so `-interpreter-exec mi` is rejected as an
+ * undefined command), and text that is already a CLI command passes
+ * through untouched. */
+export function gdbSetupCommandToCli(text: string): string {
+	const trimmed = text.trim()
+	if (trimmed === "-enable-pretty-printing") {
+		return "set print pretty on"
+	}
+	const consoleMatch = trimmed.match(/^-interpreter-exec\s+console\s+"([\s\S]*)"$/)
+	if (consoleMatch) {
+		return consoleMatch[1]!.replace(/\\"/g, '"').replace(/\\\\/g, "\\")
+	}
+	const gdbSetMatch = trimmed.match(/^-gdb-set\s+([\s\S]*)$/)
+	if (gdbSetMatch) {
+		return `set ${gdbSetMatch[1]!.trim()}`
+	}
+	if (trimmed.startsWith("-")) {
+		return `interpreter-exec mi "${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+	}
+	return text
+}
+
+/** Whether a launch value is an unsubstituted `${command:...}` reference.
+ *
+ * `resolveDebugConfiguration` runs before VS Code substitutes variables, so
+ * the built-in attach path sees the literal `${command:v.pickProcess}`
+ * default. Matching it here lets the provider run its own picker instead of
+ * handing GDB DAP a string it cannot parse as a PID. */
+export function isCommandReference(value: string): boolean {
+	return /^\$\{command:[^}]+\}$/.test(value.trim())
+}
+
+/** Whether a `${command:...}` picker reference should be ignored for attach.
+ *
+ * The attach schema defaults `processId` to `${command:v.pickProcess}`, so a
+ * core-file-only or remote-target-only configuration still carries the picker
+ * reference. Running the picker then sends both `pid` and `coreFile`/`target`,
+ * and GDB DAP prefers the PID over the requested dump or remote. When a core
+ * file or remote target is present, a command reference is treated as absent:
+ * skip the picker and send no PID. An explicit numeric PID still wins and is
+ * never skipped. */
+export function shouldSkipProcessPicker(input: {
+	processId?: string
+	coreFile?: string
+	target?: string
+}): boolean {
+	const pidText = (input.processId ?? "").trim()
+	if (!pidText || !isCommandReference(pidText)) {
+		return false
+	}
+	return Boolean((input.coreFile ?? "").trim() || (input.target ?? "").trim())
+}
+
+/** The DAP fields a built-in attach session needs.
+ *
+ * GDB DAP (and lldb-dap) attach takes `pid` for a live process, `target`
+ * for a remote target, or `coreFile` for a post-mortem — never the
+ * `processId` string the `cppdbg` adapter accepts. A PID that is not a
+ * positive integer, or an attach with neither a PID, a target, nor a core
+ * file, is a configuration error surfaced before any session starts. When
+ * a remote target is set it wins over a PID: GDB documents attach as
+ * trying `pid`, then `target`, then `coreFile` (first one found is used),
+ * so sending both would attach locally and silently ignore the remote.
+ */
+export function dapAttachFields(input: {
+	processId?: string
+	coreFile?: string
+	target?: string
+}): { pid?: number; coreFile?: string; target?: string } | { error: string } {
+	const pidText = (input.processId ?? "").trim()
+	const coreFile = (input.coreFile ?? "").trim()
+	const target = (input.target ?? "").trim()
+	if (!pidText && !coreFile && !target) {
+		return { error: "Cannot debug: attach needs a processId, a coreFile, or a remote target." }
+	}
+	if (!pidText) {
+		return {
+			...(target ? { target } : {}),
+			...(coreFile ? { coreFile } : {}),
+		}
+	}
+	const pid = Number(pidText)
+	if (!Number.isInteger(pid) || pid <= 0) {
+		return { error: `Cannot debug: "${input.processId}" is not a process ID.` }
+	}
+	return {
+		// A remote target takes precedence: sending both would let the
+		// local pid shadow the remote the user asked for.
+		...(target ? { target } : { pid }),
+		...(coreFile ? { coreFile } : {}),
+	}
+}
+
+/** Parse a `KEY=VALUE` environment file.
+ *
+ * Blank lines and `#` comments are ignored; only the first `=` splits,
+ * so values may contain `=`. Runs on the substituted path (see the
+ * provider's `resolveDebugConfigurationWithSubstitutedVariables`), never
+ * on the raw `${workspaceFolder}/...` form. */
+export function parseEnvFile(text: string): Record<string, string> {
+	const entries: Record<string, string> = {}
+	for (const raw of text.split(/\r?\n/)) {
+		const line = raw.trim()
+		if (!line || line.startsWith("#")) {
+			continue
+		}
+		const eq = line.indexOf("=")
+		if (eq > 0) {
+			entries[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
+		}
+	}
+	return entries
+}
+
+/** Build the `env` object a built-in DAP launch sends.
+ *
+ * GDB/LLDB DAP replace the debuggee environment with `env` instead of
+ * merging, so sending only the configured entries would drop PATH, HOME
+ * and everything else inherited. Start from the inherited environment and
+ * overlay in increasing precedence: inherited < envFile entries <
+ * explicit `environment` entries. */
+export function buildDapEnv(
+	explicit?: CppdbgEnvironmentEntry[],
+	base: NodeJS.ProcessEnv = process.env,
+	envFileEntries?: Record<string, string>,
+): Record<string, string> {
+	const env: Record<string, string> = {}
+	for (const [key, value] of Object.entries(base)) {
+		if (value !== undefined) {
+			env[key] = value
+		}
+	}
+	for (const [key, value] of Object.entries(envFileEntries ?? {})) {
+		env[key] = value
+	}
+	for (const entry of explicit ?? []) {
+		env[entry.name] = entry.value
+	}
+	return env
+}
+
+/** A launch configuration carrying the pieces the env merge reads.
+ *
+ * Structural (not `vscode.DebugConfiguration`) so the merge stays testable
+ * without the vscode API: the provider narrows its own config to this. */
+export interface DapLaunchEnvConfig {
+	environment?: CppdbgEnvironmentEntry[]
+	envFile?: string
+	env?: Record<string, string>
+}
+
+/** Merge parsed envFile entries into a launch configuration.
+ *
+ * Runs on the substituted config (see the provider's
+ * `resolveDebugConfigurationWithSubstitutedVariables`): the `envFile` path
+ * there is already expanded, so `${workspaceFolder}/.env` resolves instead
+ * of being read literally and swallowed. Precedence is inherited < envFile
+ * < explicit `environment`; `envFile` itself is dropped because neither GDB
+ * DAP nor lldb-dap consumes it. */
+export function withEnvFileEntries(
+	configuration: DapLaunchEnvConfig & Record<string, unknown>,
+	fileEntries: Record<string, string>,
+	base: NodeJS.ProcessEnv = process.env,
+): DapLaunchEnvConfig & Record<string, unknown> {
+	const resolved: DapLaunchEnvConfig & Record<string, unknown> = {
+		...configuration,
+		env: buildDapEnv(configuration.environment, base, fileEntries),
+	}
+	delete resolved.envFile
+	return resolved
+}
+
+/** The lldb-dap fields a V launch or attach configuration needs.
+ *
+ * lldb-dap does not understand the GDB/cppdbg field names the V config
+ * carries: `stopAtEntry` is `stopOnEntry`, `sourceFileMap` (`{from: to}`)
+ * is `sourceMap` (`[[from, to], ...]`), and `setupCommands` run as
+ * `preRunCommands` (lldb commands, untranslated). The pretty-printer
+ * import goes in `initCommands`. Both launch and attach share this
+ * conversion so attach sessions do not silently drop it. */
+export interface LldbDapConvertedFields {
+	stopOnEntry: boolean
+	sourceMap?: [string, string][]
+	preRunCommands: string[]
+	initCommands: string[]
+}
+
+export function lldbDapFields(input: {
+	stopAtEntry?: boolean
+	sourceFileMap?: Record<string, string>
+	setupCommands?: VSetupCommandInput[]
+	usePrettyPrinters?: boolean
+	formattersPath?: string
+}): LldbDapConvertedFields {
+	const pairs = Object.entries(input.sourceFileMap ?? {})
+	return {
+		stopOnEntry: input.stopAtEntry ?? false,
+		...(pairs.length ? { sourceMap: pairs } : {}),
+		preRunCommands: (input.setupCommands ?? []).map((command) => command.text),
+		initCommands:
+			input.usePrettyPrinters !== false && input.formattersPath
+				? [`command script import ${input.formattersPath}`]
+				: [],
+	}
 }

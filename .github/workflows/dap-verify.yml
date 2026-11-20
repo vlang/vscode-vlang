@@ -1,0 +1,49 @@
+name: DAP verification
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  dap-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install gdb
+        run: sudo apt-get update && sudo apt-get install -y gdb
+
+      - name: Show gdb version
+        run: gdb --version | head -1
+
+      - name: Assert gdb is DAP-capable
+        run: gdb --batch -ex 'python print("ok")'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Logic tests
+        run: npm run test:logic
+
+      - name: Run verify-dap.sh
+        run: bash scripts/verify-dap.sh
+
+      - name: Upload log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dap-verify-log
+          path: verify-dap.log

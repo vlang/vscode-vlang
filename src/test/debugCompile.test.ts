@@ -5,14 +5,25 @@ import { describe, it } from "node:test"
 import {
 	cppdbgAttachConfig,
 	cppdbgLaunchConfig,
+	buildDapEnv,
+	dapAttachFields,
 	debugBinaryPath,
 	debugCompileArgs,
+	gdbSetupCommandToCli,
 	gdbSetupCommands,
+	isCommandReference,
+	shouldSkipProcessPicker,
+	lldbDapFields,
 	mainFunctionLines,
 	missingCppdbgMessage,
 	missingDebuggerMessage,
+	parseEnvFile,
+	parseGdbVersion,
+	pipeTransportArgs,
+	preflightGdb,
 	resolveDebuggerCommand,
 	vPrintersPath,
+	withEnvFileEntries,
 } from "../debugCompile"
 
 describe("V debug compile", () => {
@@ -333,5 +344,364 @@ describe("V debug compile", () => {
 		assert.deepStrictEqual(mainFunctionLines("// fn main() {}\nfn helper() {}\n"), [])
 		assert.deepStrictEqual(mainFunctionLines("  fn main() {}\n"), [])
 		assert.deepStrictEqual(mainFunctionLines("fn main() {}\nfn main() {}\n"), [0, 1])
+	})
+
+	describe("gdb preflight", () => {
+		it("detects a DAP-capable gdb", () => {
+			const result = preflightGdb("GNU gdb (GDB) 18.1\nok\n")
+			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: true })
+		})
+		it("accepts distro-packaged version banners", () => {
+			// Ubuntu/Debian tag the vendor before the version; the version
+			// is the token right after the vendor tag, not the (GDB) shape
+			// and not a later dotted distro suffix.
+			assert.strictEqual(parseGdbVersion("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n"), "15.1")
+			assert.strictEqual(parseGdbVersion("GNU gdb (Debian 13.1-3) 13.1\nok\n"), "13.1")
+			assert.strictEqual(
+				parseGdbVersion("GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1\nok\n"),
+				"12.1",
+			)
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) 17.1\nok\n"), "17.1")
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) Fedora 13.2-5.fc38\nok\n"), "13.2")
+			assert.strictEqual(parseGdbVersion("GNU gdb (GDB) 16.0.50.20240513-git\nok\n"), "16.0")
+			assert.strictEqual(parseGdbVersion("not a gdb banner\nok\n"), "")
+			const result = preflightGdb("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n")
+			assert.deepStrictEqual(result, { adapter: "gdb-dap", coreFileDap: false })
+			assert.deepStrictEqual(preflightGdb("GNU gdb (Debian 13.1-3) 13.1\nok\n"), {
+				adapter: "gdb-dap",
+				coreFileDap: false,
+			})
+		})
+		it("rejects this host's gdb 17.1 (no Python/DAP)", () => {
+			const recorded =
+				"GNU gdb (GDB) 17.1\nPython scripting is not supported in this copy of GDB.\nInterpreter `dap' unrecognized"
+			const result = preflightGdb(recorded)
+			assert.strictEqual(result.adapter, null)
+			assert.strictEqual(
+				result.error,
+				"gdb 17.1 has no DAP support (built without Python). Install gdb >= 13 with Python, or enable the cppdbg fallback (v.debug.adapter = 'cppdbg').",
+			)
+		})
+		it("gates core-file attach on DAP support", () => {
+			// DAP core-file support arrived in GDB 18 (gdb-patches, April
+			// 2026): 15.1 and 17.1 only accept pid/target (the live verifier
+			// records a SKIP there).
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 15.1\nok\n").coreFileDap, false)
+			assert.strictEqual(
+				preflightGdb("GNU gdb (Ubuntu 15.1-1ubuntu1) 15.1\nok\n").coreFileDap,
+				false,
+			)
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 17.1\nok\n").coreFileDap, false)
+			assert.strictEqual(preflightGdb("GNU gdb (GDB) 18.1\nok\n").coreFileDap, true)
+			assert.strictEqual(preflightGdb("gdb not found on PATH").coreFileDap, false)
+		})
+		it("handles gdb not found", () => {
+			const result = preflightGdb("gdb not found on PATH")
+			assert.strictEqual(result.adapter, null)
+			assert.strictEqual(result.error, "gdb not found on PATH")
+		})
+		it("rejects a failed DAP probe even without a recognized diagnostic", () => {
+			// A failed probe must not be classified capable just because its
+			// output lacks the known unrecognized-interpreter text: the
+			// object path carries the non-zero exit code the string path
+			// would default to zero.
+			const result = preflightGdb({
+				output: "GNU gdb (GDB) 18.1\nsome odd failure\n",
+				exitCode: 1,
+			})
+			assert.strictEqual(result.adapter, null)
+		})
+	})
+
+	describe("pretty-printer toggle", () => {
+		it("omits the printer commands from a cppdbg launch when disabled", () => {
+			const config = cppdbgLaunchConfig({
+				name: "Debug V Program",
+				binary: "/tmp/v-debug-main",
+				args: [],
+				cwd: "/workspace",
+				stopAtEntry: false,
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+				setupCommands: [{ text: "skip -gfi vlib/*" }],
+				usePrettyPrinters: false,
+			})
+			assert.deepStrictEqual(
+				config.setupCommands.map((command) => command.text),
+				["skip -gfi vlib/*"],
+			)
+		})
+
+		it("omits the printer commands from a cppdbg attach when disabled", () => {
+			const config = cppdbgAttachConfig({
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				processId: "1234",
+				cwd: "/workspace",
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+				usePrettyPrinters: false,
+			})
+			assert.deepStrictEqual(config.setupCommands, [])
+		})
+
+		it("keeps the printer commands by default", () => {
+			const launch = cppdbgLaunchConfig({
+				name: "Debug V Program",
+				binary: "/tmp/v-debug-main",
+				args: [],
+				cwd: "/workspace",
+				stopAtEntry: false,
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+			})
+			assert.strictEqual(launch.setupCommands.length, 2)
+			const attach = cppdbgAttachConfig({
+				name: "Attach V Program",
+				program: "/tmp/v-debug-main",
+				processId: "1234",
+				cwd: "/workspace",
+				printersPath: "/extension/scripts/gdb/v_printers.py",
+				miMode: "gdb",
+				miDebuggerPath: "/usr/bin/gdb",
+			})
+			assert.strictEqual(attach.setupCommands.length, 2)
+		})
+	})
+
+	describe("MI setup command translation", () => {
+		it("translates the pretty-printing enablement to CLI", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli("-enable-pretty-printing"),
+				"set print pretty on",
+			)
+		})
+
+		it("unwraps console interpreter-exec to the inner CLI command", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli(
+					'-interpreter-exec console "source \\"/extension/scripts/gdb/v_printers.py\\""',
+				),
+				'source "/extension/scripts/gdb/v_printers.py"',
+			)
+		})
+
+		it("translates -gdb-set to a CLI set command", () => {
+			assert.strictEqual(
+				gdbSetupCommandToCli("-gdb-set print pretty on"),
+				"set print pretty on",
+			)
+			assert.strictEqual(gdbSetupCommandToCli("-gdb-set   confirm off"), "set confirm off")
+		})
+
+		it("runs other MI commands through the MI interpreter", () => {
+			// `-iex` expects CLI, so the wrapper is `interpreter-exec mi`
+			// (no leading dash): GDB rejects `-interpreter-exec mi` there.
+			assert.strictEqual(
+				gdbSetupCommandToCli("-break-insert main"),
+				'interpreter-exec mi "-break-insert main"',
+			)
+		})
+
+		it("passes CLI commands through untouched", () => {
+			assert.strictEqual(gdbSetupCommandToCli("skip -gfi vlib/*"), "skip -gfi vlib/*")
+		})
+	})
+
+	describe("built-in attach fields", () => {
+		it("maps a processId string to a numeric pid", () => {
+			assert.deepStrictEqual(dapAttachFields({ processId: "1234" }), { pid: 1234 })
+		})
+
+		it("accepts a core-file-only configuration with no PID", () => {
+			assert.deepStrictEqual(dapAttachFields({ coreFile: "/tmp/core.test" }), {
+				coreFile: "/tmp/core.test",
+			})
+		})
+
+		it("keeps both pid and coreFile when both are set", () => {
+			assert.deepStrictEqual(
+				dapAttachFields({ processId: "1234", coreFile: "/tmp/core.test" }),
+				{ pid: 1234, coreFile: "/tmp/core.test" },
+			)
+		})
+
+		it("accepts a target-only remote attach with no PID", () => {
+			assert.deepStrictEqual(dapAttachFields({ target: "localhost:2345" }), {
+				target: "localhost:2345",
+			})
+		})
+
+		it("prefers a remote target over a PID", () => {
+			// GDB DAP would otherwise attach locally and ignore the remote.
+			assert.deepStrictEqual(
+				dapAttachFields({ processId: "1234", target: "localhost:2345" }),
+				{ target: "localhost:2345" },
+			)
+		})
+
+		it("rejects an attach with neither PID, core file, nor target", () => {
+			const result = dapAttachFields({})
+			assert.ok("error" in result)
+		})
+
+		it("rejects a PID that is not a positive integer", () => {
+			for (const processId of ["${command:v.pickProcess}", "abc", "0", "-5", "12.5"]) {
+				const result = dapAttachFields({ processId })
+				assert.ok("error" in result, processId)
+			}
+		})
+
+		it("recognizes unsubstituted command references", () => {
+			assert.ok(isCommandReference("${command:v.pickProcess}"))
+			assert.ok(isCommandReference("${command:pickProcess}"))
+			assert.ok(!isCommandReference("1234"))
+			assert.ok(!isCommandReference(""))
+		})
+
+		it("skips the picker reference when a core file is present", () => {
+			// The attach schema defaults processId to the picker, so a
+			// core-file-only config still carries it; running the picker
+			// would send both pid and coreFile and GDB would prefer the PID.
+			assert.strictEqual(
+				shouldSkipProcessPicker({
+					processId: "${command:v.pickProcess}",
+					coreFile: "/tmp/core.test",
+				}),
+				true,
+			)
+		})
+
+		it("skips the picker reference when a remote target is present", () => {
+			assert.strictEqual(
+				shouldSkipProcessPicker({
+					processId: "${command:v.pickProcess}",
+					target: "localhost:2345",
+				}),
+				true,
+			)
+		})
+
+		it("keeps the picker reference for a live-process attach", () => {
+			assert.strictEqual(
+				shouldSkipProcessPicker({ processId: "${command:v.pickProcess}" }),
+				false,
+			)
+			assert.strictEqual(shouldSkipProcessPicker({ processId: "1234" }), false)
+			assert.strictEqual(
+				shouldSkipProcessPicker({ processId: "1234", coreFile: "/tmp/core.test" }),
+				false,
+			)
+		})
+	})
+
+	describe("lldb field conversion", () => {
+		it("maps stopAtEntry and sourceFileMap to lldb-dap names", () => {
+			assert.deepStrictEqual(
+				lldbDapFields({
+					stopAtEntry: true,
+					sourceFileMap: { "/build": "/workspace" },
+					setupCommands: [{ text: "settings set auto-confirm true" }],
+					usePrettyPrinters: true,
+					formattersPath: "/extension/scripts/lldb/v_formatters.py",
+				}),
+				{
+					stopOnEntry: true,
+					sourceMap: [["/build", "/workspace"]],
+					preRunCommands: ["settings set auto-confirm true"],
+					initCommands: ["command script import /extension/scripts/lldb/v_formatters.py"],
+				},
+			)
+		})
+
+		it("omits empty sourceMap and printer import when disabled", () => {
+			assert.deepStrictEqual(
+				lldbDapFields({ usePrettyPrinters: false, formattersPath: "/x/v_formatters.py" }),
+				{ stopOnEntry: false, preRunCommands: [], initCommands: [] },
+			)
+		})
+	})
+
+	describe("debuggee environment", () => {
+		it("preserves inherited variables under explicit entries", () => {
+			const env = buildDapEnv([{ name: "VFLAGS", value: "-d debug" }], {
+				PATH: "/usr/bin",
+				HOME: "/root",
+			})
+			assert.strictEqual(env.PATH, "/usr/bin")
+			assert.strictEqual(env.HOME, "/root")
+			assert.strictEqual(env.VFLAGS, "-d debug")
+		})
+
+		it("merges inherited < envFile < explicit entries", () => {
+			const env = buildDapEnv(
+				[{ name: "VFLAGS", value: "explicit" }],
+				{ PATH: "/usr/bin", SHARED: "base" },
+				{ SHARED: "file", FROM_FILE: "1" },
+			)
+			assert.strictEqual(env.SHARED, "file")
+			assert.strictEqual(env.FROM_FILE, "1")
+			assert.strictEqual(env.VFLAGS, "explicit")
+			assert.strictEqual(env.PATH, "/usr/bin")
+		})
+
+		it("parses KEY=VALUE files, skipping comments and blanks", () => {
+			assert.deepStrictEqual(
+				parseEnvFile("# comment\n\nA=1\nB = two = three\nNOEQUALS\n=noname\n"),
+				{ A: "1", B: "two = three" },
+			)
+		})
+
+		it("merges envFile entries after substitution and drops envFile", () => {
+			// The hook runs after VS Code substitutes variables, so the path
+			// here is already expanded; the merge must keep inherited values,
+			// let the file override them, and let explicit entries win.
+			const resolved = withEnvFileEntries(
+				{
+					type: "v",
+					request: "launch",
+					program: "/tmp/v-debug-main",
+					envFile: "/w/app/.env",
+					environment: [{ name: "SHARED", value: "explicit" }],
+				},
+				{ SHARED: "file", FROM_FILE: "1" },
+				{ PATH: "/usr/bin", SHARED: "base" },
+			)
+			assert.deepStrictEqual(resolved.env, {
+				PATH: "/usr/bin",
+				SHARED: "explicit",
+				FROM_FILE: "1",
+			})
+			assert.ok(!("envFile" in resolved))
+			assert.strictEqual(resolved.program, "/tmp/v-debug-main")
+		})
+	})
+
+	describe("remote pipe transport", () => {
+		it("passes the remote debugger path through verbatim", () => {
+			// The remote gdb may live at a different path than the local one,
+			// so it must not be resolved against the local PATH.
+			assert.deepStrictEqual(
+				pipeTransportArgs(
+					{
+						pipeProgram: "ssh",
+						pipeArgs: ["remote"],
+						debuggerPath: "/opt/remote/bin/gdb",
+					},
+					["-i=dap"],
+				),
+				["remote", "/opt/remote/bin/gdb", "-i=dap"],
+			)
+		})
+
+		it("handles a bare pipe with no extra args", () => {
+			assert.deepStrictEqual(
+				pipeTransportArgs({ pipeProgram: "ssh", debuggerPath: "/usr/bin/lldb-dap" }),
+				["/usr/bin/lldb-dap"],
+			)
+		})
 	})
 })

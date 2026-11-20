@@ -39,6 +39,7 @@ export const state = {
 	commands: new Map<string, (...args: unknown[]) => unknown>(),
 	information: [] as string[],
 	errors: [] as string[],
+	warnings: [] as string[],
 	logs: [] as string[],
 	foldingRanges: [] as FoldingProvider[],
 	codeLenses: [] as CodeLensProvider[],
@@ -54,6 +55,7 @@ export function resetVscode(): void {
 	state.commands.clear()
 	state.information.length = 0
 	state.errors.length = 0
+	state.warnings.length = 0
 	state.logs.length = 0
 	state.foldingRanges.length = 0
 	state.codeLenses.length = 0
@@ -242,6 +244,10 @@ export const window = {
 	},
 	async showErrorMessage(message: string, ..._actions: string[]) {
 		state.errors.push(message)
+		return undefined
+	},
+	async showWarningMessage(message: string, ..._actions: string[]) {
+		state.warnings.push(message)
 		return undefined
 	},
 	async withProgress<T>(

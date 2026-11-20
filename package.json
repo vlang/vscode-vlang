@@ -7,11 +7,9 @@
 	"version": "0.2.1",
 	"license": "GPL-2.0-only",
 	"engines": {
-		"vscode": "^1.140.0"
+		"vscode": "^1.145.0"
 	},
-	"extensionPack": [
-		"ms-vscode.cpptools"
-	],
+	"extensionPack": [],
 	"homepage": "https://vlang.io/",
 	"bugs": {
 		"url": "https://github.com/vlang/vscode-vlang/issues"
@@ -408,6 +406,22 @@
 					"default": "",
 					"scope": "resource",
 					"description": "Directory the V MCP server resolves relative paths against. Empty means each workspace folder. Set it when the V project root differs from the folder you opened."
+				},
+				"v.debug.usePrettyPrinters": {
+					"type": "boolean",
+					"default": true,
+					"description": "Load the V GDB pretty printers at session start."
+				},
+				"v.debug.adapter": {
+					"type": "string",
+					"enum": [
+						"gdb-dap",
+						"lldb-dap",
+						"cppdbg",
+						"auto"
+					],
+					"default": "auto",
+					"description": "Which debug adapter to use. auto prefers the built-in gdb/lldb DAP server when the debugger is DAP-capable and falls back to cppdbg; an explicit adapter that cannot run cancels the session."
 				}
 			}
 		},
@@ -679,6 +693,11 @@
 				"command": "v.env.status",
 				"title": "Show Environment Status",
 				"category": "V"
+			},
+			{
+				"command": "v.pickProcess",
+				"title": "Pick Process",
+				"category": "V"
 			}
 		],
 		"menus": {
@@ -798,7 +817,7 @@
 							},
 							"stopAtEntry": {
 								"type": "boolean",
-								"description": "Break at the start of the program.",
+								"description": "Break at the start of the program. Built-in lldb sessions send this as stopOnEntry.",
 								"default": false
 							},
 							"cwd": {
@@ -833,14 +852,14 @@
 										},
 										"text": {
 											"type": "string",
-											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames."
+											"description": "An MI command to run after the debugger starts, e.g. GDB skip rules for generated frames. The built-in gdb adapter translates MI shapes to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands."
 										},
 										"ignoreFailures": {
 											"type": "boolean"
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands.",
 								"default": []
 							},
 							"environment": {
@@ -860,11 +879,11 @@
 										}
 									}
 								},
-								"description": "Environment variables for the debugged program."
+								"description": "Environment variables for the debugged program. Built-in adapters overlay these on the inherited environment, so PATH and HOME survive; they win over envFile entries."
 							},
 							"envFile": {
 								"type": "string",
-								"description": "Path to a KEY=VALUE environment file for the debugged program. Entries overwrite environment."
+								"description": "Path to a KEY=VALUE environment file for the debugged program. Read after variable substitution; entries override the inherited environment and lose to environment. Built-in adapters merge it into env (GDB/LLDB DAP ignore envFile itself); cppdbg forwards it."
 							},
 							"externalConsole": {
 								"type": "boolean",
@@ -873,7 +892,7 @@
 							},
 							"sourceFileMap": {
 								"type": "object",
-								"description": "Map build paths to local source paths, e.g. for remote targets."
+								"description": "Map build paths to local source paths, e.g. for remote targets. Built-in lldb sessions send this as sourceMap pairs."
 							},
 							"miDebuggerServerAddress": {
 								"type": "string",
@@ -905,14 +924,13 @@
 										"type": "string"
 									}
 								},
-								"description": "Reach a remote debugger through a pipe program such as ssh."
+								"description": "Reach a remote debugger through a pipe program such as ssh. debuggerPath is the debugger executable on the remote machine and is used verbatim."
 							}
 						}
 					},
 					"attach": {
 						"required": [
-							"program",
-							"processId"
+							"program"
 						],
 						"properties": {
 							"program": {
@@ -921,8 +939,12 @@
 							},
 							"processId": {
 								"type": "string",
-								"description": "Process ID to attach to. ${command:pickProcess} shows the adapter's process picker.",
-								"default": "${command:pickProcess}"
+								"description": "Process ID to attach to. ${command:v.pickProcess} shows the process picker (${command:pickProcess} also works). Omit for core-file-only or remote-target (miDebuggerServerAddress) attach with the built-in adapters.",
+								"default": "${command:v.pickProcess}"
+							},
+							"coreFile": {
+								"type": "string",
+								"description": "Path to a core dump; gdb DAP forwards this to the inferior. Needs a GDB whose DAP supports coreFile (added in GDB 18; 15.1/17.1 DAPs predate it) — install a newer GDB with Python support."
 							},
 							"cwd": {
 								"type": "string",
@@ -962,16 +984,16 @@
 										}
 									}
 								},
-								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb.",
+								"description": "Extra MI setup commands, run after the pretty-printer commands under gdb. The built-in gdb adapter translates them to CLI equivalents; built-in lldb sessions run them as preRunCommands; under lldb they are lldb commands.",
 								"default": []
 							},
 							"sourceFileMap": {
 								"type": "object",
-								"description": "Map build paths to local source paths, e.g. for remote targets."
+								"description": "Map build paths to local source paths, e.g. for remote targets. Built-in lldb sessions send this as sourceMap pairs."
 							},
 							"miDebuggerServerAddress": {
 								"type": "string",
-								"description": "Address of a remote MI debugger server, e.g. localhost:2345."
+								"description": "Address of a remote MI debugger server, e.g. localhost:2345. With the built-in adapters a remote target alone is enough to attach (no processId needed); it takes precedence over processId for GDB DAP."
 							},
 							"pipeTransport": {
 								"type": "object",
@@ -999,7 +1021,7 @@
 										"type": "string"
 									}
 								},
-								"description": "Reach a remote debugger through a pipe program such as ssh."
+								"description": "Reach a remote debugger through a pipe program such as ssh. debuggerPath is the debugger executable on the remote machine and is used verbatim."
 							}
 						}
 					}
@@ -1067,6 +1089,8 @@
 		]
 	},
 	"activationEvents": [
+		"onCommand:v.pickProcess",
+		"onCommand:pickProcess",
 		"workspaceContains:**/*.v",
 		"workspaceContains:**/*.vv",
 		"workspaceContains:**/*.xml",

@@ -1,8 +1,9 @@
 # Troubleshooting V debugging
 
 Starting a `type: "v"` session compiles the program with `-g` to a fresh
-temporary binary, then hands the session to the C/C++ extension's
-`cppdbg` adapter. Most failures fall into the cases below.
+temporary binary, then runs it on the selected adapter (`v.debug.adapter`):
+the built-in gdb/lldb DAP server when the debugger supports it, else the
+C/C++ extension's `cppdbg` adapter. Most failures fall into the cases below.
 
 ## No debugger found
 
@@ -46,14 +47,46 @@ I/O goes to the integrated terminal by default. Set
 `"externalConsole": true` for a separate console window. There is no
 internal-console mode: that knob does not exist on `cppdbg`.
 
+## Environment variables
+
+The built-in adapters replace the debuggee environment with the `env`
+they send, so the provider seeds it from the inherited environment:
+setting one variable never drops PATH or HOME. Precedence is
+inherited < `envFile` entries < explicit `environment` entries.
+
+`envFile` is read after VS Code substitutes variables, so
+`${workspaceFolder}/.env` resolves instead of being read literally
+(a GDB/LLDB DAP adapter would ignore `envFile` itself, which is why the
+provider merges it into `env`). An unreadable file warns but does not
+cancel the session.
+
+## Remote attach
+
+With the built-in adapters, `"miDebuggerServerAddress"` alone is
+enough to attach: no `processId` or `coreFile` is required, and when a
+remote target and a PID are both set the target wins (GDB DAP would
+otherwise attach locally and ignore the remote). The `cppdbg` fallback
+still needs a `processId`.
+
+## Core-file attach
+
+Core files need a GDB whose DAP accepts `coreFile` (added in GDB 18;
+15.1/17.1 DAPs predate it and only take `pid`/`target`). The provider checks the
+probed version and cancels with an install hint instead of launching
+into a guaranteed failure; the live verifier records a SKIP (validated
+via a batch backtrace) on such hosts and a PASS where DAP coreFile
+works.
+
 ## Stepping into generated C
 
 `setupCommands` in the `type: "v"` config pass MI commands through
 after the printer setup, e.g. GDB `skip` rules for generated-C and
-runtime frames. That is also where lldb-specific setup goes, since the
+runtime frames (the built-in gdb adapter translates them to CLI
+equivalents). That is also where lldb-specific setup goes, since the
 printer commands are gdb-only and omitted under lldb.
 
 ## Missing C/C++ extension
 
-Delegation needs `ms-vscode.cpptools`. The extension pack recommends
-it, and a missing install shows an action that installs it.
+Only the `cppdbg` fallback needs `ms-vscode.cpptools`. The extension pack
+recommends it, and with `v.debug.adapter` set to `cppdbg` a missing install
+cancels the session with an install hint instead of launching.
